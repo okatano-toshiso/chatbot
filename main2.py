@@ -41,8 +41,8 @@ from menu_items import MenuItem
 from message import MESSAGES
 import textwrap
 import re
-import requests
 
+import requests
 
 # Define constants
 FILES_TO_DOWNLOAD = ["docstore.json", "index_store.json", "vector_store.json"]
@@ -151,7 +151,7 @@ def format_history(previous_messages: list) -> str:
 # history, and current state
 reserve = {}
 DEFAULT_MESSAGE_TO_USER = textwrap.dedent(f"""
-    LINEメッセージありがとうございます。こちら東横〇〇AI予約応答サービスです。\n
+    LINEメッセージありがとうございます。こちら〇〇ホテルAI予約応答サービスです。\n
     下記ご用件を承っております。\n\n----\n
     1.{MenuItem.NEW_RESERVATION.value}\n
     2.{MenuItem.CONFIRM_RESERVATION.value}\n
@@ -322,70 +322,44 @@ def generate_response(
             RESERVATION_RECEPTION_TELL = MESSAGES["reservation_reception_tell_error"]
             return str(RESERVATION_RECEPTION_TELL), user_status_code
 
-
     if user_status_code == "USER__RESERVATION_NEW_NAME":
-        start_date = datetime.strptime(reserve['start'], '%Y/%m/%d')
-        reserve['check_in'] = start_date.strftime('%Y/%m/%d')
-        reserve['check_out'] = (start_date + timedelta(days=int(reserve['stay']))).strftime('%Y/%m/%d')
+        start_date = datetime.strptime(reserve['start'], '%Y-%m-%d')
+        reserve['check_in'] = start_date.strftime('%Y-%m-%d')
+        reserve['check_out'] = (start_date + timedelta(days=int(reserve['stay']))).strftime('%Y-%m-%d')
         inside_parentheses = re.search(r'\((.*?)\)', reserve['room'])
         reserve['room_type'] = inside_parentheses.group(1)
-        reserve['reservation_date'] = datetime.now().strftime('%Y/%m/%d')
+        reserve['reservation_date'] = datetime.now().strftime('%Y-%m-%d')
         reserve['reservation_id'] = int(100)
         reserve['line_id'] = user_id
         reserve['status'] = "RESERVE"
-        reserve['number'] = int(reserve['number'])  # 修正: 'count_of_person' を 'number' に置き換え
-        reserve['tell'] = ""  # 初期化
+        reserve['count_of_person'] = {reserve['number']}
 
         if is_valid_phone_number(user_message):
             reserve["tell"] = user_message
-
-            # `reserve` オブジェクトをJSON形式に変換
-            reserve_data = {
-                "reserves": [reserve]
-            }
-            reserve_json = json.dumps(reserve_data)
-
-            # HTTP POSTリクエストを送信
-            response = requests.post("http://127.0.0.1:8000/reserve", data=reserve_json, headers={"Content-Type": "application/json"})
-
-            # レスポンスの内容を取得してメッセージに組み込む
-            if response.status_code == 200:
-                response_data = response.json()
-                RESERVATION_RECEPTION_CONFIRM = textwrap.dedent(f"""
-                    当日連絡可能な電話番号をありがとうございます。
-                    下記が宿泊予約の内容になりますのでご確認ください。
-                    ----
-                    予約番号：{reserve['reservation_id']}
-                    予約日：{reserve['reservation_date']}
-                    ラインID：{reserve['line_id']}
-                    チェックイン：{reserve['check_in']} 
-                    チェックアウト：{reserve['check_out']}
-                    ステータス：{reserve['status']}
-                    利用者人数：{reserve['number']}
-                    部屋タイプ：{reserve['room_type']}
-                    代表者氏名：{reserve['name']}
-                    電話番号：{reserve['tell']}
-                    ----
-                    サーバーからのレスポンス:
-                    {response_data}
-                    ----
-                    この条件でよろしければ、空室検索をいたします。
-                    「検索」とメッセージで送信してください。
-                """).strip()
-                user_status_code = "USER__RESERVATION_NEW_TELL"
-                return RESERVATION_RECEPTION_CONFIRM, user_status_code
-            else:
-                RESERVATION_RECEPTION_CONFIRM = textwrap.dedent(f"""
-                    エラーが発生しました。以下の内容をご確認ください。
-                    ----
-                    {response.text}
-                    ----
-                """).strip()
-                return RESERVATION_RECEPTION_CONFIRM, user_status_code
+            RESERVATION_RECEPTION_CONFIRM = textwrap.dedent(f"""
+                当日連絡可能な電話番号をありがとうございます。
+                下記が宿泊予約の内容になりますのでご確認ください。
+                ----
+                予約番号：{reserve['reservation_id']}
+                予約日：{reserve['reservation_date']}
+                ラインID：{reserve['line_id']}
+                チェックイン：{reserve['check_in']} 
+                チェックアウト：{reserve['check_out']}
+                ステータス：{reserve['status']}
+                利用者人数：{reserve['number']}
+                部屋タイプ：{reserve['room_type']}
+                代表者氏名：{reserve['name']}
+                電話番号：{reserve['tell']}
+                ----
+                この条件でよろしければ、空室検索をいたします。
+                「検索」とメッセージで送信してください。
+            """).strip()
+            user_status_code = "USER__RESERVATION_NEW_TELL"
+            print(reserve)
+            return str(RESERVATION_RECEPTION_CONFIRM), user_status_code
         else:
             RESERVATION_RECEPTION_CONFIRM = MESSAGES["reservation_reception_confirm_error"]
-            return RESERVATION_RECEPTION_CONFIRM, user_status_code
-
+            return str(RESERVATION_RECEPTION_CONFIRM), user_status_code
 
     if user_status_code == "USER__RESERVATION_NEW_TELL":
         if user_message == "検索":
