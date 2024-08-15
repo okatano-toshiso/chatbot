@@ -1,0 +1,7 @@
+line-bot-sdk
+langchain==0.0.340
+llama-index==0.9.7
+google-api-python-client
+google-cloud-storage
+google-cloud-firestore
+openai
