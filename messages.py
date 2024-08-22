@@ -1,7 +1,8 @@
 # message.py
+import textwrap
 
 MESSAGES = {
-    "reservation_reception_first": """
+    "reservation_reception_first": textwrap.dedent("""
         日本語で応答してください。
         あなたはホテルの予約受付担当です。
         userは予約に関して､問い合わせをしてきます。
@@ -28,81 +29,90 @@ MESSAGES = {
         5だったら「よくある質問」
 
         そのどれにも属さないようなメッセージであれば、何も返さないでください。
-    """,
-    "reservation_reception_start": """
+    """).strip(),
+    "reservation_reception_start": textwrap.dedent("""
         新規宿泊予約ありがとうございます。
         予約に必要な情報を得るためにいくつか質問をさせていただきます。
         宿泊開始日（到着日）はいつのご予定でしょうか。
-    """,
-    "reservation_reception_check": """
+    """).strip(),
+    "reservation_reception_check": textwrap.dedent("""
         予約確認ですね。
         予約時に控えていただきました予約番号のみを入力してください。
-    """,
-    "reservation_reception_updata": """
+    """).strip(),
+    "reservation_reception_updata": textwrap.dedent("""
         予約変更ですね。\n予約時に控えていただきました予約番号のみを入力してください。
-    """,
-    "reservation_reception_error": """
+    """).strip(),
+    "reservation_reception_error": textwrap.dedent("""
         正しい用件を再度、ご記入してメッセージを送付してください。
-    """,
-    "reservation_reception_stay": """
+    """).strip(),
+    "reservation_reception_stay": textwrap.dedent("""
         ですね。宿泊開始日（到着日）のご記入ありがとうございます。続きましては、宿泊予定数をお教えください。
-    """,
-    "reservation_reception_stay_error": """
-        正しい宿泊開始日(yyyy/mm/dd)を再度、ご記入してメッセージを送付してください。
-    """,
-    "reservation_reception_number":"""
-        泊ですね。宿泊予定数のご記入ありがとうございます。続きましては、ご利用者人数をお教えください。
-    """,
-    "reservation_reception_number_error":"""
+    """).strip(),
+    "reservation_reception_stay_error": textwrap.dedent("""
+        正しい宿泊開始日(yyyy-mm-dd)を再度、ご記入してメッセージを送付してください。
+    """).strip(),
+    "reservation_reception_number": textwrap.dedent("""泊ですね。\n宿泊予定数のご記入ありがとうございます。\n続きましては、ご利用者人数をお教えください。""").strip(),
+    "reservation_reception_number_error":textwrap.dedent("""
         正しいを宿泊予定数を再度、数値のみでご記入してメッセージを送付してください。
-    """,
-    "reservation_reception_room":"""
-        人ですね。ご利用者人数のご記入ありがとうございます。
+    """).strip(),
+    "reservation_reception_smoking":textwrap.dedent("""人ですね。
+        ご利用者人数のご記入ありがとうございます。
+        続きましては、部屋は禁煙と喫煙、どちらがよろしいでしょうか？
+    """).strip(),
+    "reservation_reception_smoking_error":textwrap.dedent("""
+        ご利用者人数を再度、数値のみでご記入してメッセージを送付してください。
+    """).strip(),
+    "reservation_reception_room":textwrap.dedent("""ですね。
         続きましては、希望する部屋タイプを選んでください。
         部屋タイプは下記から選んでください。
 
-        禁煙シングル(SK)
-        禁煙シングルA(SAK)
-        禁煙スモールシングルA(XSK)
-        禁煙エコノミーダブル(WAK)
-        禁煙キングダブル(QWK)
-        禁煙エコノミーツイン(ETK)
-        禁煙ハートフルツイン(HTK)
+        シングル(SK)
+        シングルA(SAK)
+        スモールシングルA(XSK)
+        エコノミーダブル(WAK)
+        キングダブル(QWK)
+        エコノミーツイン(ETK)
+        ハートフルツイン(HTK)
         ハートフルシングル(HSK)
-        喫煙シングル(S)
-        喫煙シングルA(SA)
-        喫煙スモールシングルA(XS)
-        喫煙エコノミーダブル(WA)
-        喫煙キングダブル(QW)
-        喫煙エコノミーツイン(ET)
-    """,
-    "reservation_reception_room_error":"""
-        ご利用者人数を再度、数値のみでご記入してメッセージを送付してください。
-    """,
-    "reservation_reception_name":"""
-        ですね。部屋タイプのご記入ありがとうございます。
+    """).strip(),
+    "reservation_reception_room_smoke":textwrap.dedent("""ですね。
+        続きましては、希望する部屋タイプを選んでください。
+        部屋タイプは下記から選んでください。
+
+        シングル(S)
+        シングルA(SA)
+        スモールシングルA(XS)
+        エコノミーダブル(WA)
+        キングダブル(QW)
+        エコノミーツイン(ET)
+    """).strip(),
+    "reservation_reception_room_error":textwrap.dedent("""
+        喫煙、禁煙のどちらかをお答えください。
+    """).strip(),
+    "reservation_reception_name":textwrap.dedent("""ですね。
+        部屋タイプのご記入ありがとうございます。
         続きましては、代表者の氏名を教えてください。
-    """,
-    "reservation_reception_name_error":"""
+    """).strip(),
+    "reservation_reception_name_error":textwrap.dedent("""
         正しい部屋タイプ名を記入してメッセージを送信してください。
-    """,
-    "reservation_reception_tell":"""
+    """).strip(),
+    "reservation_reception_tell":textwrap.dedent("""
         代表者様氏名のご記入ありがとうございます。
         続きましては、宿泊当日に連絡可能の電話番号を教えてください
-    """,
-    "reservation_reception_tell_error":"""
+    """).strip(),
+    "reservation_reception_tell_error":textwrap.dedent("""
         代表者様氏名をご記入してメッセージを送付してください。
-    """,
-    "reservation_reception_confrim_error":"""
+    """).strip(),
+    "reservation_reception_confirm_error":textwrap.dedent("""
         当日連絡可能な電話番号をハイフンなしの10-11桁の数値のみでメッセージを送信してください。
-    """,
-    "reservation_reception_search_error":"""
+    """).strip(),
+    "reservation_reception_search_error":textwrap.dedent("""
         今回の条件で検索しない場合は、再度お問い合わせしなおしてください。
-    """,
-    "reservation_reception_complete_error":"""
+    """).strip(),
+    "reservation_reception_complete_error":textwrap.dedent("""
         今回の条件で予約しない場合は、再度お問い合わせしなおしてください。
-    """,
-    "reservation_reception_check_result": """
+    """).strip(),
+    "reservation_reception_check_result":textwrap.dedent("""
         お客様の予約番号は下記内容になります。
         宿泊開始日：予約番号の検索結果
         宿泊数：予約番号の検索結果
@@ -112,12 +122,12 @@ MESSAGES = {
         電話番号：予約番号の検索結果
         予約APIで検索結果を表示させます。予約できればTrue、なんらかのエラーで予約できなければFalseを返します。
         上記予約内容で変更したい場合は「予約変更」とメッセージ送付してください。
-    """,
-    "reservation_reception_cancel":"""
+    """).strip(),
+    "reservation_reception_cancel":textwrap.dedent("""
         予約のキャンセルですね。
         予約時に控えていただきました予約番号のみを入力してください。
-    """,
-    "reservation_number_error": """
+    """).strip(),
+    "reservation_number_error":textwrap.dedent("""
         有効な予約番号を再度ご入力ください｡
-    """
+    """).strip()
 }

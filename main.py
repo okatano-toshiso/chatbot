@@ -41,7 +41,7 @@ from menu_items import MenuItem
 from message import MESSAGES
 import textwrap
 import re
-
+import uuid
 import requests
 
 # Define constants
@@ -64,7 +64,8 @@ client = OpenAI(
 
 # user status Initialize
 USER_STATUS_CODE = "USER__RESERVATION_DEFAULT"
-USE_HISTORY = False
+USE_HISTORY = True
+access_token = os.environ["ACCESS_TOKEN"]
 
 
 # Function to get the last updated time of an object in the bucket
@@ -161,9 +162,19 @@ DEFAULT_MESSAGE_TO_USER = textwrap.dedent(f"""
 """).strip()
 
 
+# create uuid
+unique_code = str(uuid.uuid4())
+
 def generate_response(
     user_message: str, history: str = None, user_status_code: str = None, user_id: str = None 
 ) -> str:
+
+
+    # save data for firestore
+    db_reserves_ref = db.collection("users").document(user_id).collection("reserves").document(unique_code)
+    db_users_ref = db.collection("users").document(user_id).collection("datas").document(unique_code)
+
+
     if user_status_code == "USER__RESERVATION_DEFAULT":
         USER_DEFAULT_PROMPT = DEFAULT_MESSAGE_TO_USER
         user_status_code = "USER__RESERVATION_INDEX"
@@ -207,12 +218,19 @@ def generate_response(
             system_content,
             user_message,
         )
-        reserves['check_in'] = datetime.strptime(bot_response, '%Y-%m-%d').strftime('%Y-%m-%d')
-        if is_valid_date(reserves['check_in']):
+        if is_valid_date(bot_response):
+
+            reserves['check_in'] = datetime.strptime(bot_response, '%Y-%m-%d').strftime('%Y-%m-%d')
+
+            db_reserves_ref.set({
+                "check_in": reserves['check_in'],
+            })
+
             RESERVATION_RECEPTION_STAY = (
                 f"{reserves['check_in']} {MESSAGES['reservation_reception_stay']}"
             )
             user_status_code = "USER__RESERVATION_NEW_START"
+
             return str(RESERVATION_RECEPTION_STAY), user_status_code
         else:
             RESERVATION_RECEPTION_STAY = MESSAGES["reservation_reception_stay_error"]
@@ -222,9 +240,14 @@ def generate_response(
         bot_response = get_chatgpt_response(
             OPENAI_API_KEY, "gpt-3.5-turbo", 0, system_content, user_message
         )
-        temp_data["stay"] = bot_response
-        reserves['check_out'] = (datetime.strptime(reserves['check_in'], '%Y-%m-%d') + timedelta(days=int(temp_data["stay"]))).strftime('%Y-%m-%d')
         if is_single_digit_number(bot_response):
+            temp_data["stay"] = bot_response
+            reserves['check_out'] = (datetime.strptime(reserves['check_in'], '%Y-%m-%d') + timedelta(days=int(temp_data["stay"]))).strftime('%Y-%m-%d')
+
+            db_reserves_ref.set({
+                "check_out": reserves['check_out'],
+            }, merge=True)
+
             RESERVATION_RECEPTION_NUMBER = (
                 textwrap.dedent(f"宿泊数は {temp_data['stay']}で、チェックアウト日は {reserves['check_out']}になります。 {MESSAGES['reservation_reception_number']}").strip()
             )
@@ -243,6 +266,12 @@ def generate_response(
         )
         if is_single_digit_number(bot_response):
             reserves["count_of_person"] = bot_response
+
+            db_reserves_ref.set({
+                "count_of_person": reserves['count_of_person'],
+            }, merge=True)
+
+
             RESERVATION_RECEPTION_SMOKING = textwrap.dedent(f"""
                 利用者人数は {reserves["count_of_person"]} {MESSAGES['reservation_reception_smoking']}
             """).strip()
@@ -299,9 +328,15 @@ def generate_response(
             if is_valid_room_type_smoke(bot_response):
                 room_judge = True
         if room_judge:
-            temp_data["room"] = bot_response
+            # temp_data["room"] = bot_response
+
+            inside_parentheses = re.search(r'\((.*?)\)', bot_response)
+            db_reserves_ref.set({
+                "room_type": inside_parentheses.group(1),
+            }, merge=True)
+
             RESERVATION_RECEPTION_NAME = textwrap.dedent(f"""
-                部屋タイプは {temp_data['room']} {MESSAGES['reservation_reception_name']}
+                部屋タイプは {bot_response} {MESSAGES['reservation_reception_name']}
             """).strip()
             user_status_code = "USER__RESERVATION_NEW_ROOM"
             return str(RESERVATION_RECEPTION_NAME), user_status_code
@@ -312,9 +347,11 @@ def generate_response(
 
     if user_status_code == "USER__RESERVATION_NEW_ROOM":
         if user_message:
-            temp_data["name"] = user_message
+            db_users_ref.set({
+                "name": user_message,
+            })
             RESERVATION_RECEPTION_TELL = textwrap.dedent(f"""
-                代表者氏名は {temp_data['name']} 様ですね。
+                代表者氏名は {user_message} 様ですね。
                 {MESSAGES['reservation_reception_tell']}
             """).strip()
             user_status_code = "USER__RESERVATION_NEW_NAME"
@@ -323,42 +360,79 @@ def generate_response(
             RESERVATION_RECEPTION_TELL = MESSAGES["reservation_reception_tell_error"]
             return str(RESERVATION_RECEPTION_TELL), user_status_code
 
-    if user_status_code == "USER__RESERVATION_NEW_NAME":
+    if user_status_code == "USER__RESERVATION_NEW_NAME":        
+
         if is_valid_phone_number(user_message):
+
+            token_data = {
+                "token": access_token
+            }
+
+            getReserveIdUrl = "https://fastapi-production-0724.up.railway.app/reserve/latest/id/"
+            response = requests.post(getReserveIdUrl, json=token_data)
+
+            if response.status_code == 200:
+                latest_reserve_id = response.json().get("latest_reserve_id")
+                new_reserve_id = int(latest_reserve_id) + int(1)
+
             current_date = datetime.now().strftime('%Y-%m-%d')
-            users["name"] = temp_data['name']
-            users["name_kana"] = "ナマエカナ"
+            current_datetime = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+            users["token"] = access_token
             users["phone_number"] = user_message
             users['line_id'] = user_id
-            users['age'] = int(30)
-            users['adult'] = True
-            users['created_at'] = current_date
-            users['updated_at'] = current_date
+            users['created_at'] = current_datetime
+            users['updated_at'] = current_datetime
 
-            inside_parentheses = re.search(r'\((.*?)\)', temp_data['room'])
-            reserves['room_type'] = inside_parentheses.group(1)
-            reserves['reservation_date'] = datetime.now().strftime('%Y-%m-%d')
-            reserves['reservation_id'] = int(100)
+            db_users_ref.set({
+                "line_id": users["line_id"],
+                "token": users["token"],
+                "phone_number": users["phone_number"],
+                "created_at": users["created_at"],
+                "updated_at": users["updated_at"]
+            }, merge=True)
+
+            reserves["token"] = access_token
+            reserves['reservation_date'] = current_date
+            reserves['reservation_id'] = new_reserve_id
             reserves['line_id'] = user_id
             reserves['status'] = "RESERVE"
-            reserves['option_id'] = int(101)
-            reserves['created_at'] = current_date
-            reserves['updated_at'] = current_date
+            reserves['created_at'] = current_datetime
+            reserves['updated_at'] = current_datetime
+
+            db_reserves_ref.set({
+                "token": reserves['token'],
+                "reservation_date": reserves['reservation_date'],
+                "reservation_id": reserves['reservation_id'],
+                "line_id": reserves['line_id'],
+                "status": reserves['status'],
+                "created_at": reserves['created_at'],
+                "updated_at": reserves['updated_at']
+            }, merge=True)
+
+            reserves_doc = db_reserves_ref.get()
+            reserve_datas = reserves_doc.to_dict()
+            print(reserve_datas['check_in'])
+
+            users_doc = db_users_ref.get()
+            user_datas = users_doc.to_dict()
+            print(user_datas['name'])
+
 
             RESERVATION_RECEPTION_CONFIRM = textwrap.dedent(f"""
                 当日連絡可能な電話番号をありがとうございます。
                 下記が宿泊予約の内容になりますのでご確認ください。
                 ----
-                予約番号：{reserves['reservation_id']}
-                予約日：{reserves['reservation_date']}
-                ラインID：{reserves['line_id']}
-                チェックイン：{reserves['check_in']} 
-                チェックアウト：{reserves['check_out']}
-                ステータス：{reserves['status']}
-                利用者人数：{reserves["count_of_person"]}
-                部屋タイプ：{reserves['room_type']}
-                代表者氏名：{users['name']}
-                電話番号：{users["phone_number"]}
+                予約番号：{reserve_datas['reservation_id']}
+                予約日：{reserve_datas['reservation_date']}
+                ラインID：{reserve_datas['line_id']}
+                チェックイン：{reserve_datas['check_in']} 
+                チェックアウト：{reserve_datas['check_out']}
+                ステータス：{reserve_datas['status']}
+                利用者人数：{reserve_datas["count_of_person"]}
+                部屋タイプ：{reserve_datas['room_type']}
+                代表者氏名：{user_datas['name']}
+                電話番号：{user_datas["phone_number"]}
                 ----
                 この条件でよろしければ、空室検索をいたします。
                 「検索」とメッセージで送信してください。
@@ -366,8 +440,8 @@ def generate_response(
             user_status_code = "USER__RESERVATION_NEW_TELL"
 
             data = {
-                "reserves": [reserves],
-                "line_users": [users]
+                "line_reserves": [reserve_datas],
+                "line_users": [user_datas]
             }
 
             # APIのエンドポイントURL
@@ -379,6 +453,8 @@ def generate_response(
             # ステータスコードとレスポンスの内容を取得
             status_code = response.status_code
             response_data = response.json()
+
+
 
             # レスポンスを表示
             print(f"Status Code: {status_code}")
@@ -795,24 +871,37 @@ def main(request: Request) -> str:
     return "OK"
 
 
+
+user_states = {}
 # Function to handle incoming messages from LINE
 @handler.add(MessageEvent, message=TextMessage)
 def handle_message(event: MessageEvent) -> None:
+    global user_states
     global USER_STATUS_CODE
     reload_index_if_updated()
     user_id = event.source.user_id
     user_message = event.message.text
-    print(user_id)
+
     if USE_HISTORY:
         previous_messages = get_previous_messages(user_id)
         history = format_history(previous_messages)
     else:
         history = None
-    # chatgpt_response = generate_response(user_message, history)
+
+    if user_id in user_states:
+        user_status_code = str(user_states[user_id])
+    else:
+        user_status_code = str(USER_STATUS_CODE)
+
     chatgpt_response, user_status_code = generate_response(
-        user_message, history, USER_STATUS_CODE, user_id
+        user_message, history, user_status_code, user_id
     )
-    USER_STATUS_CODE = user_status_code
+
+    print(user_status_code)
+
+    user_states[user_id] = str(user_status_code)
+
     reply_to_user(event.reply_token, chatgpt_response)
+
     if USE_HISTORY:
         save_message_to_db(user_id, user_message, chatgpt_response)
