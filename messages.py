@@ -30,6 +30,57 @@ MESSAGES = {
 
         そのどれにも属さないようなメッセージであれば、何も返さないでください。
     """).strip(),
+    "NEW_RESERVATION_CHECKIN": textwrap.dedent("""
+        ですね。宿泊開始日（到着日）のご記入ありがとうございます。続きましては、宿泊予定数をお教えください。
+    """).strip(),
+    "NEW_RESERVATION_CHECKIN_ERROR": textwrap.dedent("""
+        正しい宿泊開始日(yyyy-mm-dd)を再度、ご記入してメッセージを送付してください。
+    """).strip(),
+    "NEW_RESERVATION_CHECKOUT": textwrap.dedent("""\n宿泊予定数のご記入ありがとうございます。\n続きましては、ご利用者人数をお教えください。""").strip(),
+    "NEW_RESERVATION_CHECKOUT_ERROR":textwrap.dedent("""
+        正しいを宿泊予定数を再度、数値のみでご記入してメッセージを送付してください。
+    """).strip(),
+    "NEW_RESERVATION_COUNT_OF_PERSON":textwrap.dedent("""
+        人ですね。ご利用者人数のご記入ありがとうございます。続きましては、部屋は禁煙と喫煙、どちらがよろしいでしょうか？
+    """).strip(),
+    "NEW_RESERVATION_COUNT_OF_PERSON_ERROR":textwrap.dedent("""
+        ご利用者人数を再度、数値のみでご記入してメッセージを送付してください。
+    """).strip(),
+    "NEW_RESERVATION_SMOKER":textwrap.dedent("""ですね。
+        続きましては、希望する部屋タイプを選んでください。
+        部屋タイプは下記から選んでください。
+
+        シングル(S)
+        シングルA(SA)
+        スモールシングルA(XS)
+        エコノミーダブル(WA)
+        キングダブル(QW)
+        エコノミーツイン(ET)
+    """).strip(),
+    "NEW_RESERVATION_NO_SMOKER":textwrap.dedent("""ですね。
+        続きましては、希望する部屋タイプを選んでください。
+        部屋タイプは下記から選んでください。
+
+        シングル(SK)
+        シングルA(SAK)
+        スモールシングルA(XSK)
+        エコノミーダブル(WAK)
+        キングダブル(QWK)
+        エコノミーツイン(ETK)
+        ハートフルツイン(HTK)
+        ハートフルシングル(HSK)
+    """).strip(),
+    "NEW_RESERVATION_SMOKER_ERROR":textwrap.dedent("""
+        喫煙、禁煙のどちらかをお答えください。
+    """).strip(),
+    "NEW_RESERVATION_ROOM_TYPE":textwrap.dedent("""ですね。
+        部屋タイプのご記入ありがとうございます。
+        続きましては、代表者の氏名を教えてください。
+    """).strip(),
+    "NEW_RESERVATION_ROOM_TYPE_ERROR":textwrap.dedent("""
+        正しい部屋タイプ名を記入してメッセージを送信してください。
+    """).strip(),
+
     "reservation_reception_start": textwrap.dedent("""
         新規宿泊予約ありがとうございます。
         予約に必要な情報を得るためにいくつか質問をさせていただきます。

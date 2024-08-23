@@ -18,16 +18,16 @@ def is_valid_phone_number(phone_number: str) -> bool:
         len(phone_number) == 10 or len(phone_number) == 11
     )
 
-def is_valid_smoking(smoking: str) -> bool:
-    valid_smokings = [
+def is_valid_smoker(smoker: str) -> bool:
+    valid_smoker = [
         "禁煙",
         "喫煙"
     ]
-    return smoking in valid_smokings
+    return smoker in valid_smoker
 
 
-def is_valid_room_type(room_type: str) -> bool:
-    valid_room_types = [
+def is_valid_room_type_no_smoker(room_type: str) -> bool:
+    valid_room_type_no_smoker = [
         "シングル(SK)",
         "シングルA(SAK)",
         "スモールシングルA(XSK)",
@@ -37,11 +37,11 @@ def is_valid_room_type(room_type: str) -> bool:
         "ハートフルツイン(HTK)",
         "ハートフルシングル(HSK)",
     ]
-    return room_type in valid_room_types
+    return room_type in valid_room_type_no_smoker
 
 
-def is_valid_room_type_smoke(room_type: str) -> bool:
-    valid_room_types = [
+def is_valid_room_type_smoker(room_type: str) -> bool:
+    valid_room_type_smoker = [
         "シングル(S)",
         "シングルA(SA)",
         "スモールシングルA(XS)",
@@ -49,5 +49,5 @@ def is_valid_room_type_smoke(room_type: str) -> bool:
         "キングダブル(QW)",
         "エコノミーツイン(ET)"
     ]
-    return room_type in valid_room_types
+    return room_type in valid_room_type_smoker
 

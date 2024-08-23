@@ -21,10 +21,10 @@ from openai import OpenAI
 from validation import (
     is_valid_date,
     is_single_digit_number,
-    is_valid_smoking,
+    is_valid_smoker,
     is_valid_phone_number,
-    is_valid_room_type,
-    is_valid_room_type_smoke
+    is_valid_room_type_smoker,
+    is_valid_room_type_no_smoker
 )
 from chatgpt_api import get_chatgpt_response
 from generate import (
@@ -32,9 +32,9 @@ from generate import (
     generate_start_date,
     generate_stay,
     generate_number,
-    generate_smoking,
-    generate_room,
-    generate_room_smoking,
+    generate_smoker,
+    generate_room_type_smoker,
+    generate_room_type_no_smoker,
     generate_select,
 )
 from menu_items import MenuItem
@@ -43,6 +43,9 @@ import textwrap
 import re
 import uuid
 import requests
+from reservation_status import ReservationStatus
+from reservation_handler import ReservationHandler, ReservationStatus
+
 
 # Define constants
 FILES_TO_DOWNLOAD = ["docstore.json", "index_store.json", "vector_store.json"]
@@ -152,7 +155,8 @@ reserve = {}
 reserves = {}
 users = {}
 DEFAULT_MESSAGE_TO_USER = textwrap.dedent(f"""
-    LINEメッセージありがとうございます。こちら〇〇ホテルAI予約応答サービスです。\n
+    LINEメッセージありがとうございます。\n
+    こちら〇〇ホテルAI予約応答サービスです。\n
     下記ご用件を承っております。\n\n----\n
     1.{MenuItem.NEW_RESERVATION.value}\n
     2.{MenuItem.CONFIRM_RESERVATION.value}\n
@@ -165,14 +169,16 @@ DEFAULT_MESSAGE_TO_USER = textwrap.dedent(f"""
 # create uuid
 unique_code = str(uuid.uuid4())
 
+
 def generate_response(
     user_message: str, history: str = None, user_status_code: str = None, user_id: str = None 
 ) -> str:
 
-
     # save data for firestore
     db_reserves_ref = db.collection("users").document(user_id).collection("reserves").document(unique_code)
     db_users_ref = db.collection("users").document(user_id).collection("datas").document(unique_code)
+
+    reservation_handler = ReservationHandler(db_reserves_ref, OPENAI_API_KEY, MESSAGES)
 
 
     if user_status_code == "USER__RESERVATION_DEFAULT":
@@ -187,7 +193,7 @@ def generate_response(
         )
         if MenuItem.NEW_RESERVATION.value in bot_response:
             RESERVATION_RECEPTION_START = MESSAGES["reservation_reception_start"]
-            user_status_code = "USER__RESERVATION_NEW"
+            user_status_code = ReservationStatus.NEW_RESERVATION_CHECKIN.name
             return str(RESERVATION_RECEPTION_START), user_status_code
         elif MenuItem.CONFIRM_RESERVATION.value in bot_response:
             RESERVATION_RECEPTION_CHECK = MESSAGES["reservation_reception_check"]
@@ -209,143 +215,64 @@ def generate_response(
             RESERVATION_RECEPTION_ERROR = MESSAGES["reservation_reception_error"]
             return str(RESERVATION_RECEPTION_ERROR), user_status_code
 
-    if user_status_code == "USER__RESERVATION_NEW":
-        system_content = generate_start_date()
-        bot_response = get_chatgpt_response(
-            OPENAI_API_KEY,
-            "ft:gpt-3.5-turbo-1106:personal::9hWLayjR",
-            0,
-            system_content,
+    if user_status_code == ReservationStatus.NEW_RESERVATION_CHECKIN.name:
+
+        return reservation_handler.handle_reservation_step(
+            ReservationStatus.NEW_RESERVATION_CHECKIN,
             user_message,
+            ReservationStatus.NEW_RESERVATION_CHECKOUT
         )
-        if is_valid_date(bot_response):
 
-            reserves['check_in'] = datetime.strptime(bot_response, '%Y-%m-%d').strftime('%Y-%m-%d')
+    if user_status_code == ReservationStatus.NEW_RESERVATION_CHECKOUT.name:
 
-            db_reserves_ref.set({
-                "check_in": reserves['check_in'],
-            })
-
-            RESERVATION_RECEPTION_STAY = (
-                f"{reserves['check_in']} {MESSAGES['reservation_reception_stay']}"
-            )
-            user_status_code = "USER__RESERVATION_NEW_START"
-
-            return str(RESERVATION_RECEPTION_STAY), user_status_code
-        else:
-            RESERVATION_RECEPTION_STAY = MESSAGES["reservation_reception_stay_error"]
-            return str(RESERVATION_RECEPTION_STAY), user_status_code
-    if user_status_code == "USER__RESERVATION_NEW_START":
-        system_content = generate_stay()
-        bot_response = get_chatgpt_response(
-            OPENAI_API_KEY, "gpt-3.5-turbo", 0, system_content, user_message
+        return reservation_handler.handle_reservation_step(
+            ReservationStatus.NEW_RESERVATION_CHECKOUT,
+            user_message,
+            ReservationStatus.NEW_RESERVATION_COUNT_OF_PERSON
         )
-        if is_single_digit_number(bot_response):
-            temp_data["stay"] = bot_response
-            reserves['check_out'] = (datetime.strptime(reserves['check_in'], '%Y-%m-%d') + timedelta(days=int(temp_data["stay"]))).strftime('%Y-%m-%d')
 
-            db_reserves_ref.set({
-                "check_out": reserves['check_out'],
-            }, merge=True)
 
-            RESERVATION_RECEPTION_NUMBER = (
-                textwrap.dedent(f"宿泊数は {temp_data['stay']}で、チェックアウト日は {reserves['check_out']}になります。 {MESSAGES['reservation_reception_number']}").strip()
-            )
-            user_status_code = "USER__RESERVATION_NEW_STAY"
-            return str(RESERVATION_RECEPTION_NUMBER), user_status_code
-        else:
-            RESERVATION_RECEPTION_NUMBER = MESSAGES[
-                "reservation_reception_number_error"
-            ]
-            return str(RESERVATION_RECEPTION_NUMBER), user_status_code
+    if user_status_code == ReservationStatus.NEW_RESERVATION_COUNT_OF_PERSON.name:
 
-    if user_status_code == "USER__RESERVATION_NEW_STAY":
-        system_content = generate_number()
-        bot_response = get_chatgpt_response(
-            OPENAI_API_KEY, "gpt-3.5-turbo", 0, system_content, user_message
+        return reservation_handler.handle_reservation_step(
+            ReservationStatus.NEW_RESERVATION_COUNT_OF_PERSON,
+            user_message,
+            ReservationStatus.NEW_RESERVATION_SMOKER
         )
-        if is_single_digit_number(bot_response):
-            reserves["count_of_person"] = bot_response
 
-            db_reserves_ref.set({
-                "count_of_person": reserves['count_of_person'],
-            }, merge=True)
+    if user_status_code == ReservationStatus.NEW_RESERVATION_SMOKER.name:
 
-
-            RESERVATION_RECEPTION_SMOKING = textwrap.dedent(f"""
-                利用者人数は {reserves["count_of_person"]} {MESSAGES['reservation_reception_smoking']}
-            """).strip()
-            user_status_code = "USER__RESERVATION_NEW_NUMBER"
-            return str(RESERVATION_RECEPTION_SMOKING), user_status_code
-        else:
-            RESERVATION_RECEPTION_SMOKING = MESSAGES["reservation_reception_smoking_error"]
-            return str(RESERVATION_RECEPTION_SMOKING), user_status_code
-
-    if user_status_code == "USER__RESERVATION_NEW_NUMBER":
-        system_content = generate_smoking()
-        bot_response = get_chatgpt_response(
-            OPENAI_API_KEY, "gpt-3.5-turbo", 0, system_content, user_message
+        return reservation_handler.handle_reservation_step(
+            ReservationStatus.NEW_RESERVATION_SMOKER,
+            user_message,
+            ReservationStatus.NEW_RESERVATION_ROOM_TYPE,
         )
-        temp_data["smoking"] = bot_response
-        if temp_data["smoking"] == "禁煙": 
-            if is_valid_smoking(temp_data["smoking"]):
-                RESERVATION_RECEPTION_ROOM = textwrap.dedent(f"""
-                    禁煙か喫煙かは {temp_data['smoking']}ですね。 {MESSAGES['reservation_reception_room']}
-                """).strip()
-            else:
-                RESERVATION_RECEPTION_ROOM = MESSAGES["reservation_reception_room_error"]
-                return str(RESERVATION_RECEPTION_ROOM), user_status_code
-        elif temp_data["smoking"] == "喫煙":
-            if is_valid_smoking(bot_response):
-                RESERVATION_RECEPTION_ROOM = textwrap.dedent(f"""
-                    禁煙か喫煙かは {temp_data['smoking']}ですね。 {MESSAGES['reservation_reception_room_smoke']}
-                """).strip()
-            else:
-                RESERVATION_RECEPTION_ROOM = MESSAGES["reservation_reception_room_error"]
-                return str(RESERVATION_RECEPTION_ROOM), user_status_code
 
-        else:
-            RESERVATION_RECEPTION_ROOM = MESSAGES["reservation_reception_room_error"]
-            return str(RESERVATION_RECEPTION_ROOM), user_status_code
+    if user_status_code == ReservationStatus.NEW_RESERVATION_SMOKER.name:
 
-        user_status_code = "USER__RESERVATION_NEW_SMOKING"
-        return str(RESERVATION_RECEPTION_ROOM), user_status_code
+        return reservation_handler.handle_reservation_step(
+            ReservationStatus.NEW_RESERVATION_SMOKER,
+            user_message,
+            ReservationStatus.NEW_RESERVATION_ROOM_TYPE,
+        )
 
-    if user_status_code == "USER__RESERVATION_NEW_SMOKING":
-        room_judge = False
-        if temp_data["smoking"] == "禁煙":
-            system_content = generate_room()
-            bot_response = get_chatgpt_response(
-                OPENAI_API_KEY, "gpt-3.5-turbo", 0, system_content, user_message
-            )
-            if is_valid_room_type(bot_response):
-                room_judge = True
-        elif temp_data["smoking"] == "喫煙":
-            system_content = generate_room_smoking()
-            bot_response = get_chatgpt_response(
-                OPENAI_API_KEY, "gpt-3.5-turbo", 0, system_content, user_message
-            )
-            if is_valid_room_type_smoke(bot_response):
-                room_judge = True
-        if room_judge:
-            # temp_data["room"] = bot_response
+    if user_status_code == ReservationStatus.NEW_RESERVATION_ROOM_TYPE_SMOKER.name:
 
-            inside_parentheses = re.search(r'\((.*?)\)', bot_response)
-            db_reserves_ref.set({
-                "room_type": inside_parentheses.group(1),
-            }, merge=True)
+        return reservation_handler.handle_reservation_step(
+            ReservationStatus.NEW_RESERVATION_ROOM_TYPE_SMOKER,
+            user_message,
+            ReservationStatus.NEW_RESERVATION_NAME,
+        )
 
-            RESERVATION_RECEPTION_NAME = textwrap.dedent(f"""
-                部屋タイプは {bot_response} {MESSAGES['reservation_reception_name']}
-            """).strip()
-            user_status_code = "USER__RESERVATION_NEW_ROOM"
-            return str(RESERVATION_RECEPTION_NAME), user_status_code
-        else:
-            RESERVATION_RECEPTION_NAME = MESSAGES["reservation_reception_name_error"]
-            return str(RESERVATION_RECEPTION_NAME), user_status_code
+    if user_status_code == ReservationStatus.NEW_RESERVATION_ROOM_TYPE_NO_SMOKER.name:
 
+        return reservation_handler.handle_reservation_step(
+            ReservationStatus.NEW_RESERVATION_ROOM_TYPE_NO_SMOKER,
+            user_message,
+            ReservationStatus.NEW_RESERVATION_NAME,
+        )
 
-    if user_status_code == "USER__RESERVATION_NEW_ROOM":
+    if user_status_code == ReservationStatus.NEW_RESERVATION_NAME.name:
         if user_message:
             db_users_ref.set({
                 "name": user_message,
@@ -371,9 +298,12 @@ def generate_response(
             getReserveIdUrl = "https://fastapi-production-0724.up.railway.app/reserve/latest/id/"
             response = requests.post(getReserveIdUrl, json=token_data)
 
+            print(response)
             if response.status_code == 200:
                 latest_reserve_id = response.json().get("latest_reserve_id")
                 new_reserve_id = int(latest_reserve_id) + int(1)
+
+            print(new_reserve_id)
 
             current_date = datetime.now().strftime('%Y-%m-%d')
             current_datetime = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
