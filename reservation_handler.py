@@ -170,18 +170,11 @@ class ReservationHandler:
         reserve_confirm = user_message
         system_content = generate_reserve_confirm()
         reserve_confirm = self.get_chatgpt_response(system_content, user_message)
-        print(reserve_confirm)
         if is_valid_reserve_confirm(reserve_confirm):
-            reserves_doc = self.db_ref.get()
-            reserve_datas = reserves_doc.to_dict()
-            print("予約データ")
-            data = {
-                "reserve_datas": [reserve_datas]
-            }
-            print(data)
-            # message = textwrap.dedent(f"{self.messages[ReservationStatus.NEW_RESERVATION_RESERVE_CONFIRM.name]}").strip()
+            reserve_doc = self.db_ref.get()
+            reserve_datas = reserve_doc.to_dict()
             message_template = self.messages[ReservationStatus.NEW_RESERVATION_RESERVE_CONFIRM.name]
-            message = message_template.format(data)
+            message = message_template.format(**reserve_datas)
             return message, next_status.name
         else:
             return self.messages["NEW_RESERVATION_RESERVE_CONFIRM_ERROR"], "USER__RESERVATION_DEFAULT"

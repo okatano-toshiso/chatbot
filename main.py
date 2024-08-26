@@ -154,18 +154,6 @@ temp_data = {}
 reserve = {}
 reserves = {}
 users = {}
-DEFAULT_MESSAGE_TO_USER = textwrap.dedent(f"""
-    LINEメッセージありがとうございます。\n
-    こちら〇〇ホテルAI予約応答サービスです。\n
-    下記ご用件を承っております。\n\n----\n
-    1.{MenuItem.NEW_RESERVATION.value}\n
-    2.{MenuItem.CONFIRM_RESERVATION.value}\n
-    3.{MenuItem.MODIFY_RESERVATION.value}\n
-    4.{MenuItem.CANCEL_RESERVATION.value}\n
-    5.{MenuItem.FAQ.value}\n----
-""").strip()
-
-
 # create uuid
 unique_code = str(uuid.uuid4())
 
@@ -182,7 +170,7 @@ def generate_response(
 
 
     if user_status_code == "USER__RESERVATION_DEFAULT":
-        USER_DEFAULT_PROMPT = DEFAULT_MESSAGE_TO_USER
+        USER_DEFAULT_PROMPT = MESSAGES["DEFAULT_MESSAGE_TO_USER"]
         user_status_code = "USER__RESERVATION_INDEX"
         return str(USER_DEFAULT_PROMPT), user_status_code
 

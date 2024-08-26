@@ -1,5 +1,6 @@
 # message.py
 import textwrap
+from menu_items import MenuItem
 
 MESSAGES = {
     "reservation_reception_first": textwrap.dedent("""
@@ -30,6 +31,17 @@ MESSAGES = {
 
         そのどれにも属さないようなメッセージであれば、何も返さないでください。
     """).strip(),
+    "DEFAULT_MESSAGE_TO_USER": textwrap.dedent(f"""
+        こちら〇〇ホテルAI予約応答サービスです。
+        下記ご用件を承っております。
+        ----
+        1.{MenuItem.NEW_RESERVATION.value}
+        2.{MenuItem.CONFIRM_RESERVATION.value}
+        3.{MenuItem.MODIFY_RESERVATION.value}
+        4.{MenuItem.CANCEL_RESERVATION.value}
+        5.{MenuItem.FAQ.value}
+        ----
+    """).strip(),
     "NEW_RESERVATION_CHECKIN": textwrap.dedent("""
         ですね。宿泊開始日（到着日）のご記入ありがとうございます。続きましては、宿泊予定数をお教えください。
     """).strip(),
@@ -47,35 +59,35 @@ MESSAGES = {
         ご利用者人数を再度、数値のみでご記入してメッセージを送付してください。
     """).strip(),
     "NEW_RESERVATION_SMOKER":textwrap.dedent("""ですね。
-        続きましては、希望する部屋タイプを選んでください。
-        部屋タイプは下記から選んでください。
-
-        シングル(S)
-        シングルA(SA)
-        スモールシングルA(XS)
-        エコノミーダブル(WA)
-        キングダブル(QW)
-        エコノミーツイン(ET)
-    """).strip(),
+続きましては、希望する部屋タイプを選んでください。
+部屋タイプは下記から選んでください。
+-------------------
+・シングル(S)
+・シングルA(SA)
+・スモールシングルA(XS)
+・エコノミーダブル(WA)
+・キングダブル(QW)
+・エコノミーツイン(ET)
+-------------------
+""").strip(),
     "NEW_RESERVATION_NO_SMOKER":textwrap.dedent("""ですね。
-        続きましては、希望する部屋タイプを選んでください。
-        部屋タイプは下記から選んでください。
-
-        シングル(SK)
-        シングルA(SAK)
-        スモールシングルA(XSK)
-        エコノミーダブル(WAK)
-        キングダブル(QWK)
-        エコノミーツイン(ETK)
-        ハートフルツイン(HTK)
-        ハートフルシングル(HSK)
-    """).strip(),
+続きましては、希望する部屋タイプを選んでください。
+部屋タイプは下記から選んでください。
+-------------------
+・シングル(SK)
+・シングルA(SAK)
+・スモールシングルA(XSK)
+・エコノミーダブル(WAK)
+・キングダブル(QWK)
+・エコノミーツイン(ETK)
+・ハートフルツイン(HTK)
+・ハートフルシングル(HSK)
+-------------------
+""").strip(),
     "NEW_RESERVATION_SMOKER_ERROR":textwrap.dedent("""
         喫煙、禁煙のどちらかをお答えください。
     """).strip(),
-    "NEW_RESERVATION_ROOM_TYPE":textwrap.dedent("""ですね。
-        部屋タイプのご記入ありがとうございます。
-        続きましては、代表者の氏名を教えてください。
+    "NEW_RESERVATION_ROOM_TYPE":textwrap.dedent("""ですね。\n部屋タイプのご記入ありがとうございます。\n続きましては、代表者の氏名を教えてください。
     """).strip(),
     "NEW_RESERVATION_ROOM_TYPE_ERROR":textwrap.dedent("""
         正しい部屋タイプ名を記入してメッセージを送信してください。
@@ -88,8 +100,7 @@ MESSAGES = {
         代表者様氏名をご記入してメッセージを送付してください。
     """).strip(),
     "NEW_RESERVATION_PHONE_NUMBER":textwrap.dedent("""
-        当日連絡可能な電話番号を承りました。予約に必要な情報は以上になります。\n
-        予約内容を確認させていただいてもよろしいでしょうか。\n「YES」または「はい」などの許容のメッセージをお願いします。
+        当日連絡可能な電話番号を承りました。予約に必要な情報は以上になります。\n予約内容を確認させていただいてもよろしいでしょうか。\n「YES」または「はい」などの許容のメッセージをお願いします。
     """).strip(),
     "NEW_RESERVATION_PHONE_NUMBER_ERROR":textwrap.dedent("""
         当日連絡可能な電話番号をハイフンなしの10-11桁の数値のみでメッセージを送信してください。
@@ -102,27 +113,24 @@ MESSAGES = {
         当日連絡可能な電話番号をハイフンなしの10-11桁の数値のみでメッセージを送信してください。
     """).strip(),
     "NEW_RESERVATION_RESERVE_CONFIRM":textwrap.dedent("""
-        それでは、予約内容を確認させていただきます。\n
-        下記が宿泊予約の内容になりますのでご確認ください。\n\n
-        ----------------------------------------\n
-        予約番号：{reserve_datas['reservation_id']}\n
-        予約日：{reserve_datas['reservation_date']}\n
-        ラインID：{reserve_datas['line_id']}\n
-        チェックイン：{reserve_datas['check_in']}\n
-        チェックアウト：{reserve_datas['check_out']}\n
-        ステータス：{reserve_datas['status']}\n
-        利用者人数：{reserve_datas["count_of_person"]}\n
-        部屋タイプ：{reserve_datas['room_type']}\n
-        代表者氏名：{user_datas['name']}\n
-        電話番号：{user_datas["phone_number"]}\n
-        ----------------------------------------\n
+        それでは、予約内容を確認させていただきます。
+        <!-- このタイミングで空き室検索APIを実施(return bool)。 空き室がある場合は下記メッセージを表示する。 -->
+        下記が宿泊予約の内容になりますのでご確認ください。\n
+        予約内容
+        ----------------------------------------
+        お名前：{name}
+        チェックイン：{check_in}
+        チェックアウト：{check_out}
+        電話番号：{phone_number}
+        ルームタイプ：{room_type}
+        ご利用者人数：{count_of_person}
+        ----------------------------------------
+        この予約内容でよろしければ、「予約」と回答してください｡
+        予約いたします｡
     """).strip(),
     "NEW_RESERVATION_RESERVE_CONFIRM_ERROR":textwrap.dedent("""
         かしこまりました。確認は不要とのこと、承知いたしました。ご不明な点や追加のご要望がございましたら、どうぞお気軽にお知らせください。
     """).strip(),
-
-
-
     "reservation_reception_start": textwrap.dedent("""
         新規宿泊予約ありがとうございます。
         予約に必要な情報を得るためにいくつか質問をさせていただきます。
@@ -158,15 +166,17 @@ MESSAGES = {
     "reservation_reception_room":textwrap.dedent("""ですね。
         続きましては、希望する部屋タイプを選んでください。
         部屋タイプは下記から選んでください。
+        ----------
+        ・シングル(SK)
+        ・シングルA(SAK)
+        ・スモールシングルA(XSK)
+        ・エコノミーダブル(WAK)
+        ・キングダブル(QWK)
+        ・エコノミーツイン(ETK)
+        ・ハートフルツイン(HTK)
+        ・ハートフルシングル(HSK)
+        ----------
 
-        シングル(SK)
-        シングルA(SAK)
-        スモールシングルA(XSK)
-        エコノミーダブル(WAK)
-        キングダブル(QWK)
-        エコノミーツイン(ETK)
-        ハートフルツイン(HTK)
-        ハートフルシングル(HSK)
     """).strip(),
     "reservation_reception_room_smoke":textwrap.dedent("""ですね。
         続きましては、希望する部屋タイプを選んでください。
