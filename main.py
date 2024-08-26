@@ -273,127 +273,136 @@ def generate_response(
         )
 
     if user_status_code == ReservationStatus.NEW_RESERVATION_NAME.name:
-        if user_message:
-            db_users_ref.set({
-                "name": user_message,
-            })
-            RESERVATION_RECEPTION_TELL = textwrap.dedent(f"""
-                代表者氏名は {user_message} 様ですね。
-                {MESSAGES['reservation_reception_tell']}
-            """).strip()
-            user_status_code = "USER__RESERVATION_NEW_NAME"
-            return str(RESERVATION_RECEPTION_TELL), user_status_code
-        else:
-            RESERVATION_RECEPTION_TELL = MESSAGES["reservation_reception_tell_error"]
-            return str(RESERVATION_RECEPTION_TELL), user_status_code
 
-    if user_status_code == "USER__RESERVATION_NEW_NAME":        
+        return reservation_handler.handle_reservation_step(
+            ReservationStatus.NEW_RESERVATION_NAME,
+            user_message,
+            ReservationStatus.NEW_RESERVATION_PHONE_NUMBER,
+        )
 
-        if is_valid_phone_number(user_message):
+    if user_status_code == ReservationStatus.NEW_RESERVATION_PHONE_NUMBER.name:
 
-            token_data = {
-                "token": access_token
-            }
+        return reservation_handler.handle_reservation_step(
+            ReservationStatus.NEW_RESERVATION_PHONE_NUMBER,
+            user_message,
+            ReservationStatus.NEW_RESERVATION_RESERVE_CONFIRM
+        )
 
-            getReserveIdUrl = "https://fastapi-production-0724.up.railway.app/reserve/latest/id/"
-            response = requests.post(getReserveIdUrl, json=token_data)
+    if user_status_code == ReservationStatus.NEW_RESERVATION_RESERVE_CONFIRM.name:
 
-            print(response)
-            if response.status_code == 200:
-                latest_reserve_id = response.json().get("latest_reserve_id")
-                new_reserve_id = int(latest_reserve_id) + int(1)
+        return reservation_handler.handle_reservation_step(
+            ReservationStatus.NEW_RESERVATION_RESERVE_CONFIRM,
+            user_message,
+            ReservationStatus.NEW_RESERVATION_RESERVE_EXECUTE
+        )
 
-            print(new_reserve_id)
+    # if user_status_code == "USER__RESERVATION_NEW_NAME":
 
-            current_date = datetime.now().strftime('%Y-%m-%d')
-            current_datetime = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    #     if is_valid_phone_number(user_message):
 
-            users["token"] = access_token
-            users["phone_number"] = user_message
-            users['line_id'] = user_id
-            users['created_at'] = current_datetime
-            users['updated_at'] = current_datetime
+    #         token_data = {
+    #             "token": access_token
+    #         }
 
-            db_users_ref.set({
-                "line_id": users["line_id"],
-                "token": users["token"],
-                "phone_number": users["phone_number"],
-                "created_at": users["created_at"],
-                "updated_at": users["updated_at"]
-            }, merge=True)
+    #         getReserveIdUrl = "https://fastapi-production-0724.up.railway.app/reserve/latest/id/"
+    #         response = requests.post(getReserveIdUrl, json=token_data)
 
-            reserves["token"] = access_token
-            reserves['reservation_date'] = current_date
-            reserves['reservation_id'] = new_reserve_id
-            reserves['line_id'] = user_id
-            reserves['status'] = "RESERVE"
-            reserves['created_at'] = current_datetime
-            reserves['updated_at'] = current_datetime
+    #         print(response)
+    #         if response.status_code == 200:
+    #             latest_reserve_id = response.json().get("latest_reserve_id")
+    #             new_reserve_id = int(latest_reserve_id) + int(1)
 
-            db_reserves_ref.set({
-                "token": reserves['token'],
-                "reservation_date": reserves['reservation_date'],
-                "reservation_id": reserves['reservation_id'],
-                "line_id": reserves['line_id'],
-                "status": reserves['status'],
-                "created_at": reserves['created_at'],
-                "updated_at": reserves['updated_at']
-            }, merge=True)
+    #         print(new_reserve_id)
 
-            reserves_doc = db_reserves_ref.get()
-            reserve_datas = reserves_doc.to_dict()
-            print(reserve_datas['check_in'])
+    #         current_date = datetime.now().strftime('%Y-%m-%d')
+    #         current_datetime = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
-            users_doc = db_users_ref.get()
-            user_datas = users_doc.to_dict()
-            print(user_datas['name'])
+    #         users["token"] = access_token
+    #         users["phone_number"] = user_message
+    #         users['line_id'] = user_id
+    #         users['created_at'] = current_datetime
+    #         users['updated_at'] = current_datetime
 
+    #         db_users_ref.set({
+    #             "line_id": users["line_id"],
+    #             "token": users["token"],
+    #             "phone_number": users["phone_number"],
+    #             "created_at": users["created_at"],
+    #             "updated_at": users["updated_at"]
+    #         }, merge=True)
 
-            RESERVATION_RECEPTION_CONFIRM = textwrap.dedent(f"""
-                当日連絡可能な電話番号をありがとうございます。
-                下記が宿泊予約の内容になりますのでご確認ください。
-                ----
-                予約番号：{reserve_datas['reservation_id']}
-                予約日：{reserve_datas['reservation_date']}
-                ラインID：{reserve_datas['line_id']}
-                チェックイン：{reserve_datas['check_in']} 
-                チェックアウト：{reserve_datas['check_out']}
-                ステータス：{reserve_datas['status']}
-                利用者人数：{reserve_datas["count_of_person"]}
-                部屋タイプ：{reserve_datas['room_type']}
-                代表者氏名：{user_datas['name']}
-                電話番号：{user_datas["phone_number"]}
-                ----
-                この条件でよろしければ、空室検索をいたします。
-                「検索」とメッセージで送信してください。
-            """).strip()
-            user_status_code = "USER__RESERVATION_NEW_TELL"
+    #         reserves["token"] = access_token
+    #         reserves['reservation_date'] = current_date
+    #         reserves['reservation_id'] = new_reserve_id
+    #         reserves['line_id'] = user_id
+    #         reserves['status'] = "RESERVE"
+    #         reserves['created_at'] = current_datetime
+    #         reserves['updated_at'] = current_datetime
 
-            data = {
-                "line_reserves": [reserve_datas],
-                "line_users": [user_datas]
-            }
+    #         db_reserves_ref.set({
+    #             "token": reserves['token'],
+    #             "reservation_date": reserves['reservation_date'],
+    #             "reservation_id": reserves['reservation_id'],
+    #             "line_id": reserves['line_id'],
+    #             "status": reserves['status'],
+    #             "created_at": reserves['created_at'],
+    #             "updated_at": reserves['updated_at']
+    #         }, merge=True)
 
-            # APIのエンドポイントURL
-            url = "https://fastapi-production-0724.up.railway.app/reserve/"
+    #         reserves_doc = db_reserves_ref.get()
+    #         reserve_datas = reserves_doc.to_dict()
+    #         print(reserve_datas['check_in'])
 
-            # POSTリクエストを送信
-            response = requests.post(url, json=data)
-
-            # ステータスコードとレスポンスの内容を取得
-            status_code = response.status_code
-            response_data = response.json()
+    #         users_doc = db_users_ref.get()
+    #         user_datas = users_doc.to_dict()
+    #         print(user_datas['name'])
 
 
+    #         RESERVATION_RECEPTION_CONFIRM = textwrap.dedent(f"""
+    #             当日連絡可能な電話番号をありがとうございます。
+    #             下記が宿泊予約の内容になりますのでご確認ください。
+    #             ----
+    #             予約番号：{reserve_datas['reservation_id']}
+    #             予約日：{reserve_datas['reservation_date']}
+    #             ラインID：{reserve_datas['line_id']}
+    #             チェックイン：{reserve_datas['check_in']} 
+    #             チェックアウト：{reserve_datas['check_out']}
+    #             ステータス：{reserve_datas['status']}
+    #             利用者人数：{reserve_datas["count_of_person"]}
+    #             部屋タイプ：{reserve_datas['room_type']}
+    #             代表者氏名：{user_datas['name']}
+    #             電話番号：{user_datas["phone_number"]}
+    #             ----
+    #             この条件でよろしければ、空室検索をいたします。
+    #             「検索」とメッセージで送信してください。
+    #         """).strip()
+    #         user_status_code = "USER__RESERVATION_NEW_TELL"
 
-            # レスポンスを表示
-            print(f"Status Code: {status_code}")
-            print(f"Response Data: {response_data}")
+    #         data = {
+    #             "line_reserves": [reserve_datas],
+    #             "line_users": [user_datas]
+    #         }
 
-            return str(RESERVATION_RECEPTION_CONFIRM), user_status_code
-        else:
-            RESERVATION_RECEPTION_CONFIRM = MESSAGES["reservation_reception_confirm_error"]
-            return str(RESERVATION_RECEPTION_CONFIRM), user_status_code
+    #         # APIのエンドポイントURL
+    #         url = "https://fastapi-production-0724.up.railway.app/reserve/"
+
+    #         # POSTリクエストを送信
+    #         response = requests.post(url, json=data)
+
+    #         # ステータスコードとレスポンスの内容を取得
+    #         status_code = response.status_code
+    #         response_data = response.json()
+
+
+
+    #         # レスポンスを表示
+    #         print(f"Status Code: {status_code}")
+    #         print(f"Response Data: {response_data}")
+
+    #         return str(RESERVATION_RECEPTION_CONFIRM), user_status_code
+    #     else:
+    #         RESERVATION_RECEPTION_CONFIRM = MESSAGES["reservation_reception_confirm_error"]
+    #         return str(RESERVATION_RECEPTION_CONFIRM), user_status_code
 
     if user_status_code == "USER__RESERVATION_NEW_TELL":
         if user_message == "検索":

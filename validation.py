@@ -51,3 +51,17 @@ def is_valid_room_type_smoker(room_type: str) -> bool:
     ]
     return room_type in valid_room_type_smoker
 
+def is_valid_reserve_confirm(reserve_confirm: str) -> bool:
+    valid_reserve_confirm = [
+        "「はい。」",
+        "「ハイ。」",
+        "はい。",
+        "ハイ。",
+        "「はい」",
+        "「ハイ」",
+        "はい",
+        "ハイ",
+        "イエス",
+        "YES"
+    ]
+    return reserve_confirm in valid_reserve_confirm

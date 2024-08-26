@@ -80,6 +80,48 @@ MESSAGES = {
     "NEW_RESERVATION_ROOM_TYPE_ERROR":textwrap.dedent("""
         正しい部屋タイプ名を記入してメッセージを送信してください。
     """).strip(),
+    "NEW_RESERVATION_NAME":textwrap.dedent("""
+        代表者様氏名のご記入ありがとうございます。
+        続きましては、宿泊当日に連絡可能の電話番号を教えてください
+    """).strip(),
+    "NEW_RESERVATION_NAME_ERROR":textwrap.dedent("""
+        代表者様氏名をご記入してメッセージを送付してください。
+    """).strip(),
+    "NEW_RESERVATION_PHONE_NUMBER":textwrap.dedent("""
+        当日連絡可能な電話番号を承りました。予約に必要な情報は以上になります。\n
+        予約内容を確認させていただいてもよろしいでしょうか。\n「YES」または「はい」などの許容のメッセージをお願いします。
+    """).strip(),
+    "NEW_RESERVATION_PHONE_NUMBER_ERROR":textwrap.dedent("""
+        当日連絡可能な電話番号をハイフンなしの10-11桁の数値のみでメッセージを送信してください。
+    """).strip(),
+    "NEW_RESERVATION_RESERVE_CONFIRM":textwrap.dedent("""
+        当日連絡可能な電話番号を承りました。予約に必要な情報は以上になります。\n
+        予約内容を確認させていただいてもよろしいでしょうか。\n「YES」または「はい」などの許容のメッセージをお願いします。
+    """).strip(),
+    "NEW_RESERVATION_PHONE_NUMBER_ERROR":textwrap.dedent("""
+        当日連絡可能な電話番号をハイフンなしの10-11桁の数値のみでメッセージを送信してください。
+    """).strip(),
+    "NEW_RESERVATION_RESERVE_CONFIRM":textwrap.dedent("""
+        それでは、予約内容を確認させていただきます。\n
+        下記が宿泊予約の内容になりますのでご確認ください。\n\n
+        ----------------------------------------\n
+        予約番号：{reserve_datas['reservation_id']}\n
+        予約日：{reserve_datas['reservation_date']}\n
+        ラインID：{reserve_datas['line_id']}\n
+        チェックイン：{reserve_datas['check_in']}\n
+        チェックアウト：{reserve_datas['check_out']}\n
+        ステータス：{reserve_datas['status']}\n
+        利用者人数：{reserve_datas["count_of_person"]}\n
+        部屋タイプ：{reserve_datas['room_type']}\n
+        代表者氏名：{user_datas['name']}\n
+        電話番号：{user_datas["phone_number"]}\n
+        ----------------------------------------\n
+    """).strip(),
+    "NEW_RESERVATION_RESERVE_CONFIRM_ERROR":textwrap.dedent("""
+        かしこまりました。確認は不要とのこと、承知いたしました。ご不明な点や追加のご要望がございましたら、どうぞお気軽にお知らせください。
+    """).strip(),
+
+
 
     "reservation_reception_start": textwrap.dedent("""
         新規宿泊予約ありがとうございます。

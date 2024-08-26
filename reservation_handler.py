@@ -3,14 +3,16 @@ from datetime import datetime, timedelta
 from reservation_status import ReservationStatus
 from chatgpt_api import get_chatgpt_response
 from generate import (
-    generate_index,
+    # generate_index,
     generate_start_date,
     generate_stay,
     generate_number,
     generate_smoker,
     generate_room_type_smoker,
     generate_room_type_no_smoker,
-    generate_select,
+    generate_reserve_confirm,
+    # generate_name,
+    generate_select
 )
 from validation import (
     is_valid_date,
@@ -18,7 +20,8 @@ from validation import (
     is_valid_smoker,
     is_valid_phone_number,
     is_valid_room_type_smoker,
-    is_valid_room_type_no_smoker
+    is_valid_room_type_no_smoker,
+    is_valid_reserve_confirm
 )
 
 
@@ -38,6 +41,10 @@ class ReservationHandler:
             ReservationStatus.NEW_RESERVATION_SMOKER: self._handle_smoker,
             ReservationStatus.NEW_RESERVATION_ROOM_TYPE_SMOKER: self._handle_room_type_smoker,
             ReservationStatus.NEW_RESERVATION_ROOM_TYPE_NO_SMOKER: self._handle_room_type_no_smoker,
+            ReservationStatus.NEW_RESERVATION_NAME: self._handle_name,
+            ReservationStatus.NEW_RESERVATION_PHONE_NUMBER: self._handle_phone_number,
+            ReservationStatus.NEW_RESERVATION_RESERVE_CONFIRM: self._handle_reserve_confirm,
+            # ReservationStatus.NEW_RESERVATION_RESERVE_EXECUTE: self._handle_reserve_execute,
             # 他のステータスとメソッドをここに追加NEW_RESERVATION_ROOM_TYPE_NO_SMOKER
         }
 
@@ -132,6 +139,52 @@ class ReservationHandler:
             return message, next_status.name
         else:
             return self.messages["NEW_RESERVATION_ROOM_TYPE_ERROR"], ReservationStatus.NEW_RESERVATION_ROOM_TYPE_NO_SMOKER.name
+
+
+    def _handle_name(self, user_message, next_status):
+        name = user_message
+        # system_content = generate_name()
+        # name = self.get_chatgpt_response(system_content, user_message)
+        if name:
+            self.reserves[ReservationStatus.NEW_RESERVATION_NAME.key] = name
+            self.db_ref.set({ReservationStatus.NEW_RESERVATION_NAME.key: name}, merge=True)
+            message = textwrap.dedent(f"代表者氏名は {name}  {self.messages[ReservationStatus.NEW_RESERVATION_NAME.name]}").strip()
+            return message, next_status.name
+        else:
+            return self.messages["NEW_RESERVATION_NAME_ERROR"], ReservationStatus.NEW_RESERVATION_NAME.name
+
+    def _handle_phone_number(self, user_message, next_status):
+        phone_number = user_message
+        # system_content = generate_name()
+        # name = self.get_chatgpt_response(system_content, user_message)
+        if is_valid_phone_number(phone_number):
+            self.reserves[ReservationStatus.NEW_RESERVATION_PHONE_NUMBER.key] = phone_number
+            self.db_ref.set({ReservationStatus.NEW_RESERVATION_PHONE_NUMBER.key: phone_number}, merge=True)
+            message = textwrap.dedent(f"代表者の連絡先は{phone_number}ですね。{self.messages[ReservationStatus.NEW_RESERVATION_PHONE_NUMBER.name]}").strip()
+            return message, next_status.name
+        else:
+            return self.messages["NEW_RESERVATION_PHONE_NUMBER_ERROR"], ReservationStatus.NEW_RESERVATION_PHONE_NUMBER.name
+
+
+    def _handle_reserve_confirm(self, user_message, next_status):
+        reserve_confirm = user_message
+        system_content = generate_reserve_confirm()
+        reserve_confirm = self.get_chatgpt_response(system_content, user_message)
+        print(reserve_confirm)
+        if is_valid_reserve_confirm(reserve_confirm):
+            reserves_doc = self.db_ref.get()
+            reserve_datas = reserves_doc.to_dict()
+            print("予約データ")
+            data = {
+                "reserve_datas": [reserve_datas]
+            }
+            print(data)
+            # message = textwrap.dedent(f"{self.messages[ReservationStatus.NEW_RESERVATION_RESERVE_CONFIRM.name]}").strip()
+            message_template = self.messages[ReservationStatus.NEW_RESERVATION_RESERVE_CONFIRM.name]
+            message = message_template.format(data)
+            return message, next_status.name
+        else:
+            return self.messages["NEW_RESERVATION_RESERVE_CONFIRM_ERROR"], "USER__RESERVATION_DEFAULT"
 
 
     def _calculate_checkout_date(self, checkin_date, stay_length):
