@@ -1,7 +1,5 @@
 # Import necessary modules
-import json
-import os
-import tempfile
+import json, os, tempfile, textwrap, re, uuid, requests
 from datetime import datetime, timedelta
 from flask import Request, abort
 from google.cloud import firestore, storage
@@ -39,10 +37,6 @@ from generate import (
 )
 from menu_items import MenuItem
 from message import MESSAGES
-import textwrap
-import re
-import uuid
-import requests
 from reservation_status import ReservationStatus
 from reservation_handler import ReservationHandler, ReservationStatus
 
@@ -66,7 +60,7 @@ client = OpenAI(
 )
 
 # user status Initialize
-USER_STATUS_CODE = "USER__RESERVATION_DEFAULT"
+USER_STATUS_CODE = ReservationStatus.RESERVATION_MENU.name
 USE_HISTORY = True
 access_token = os.environ["ACCESS_TOKEN"]
 
@@ -144,10 +138,6 @@ def format_history(previous_messages: list) -> str:
     )
 
 
-# Load messages from JSON file
-# with open("messages.json", "r", encoding="utf-8") as f:
-#     messages = json.load(f)
-
 # Function to generate a response based on user message,
 # history, and current state
 temp_data = {}
@@ -159,18 +149,15 @@ unique_code = str(uuid.uuid4())
 
 
 def generate_response(
-    user_message: str, history: str = None, user_status_code: str = None, user_id: str = None 
+    user_message: str, history: str = None, user_status_code: str = None, user_id: str = None
 ) -> str:
 
-    # save data for firestore
     db_reserves_ref = db.collection("users").document(user_id).collection("reserves").document(unique_code)
     db_users_ref = db.collection("users").document(user_id).collection("datas").document(unique_code)
-
     reservation_handler = ReservationHandler(db_reserves_ref, OPENAI_API_KEY, MESSAGES)
 
-
-    if user_status_code == "USER__RESERVATION_DEFAULT":
-        USER_DEFAULT_PROMPT = MESSAGES["DEFAULT_MESSAGE_TO_USER"]
+    if user_status_code == ReservationStatus.RESERVATION_MENU.name:
+        USER_DEFAULT_PROMPT = MESSAGES[ReservationStatus.RESERVATION_MENU.name]
         user_status_code = "USER__RESERVATION_INDEX"
         return str(USER_DEFAULT_PROMPT), user_status_code
 
@@ -180,7 +167,7 @@ def generate_response(
             OPENAI_API_KEY, "gpt-3.5-turbo", 0, system_content, user_message
         )
         if MenuItem.NEW_RESERVATION.value in bot_response:
-            RESERVATION_RECEPTION_START = MESSAGES["reservation_reception_start"]
+            RESERVATION_RECEPTION_START = MESSAGES[ReservationStatus.NEW_RESERVATION_START.name]
             user_status_code = ReservationStatus.NEW_RESERVATION_CHECKIN.name
             return str(RESERVATION_RECEPTION_START), user_status_code
         elif MenuItem.CONFIRM_RESERVATION.value in bot_response:
@@ -285,174 +272,15 @@ def generate_response(
         )
 
     if user_status_code == ReservationStatus.NEW_RESERVATION_RESERVE_EXECUTE.name:
-        print("in main.py")
-        print(user_id)
         return reservation_handler.handle_reservation_step(
             ReservationStatus.NEW_RESERVATION_RESERVE_EXECUTE,
             user_message,
-            ReservationStatus.NEW_RESERVATION_RESERVE_COMPLETE,
+            ReservationStatus.RESERVATION_MENU,
             user_id
         )
 
 
 
-    # if user_status_code == "USER__RESERVATION_NEW_NAME":
-
-    #     if is_valid_phone_number(user_message):
-
-    #         token_data = {
-    #             "token": access_token
-    #         }
-
-    #         getReserveIdUrl = "https://fastapi-production-0724.up.railway.app/reserve/latest/id/"
-    #         response = requests.post(getReserveIdUrl, json=token_data)
-
-    #         print(response)
-    #         if response.status_code == 200:
-    #             latest_reserve_id = response.json().get("latest_reserve_id")
-    #             new_reserve_id = int(latest_reserve_id) + int(1)
-
-    #         print(new_reserve_id)
-
-    #         current_date = datetime.now().strftime('%Y-%m-%d')
-    #         current_datetime = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-
-    #         users["token"] = access_token
-    #         users["phone_number"] = user_message
-    #         users['line_id'] = user_id
-    #         users['created_at'] = current_datetime
-    #         users['updated_at'] = current_datetime
-
-    #         db_users_ref.set({
-    #             "line_id": users["line_id"],
-    #             "token": users["token"],
-    #             "phone_number": users["phone_number"],
-    #             "created_at": users["created_at"],
-    #             "updated_at": users["updated_at"]
-    #         }, merge=True)
-
-    #         reserves["token"] = access_token
-    #         reserves['reservation_date'] = current_date
-    #         reserves['reservation_id'] = new_reserve_id
-    #         reserves['line_id'] = user_id
-    #         reserves['status'] = "RESERVE"
-    #         reserves['created_at'] = current_datetime
-    #         reserves['updated_at'] = current_datetime
-
-    #         db_reserves_ref.set({
-    #             "token": reserves['token'],
-    #             "reservation_date": reserves['reservation_date'],
-    #             "reservation_id": reserves['reservation_id'],
-    #             "line_id": reserves['line_id'],
-    #             "status": reserves['status'],
-    #             "created_at": reserves['created_at'],
-    #             "updated_at": reserves['updated_at']
-    #         }, merge=True)
-
-    #         reserves_doc = db_reserves_ref.get()
-    #         reserve_datas = reserves_doc.to_dict()
-    #         print(reserve_datas['check_in'])
-
-    #         users_doc = db_users_ref.get()
-    #         user_datas = users_doc.to_dict()
-    #         print(user_datas['name'])
-
-
-    #         RESERVATION_RECEPTION_CONFIRM = textwrap.dedent(f"""
-    #             当日連絡可能な電話番号をありがとうございます。
-    #             下記が宿泊予約の内容になりますのでご確認ください。
-    #             ----
-    #             予約番号：{reserve_datas['reservation_id']}
-    #             予約日：{reserve_datas['reservation_date']}
-    #             ラインID：{reserve_datas['line_id']}
-    #             チェックイン：{reserve_datas['check_in']} 
-    #             チェックアウト：{reserve_datas['check_out']}
-    #             ステータス：{reserve_datas['status']}
-    #             利用者人数：{reserve_datas["count_of_person"]}
-    #             部屋タイプ：{reserve_datas['room_type']}
-    #             代表者氏名：{user_datas['name']}
-    #             電話番号：{user_datas["phone_number"]}
-    #             ----
-    #             この条件でよろしければ、空室検索をいたします。
-    #             「検索」とメッセージで送信してください。
-    #         """).strip()
-    #         user_status_code = "USER__RESERVATION_NEW_TELL"
-
-    #         data = {
-    #             "line_reserves": [reserve_datas],
-    #             "line_users": [user_datas]
-    #         }
-
-    #         # APIのエンドポイントURL
-    #         url = "https://fastapi-production-0724.up.railway.app/reserve/"
-
-    #         # POSTリクエストを送信
-    #         response = requests.post(url, json=data)
-
-    #         # ステータスコードとレスポンスの内容を取得
-    #         status_code = response.status_code
-    #         response_data = response.json()
-
-
-
-    #         # レスポンスを表示
-    #         print(f"Status Code: {status_code}")
-    #         print(f"Response Data: {response_data}")
-
-    #         return str(RESERVATION_RECEPTION_CONFIRM), user_status_code
-    #     else:
-    #         RESERVATION_RECEPTION_CONFIRM = MESSAGES["reservation_reception_confirm_error"]
-    #         return str(RESERVATION_RECEPTION_CONFIRM), user_status_code
-
-    if user_status_code == "USER__RESERVATION_NEW_TELL":
-        if user_message == "検索":
-            RESERVATION_RECEPTION_SEARCH = textwrap.dedent(f"""
-                下記条件で空室検索をいたしました。\n\n
-                ----\n
-                宿泊開始日：{reserve['start']}\n
-                宿泊数：{reserve['stay']}\n
-                利用者人数：{reserve['number']}\n
-                部屋タイプ：{reserve['room']}\n
-                代表者氏名：{reserve['name']}\n
-                電話番号：{reserve['tell']}\n
-                ----\n\n
-                空室APIで検索結果を表示させます。\n
-                ヒットすればTrue、ヒットしなければFalseを返します。\n\n
-                予約する場合は「予約」とメッセージで送信してください。
-            """).strip()
-            user_status_code = "USER__RESERVATION_NEW_SEARCH"
-            return str(RESERVATION_RECEPTION_SEARCH), user_status_code
-        else:
-            user_status_code = "USER__RESERVATION_DEFAULT"
-            RESERVATION_RECEPTION_SEARCH = MESSAGES[
-                "reservation_reception_search_error"
-            ]
-            return str(RESERVATION_RECEPTION_SEARCH), user_status_code
-
-    if user_status_code == "USER__RESERVATION_NEW_SEARCH":
-        if user_message == "予約":
-            RESERVATION_RECEPTION_COMPLETE = textwrap.dedent(f"""
-                下記条件で予約をいたしました。\n\n
-                ----\n
-                宿泊開始日：{reserve['start']}\n
-                宿泊数：{reserve['stay']}\n
-                利用者人数：{reserve['number']}\n
-                部屋タイプ：{reserve['room']}\n
-                代表者氏名：{reserve['name']}\n
-                電話番号：{reserve['tell']}\n
-                ----\n\n
-                予約APIの実行結果を表示させます。ヒットすればTrue、ヒットしなければFalseを返します。\n\n
-                予約ありがとうございます。\n
-                {reserve['start']}に{reserve['name']}様{reserve['number']}名様をお待ちしております。
-            """).strip()
-            user_status_code = "USER__RESERVATION_DEFAULT"
-            return str(RESERVATION_RECEPTION_COMPLETE), user_status_code
-        else:
-            user_status_code = "USER__RESERVATION_DEFAULT"
-            RESERVATION_RECEPTION_COMPLETE = MESSAGES[
-                "reservation_reception_complete_error"
-            ]
-            return str(RESERVATION_RECEPTION_COMPLETE), user_status_code
 
     if user_status_code == "USER__RESERVATION_CHECK":
         if user_message:  # 有効な予約番号かどうかはAPIでチェックする(bool)
@@ -465,6 +293,9 @@ def generate_response(
             RESERVATION_RECEPTION_CHECK_RESULT = MESSAGES["reservation_number_error"]
             return str(RESERVATION_RECEPTION_CHECK_RESULT), user_status_code
 
+
+
+
     if (
         user_status_code == "USER__RESERVATION_UPDATA"
     ):  # 予約確認からしかここには来ない。
@@ -476,7 +307,7 @@ def generate_response(
             user_status_code = "USER__RESERVATION_UPDATA_RESULT"
             return str(RESERVATION_RECEPTION_UPDATA), user_status_code
         else:
-            user_status_code = "USER__RESERVATION_DEFAULT"
+            user_status_code = ReservationStatus.RESERVATION_MENU.name
             RESERVATION_RECEPTION_UPDATA = textwrap.dedent("お問い合わせ一覧にもどります。").strip()
             return str(RESERVATION_RECEPTION_UPDATA), user_status_code
 
@@ -497,7 +328,7 @@ def generate_response(
             # reserve_updata = get_reserve_data(予約番号)
             return str(RESERVATION_RECEPTION_UPDATA_RESULT), user_status_code
         else:
-            user_status_code = "USER__RESERVATION_DEFAULT"
+            user_status_code = ReservationStatus.RESERVATION_MENU.name
             RESERVATION_RECEPTION_UPDATA_RESULT = MESSAGES["reservation_number_error"]
             return str(RESERVATION_RECEPTION_UPDATA_RESULT), user_status_code
 
@@ -566,7 +397,7 @@ def generate_response(
             user_status_code = "USER__RESERVATION_UPDATA_TELL"
             return str(USER__RESERVATION_UPDATA_TELL), user_status_code
         else:
-            user_status_code = "USER__RESERVATION_DEFAULT"
+            user_status_code = ReservationStatus.RESERVATION_MENU.name
             USER__RESERVATION_DEFAULT = (
                 textwrap.dedent("""
                     予約変更しない場合は、最初からお問い合わせしなおしてください。
@@ -687,7 +518,7 @@ def generate_response(
             user_status_code = "USER__RESERVATION_UPDATA_CHECK"
             return str(USER__RESERVATION_UPDATA_CHECK), user_status_code
         else:
-            user_status_code = "USER__RESERVATION_DEFAULT"
+            user_status_code = ReservationStatus.RESERVATION_MENU.name
             USER__RESERVATION_DEFAULT = ("""予約変更しない場合は、最初からお問い合わせしなおしてください。""")
             return str(USER__RESERVATION_DEFAULT), user_status_code
 
@@ -702,10 +533,10 @@ def generate_response(
                 代表者氏名：予約番号の検索結果
                 電話番号：予約番号の検索結果
             """).strip()
-            user_status_code = "USER__RESERVATION_DEFAULT"
+            user_status_code = ReservationStatus.RESERVATION_MENU.name
             return str(USER__RESERVATION_UPDATA_CHECK), user_status_code
         else:
-            user_status_code = "USER__RESERVATION_DEFAULT"
+            user_status_code = ReservationStatus.RESERVATION_MENU.name
             USER__RESERVATION_DEFAULT = ("予約変更しない場合は、最初からお問い合わせしなおしてください。")
             return str(USER__RESERVATION_DEFAULT), user_status_code
 
@@ -725,7 +556,7 @@ def generate_response(
             # reserve_updata = get_reserve_data(予約番号)
             return str(USER__RESERVATION_CANCEL_RESULT), user_status_code
         else:
-            user_status_code = "USER__RESERVATION_DEFAULT"
+            user_status_code = ReservationStatus.RESERVATION_MENU.name
             USER__RESERVATION_CANCEL = MESSAGES["reservation_number_error"]
             return str(USER__RESERVATION_CANCEL), user_status_code
 
@@ -735,10 +566,10 @@ def generate_response(
                 お客様の予約をキャンセルしました。
                 ※予約APIの結果によってはキャンセル料金が発生？
             """).strip()
-            user_status_code = "USER__RESERVATION_DEFAULT"
+            user_status_code = ReservationStatus.RESERVATION_MENU.name
             return str(USER__RESERVATION_CANCELED), user_status_code
         else:
-            user_status_code = "USER__RESERVATION_DEFAULT"
+            user_status_code = ReservationStatus.RESERVATION_MENU.name
             USER__RESERVATION_CANCEL = (
                 textwrap.dedent("""
                     キャンセルしない場合は、最初からお問い合わせしなおしてください。
