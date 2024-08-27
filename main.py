@@ -284,6 +284,18 @@ def generate_response(
             ReservationStatus.NEW_RESERVATION_RESERVE_EXECUTE
         )
 
+    if user_status_code == ReservationStatus.NEW_RESERVATION_RESERVE_EXECUTE.name:
+        print("in main.py")
+        print(user_id)
+        return reservation_handler.handle_reservation_step(
+            ReservationStatus.NEW_RESERVATION_RESERVE_EXECUTE,
+            user_message,
+            ReservationStatus.NEW_RESERVATION_RESERVE_COMPLETE,
+            user_id
+        )
+
+
+
     # if user_status_code == "USER__RESERVATION_NEW_NAME":
 
     #     if is_valid_phone_number(user_message):
