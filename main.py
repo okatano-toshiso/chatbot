@@ -301,7 +301,7 @@ def generate_response(
         return reservation_check_handler.handle_reservation_step(
             CheckReservationStatus.CHECK_RESERVATION_PHONE_NUMBER,
             user_message,
-            ReservationStatus.RESERVATION_MENU
+            CheckReservationStatus.CHECK_RESERVATION_GET_NUMBER,
         )
 
     if user_status_code == CheckReservationStatus.CHECK_RESERVATION_GET_NUMBER.name:
