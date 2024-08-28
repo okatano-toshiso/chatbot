@@ -76,12 +76,12 @@ class ReservationCheckHandler:
         print(user_id)
         if user_message == '確認':
             data_doc = self.db_ref.get()
-            datas = data_doc.to_dict()
-            print(datas)
-            message = datas
-            # self.check_reserves[CheckReservationStatus.CHECK_RESERVATION_PHONE_NUMBER.key] = reservation_phone_number
-            # self.db_ref.set({CheckReservationStatus.CHECK_RESERVATION_PHONE_NUMBER.key: reservation_phone_number})
-            # message = f'{self.messages[CheckReservationStatus.CHECK_RESERVATION_GET_NUMBER.name]}'
+            if data_doc.exists:
+                datas = data_doc.to_dict()
+                print(datas)
+                message = str(datas)
+            else:
+                message = "データが見つかりませんでした。"
             return message, next_status.name
         else:
             return self.messages[CheckReservationStatus.CHECK_RESERVATION_GET_NUMBER.name + '_ERROR'], ReservationStatus.RESERVATION_MENU.name
