@@ -84,7 +84,8 @@ class ReservationHandler:
         try:
             response = requests.post(url, json=data)
             response.raise_for_status()
-            return self.messages[ReservationStatus.NEW_RESERVATION_RESERVE_COMPLETE.name]
+            reservation_id = reserve_datas.get('reservation_id')
+            return self.messages[ReservationStatus.NEW_RESERVATION_RESERVE_COMPLETE.name], reservation_id
         except requests.exceptions.HTTPError as http_err:
             print(f'HTTP error occurred: {http_err}')
             return f'Failed to submit reservation: {http_err}', 'ERROR_STATUS'
@@ -257,7 +258,9 @@ class ReservationHandler:
             current_datetime = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             user_datas = self.set_user_data(db_users_ref, user_id, datas, current_datetime)
             reserve_datas = self.set_reserve_data(db_reserves_ref, user_id, datas, new_reserve_id, current_date, current_datetime)
-            return self.send_reservation_data(reserve_datas, user_datas), next_status.name
+            reservation_message, reservation_id = self.send_reservation_data(reserve_datas, user_datas)
+            message = textwrap.dedent(f'{reservation_message}\n{reservation_id}').strip()
+            return message, next_status.name
         else:
             return self.messages['NEW_RESERVATION_RESERVE_CONFIRM_ERROR'], 'USER__RESERVATION_DEFAULT'
 

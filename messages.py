@@ -109,7 +109,11 @@ MESSAGES = {
         かしこまりました。確認は不要とのこと、承知いたしました。ご不明な点や追加のご要望がございましたら、どうぞお気軽にお知らせください。
     """).strip(),
     ReservationStatus.NEW_RESERVATION_RESERVE_COMPLETE.name:textwrap.dedent("""
-        ご予約ありがとうございました。お客様の予約を完了しました。
+        ご予約ありがとうございました。お客様の予約を完了しました。これが予約番号になりますので、メモ帳などにお控えしてください。
+    """).strip(),
+    ReservationStatus.CHECK_RESERVATION_START.name:textwrap.dedent("""
+        予約確認ですね。
+        予約時に控えていただきました予約番号のみを入力してください。
     """).strip()
 }
 
