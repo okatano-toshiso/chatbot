@@ -65,3 +65,6 @@ def is_valid_reserve_confirm(reserve_confirm: str) -> bool:
         "YES"
     ]
     return reserve_confirm in valid_reserve_confirm
+
+def is_valid_reserve_number(value: int) -> bool:
+    return value.isdigit() and len(value) <= 255

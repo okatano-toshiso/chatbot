@@ -37,8 +37,9 @@ from generate import (
 )
 from menu_items import MenuItem
 from message import MESSAGES
-from reservation_status import ReservationStatus
+from reservation_status import ReservationStatus, CheckReservationStatus
 from reservation_handler import ReservationHandler, ReservationStatus
+from reservation_handler_check import ReservationCheckHandler
 
 
 # Define constants
@@ -153,8 +154,11 @@ def generate_response(
 ) -> str:
 
     db_reserves_ref = db.collection("users").document(user_id).collection("reserves").document(unique_code)
-    db_users_ref = db.collection("users").document(user_id).collection("datas").document(unique_code)
+    db_cehck_reserves_ref = db.collection("users").document(user_id).collection("check_reserves").document(unique_code)
+
     reservation_handler = ReservationHandler(db_reserves_ref, OPENAI_API_KEY, MESSAGES)
+    reservation_check_handler = ReservationCheckHandler(db_cehck_reserves_ref, OPENAI_API_KEY, MESSAGES)
+
 
     if user_status_code == ReservationStatus.RESERVATION_MENU.name:
         USER_DEFAULT_PROMPT = MESSAGES[ReservationStatus.RESERVATION_MENU.name]
@@ -171,8 +175,8 @@ def generate_response(
             user_status_code = ReservationStatus.NEW_RESERVATION_CHECKIN.name
             return str(RESERVATION_RECEPTION_START), user_status_code
         elif MenuItem.CONFIRM_RESERVATION.value in bot_response:
-            CHECK_RESERVATION_START = MESSAGES[ReservationStatus.CHECK_RESERVATION_START.name]
-            user_status_code = ReservationStatus.CHECK_RESERVATION_NUMBER.name
+            CHECK_RESERVATION_START = MESSAGES[CheckReservationStatus.CHECK_RESERVATION_START.name]
+            user_status_code = CheckReservationStatus.CHECK_RESERVATION_NUMBER.name
             return str(CHECK_RESERVATION_START), user_status_code
         elif MenuItem.MODIFY_RESERVATION.value in bot_response:
             RESERVATION_RECEPTION_UPDATA = MESSAGES["reservation_reception_updata"]
@@ -279,8 +283,26 @@ def generate_response(
             user_id
         )
 
+    if user_status_code == CheckReservationStatus.CHECK_RESERVATION_NUMBER.name:
+        return reservation_check_handler.handle_reservation_step(
+            CheckReservationStatus.CHECK_RESERVATION_NUMBER,
+            user_message,
+            CheckReservationStatus.CHECK_RESERVATION_NAME
+        )
 
+    if user_status_code == CheckReservationStatus.CHECK_RESERVATION_NAME.name:
+        return reservation_check_handler.handle_reservation_step(
+            CheckReservationStatus.CHECK_RESERVATION_NAME,
+            user_message,
+            CheckReservationStatus.CHECK_RESERVATION_PHONE_NUMBER
+        )
 
+    if user_status_code == CheckReservationStatus.CHECK_RESERVATION_PHONE_NUMBER.name:
+        return reservation_check_handler.handle_reservation_step(
+            CheckReservationStatus.CHECK_RESERVATION_PHONE_NUMBER,
+            user_message,
+            CheckReservationStatus.CHECK_RESERVATION_GET_NUMBER
+        )
 
     if user_status_code == "USER__RESERVATION_CHECK":
         if user_message:  # 有効な予約番号かどうかはAPIでチェックする(bool)

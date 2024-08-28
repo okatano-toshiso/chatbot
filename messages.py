@@ -1,7 +1,7 @@
 # message.py
 import textwrap
 from menu_items import MenuItem
-from reservation_status import ReservationStatus
+from reservation_status import ReservationStatus, CheckReservationStatus
 
 MESSAGES = {
     ReservationStatus.RESERVATION_MENU.name:textwrap.dedent(f"""
@@ -111,10 +111,15 @@ MESSAGES = {
     ReservationStatus.NEW_RESERVATION_RESERVE_COMPLETE.name:textwrap.dedent("""
         ご予約ありがとうございました。お客様の予約を完了しました。これが予約番号になりますので、メモ帳などにお控えしてください。
     """).strip(),
-    ReservationStatus.CHECK_RESERVATION_START.name:textwrap.dedent("""
+    CheckReservationStatus.CHECK_RESERVATION_START.name:textwrap.dedent("""
         予約確認ですね。
         予約時に控えていただきました予約番号のみを入力してください。
+    """).strip(),
+    CheckReservationStatus.CHECK_RESERVATION_NUMBER.name:textwrap.dedent("""
+        予約番号を確認しました。
+        予約時の代表者様氏名を教えてください。
     """).strip()
+
 }
 
 
