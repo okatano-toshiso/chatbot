@@ -301,8 +301,16 @@ def generate_response(
         return reservation_check_handler.handle_reservation_step(
             CheckReservationStatus.CHECK_RESERVATION_PHONE_NUMBER,
             user_message,
+            ReservationStatus.RESERVATION_MENU
+        )
+
+    if user_status_code == CheckReservationStatus.CHECK_RESERVATION_GET_NUMBER.name:
+        return reservation_check_handler.handle_reservation_step(
+            CheckReservationStatus.CHECK_RESERVATION_GET_NUMBER,
+            user_message,
             CheckReservationStatus.CHECK_RESERVATION_GET_NUMBER
         )
+
 
     if user_status_code == "USER__RESERVATION_CHECK":
         if user_message:  # 有効な予約番号かどうかはAPIでチェックする(bool)
