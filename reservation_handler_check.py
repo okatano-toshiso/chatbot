@@ -45,7 +45,7 @@ class ReservationCheckHandler:
         reservation_number = self.get_chatgpt_response(system_content, user_message)
         if is_valid_reserve_number(reservation_number):
             self.check_reserves[CheckReservationStatus.CHECK_RESERVATION_NUMBER.key] = reservation_number
-            self.db_ref.set({CheckReservationStatus.CHECK_RESERVATION_NUMBER.key: reservation_number})
+            self.db_ref.set({CheckReservationStatus.CHECK_RESERVATION_NUMBER.key: reservation_number}, merge=True)
             message = f'{reservation_number}\n{self.messages[CheckReservationStatus.CHECK_RESERVATION_NUMBER.name]}'
             return message, next_status.name
         else:
@@ -56,7 +56,7 @@ class ReservationCheckHandler:
         reservation_name = user_message
         if reservation_name:
             self.check_reserves[CheckReservationStatus.CHECK_RESERVATION_NAME.key] = reservation_name
-            self.db_ref.set({CheckReservationStatus.CHECK_RESERVATION_NAME.key: reservation_name})
+            self.db_ref.set({CheckReservationStatus.CHECK_RESERVATION_NAME.key: reservation_name}, merge=True)
             message = f'{reservation_name}\n{self.messages[CheckReservationStatus.CHECK_RESERVATION_NAME.name]}'
             return message, next_status.name
         else:
@@ -66,7 +66,7 @@ class ReservationCheckHandler:
         reservation_phone_number = user_message
         if is_valid_phone_number(reservation_phone_number):
             self.check_reserves[CheckReservationStatus.CHECK_RESERVATION_PHONE_NUMBER.key] = reservation_phone_number
-            self.db_ref.set({CheckReservationStatus.CHECK_RESERVATION_PHONE_NUMBER.key: reservation_phone_number})
+            self.db_ref.set({CheckReservationStatus.CHECK_RESERVATION_PHONE_NUMBER.key: reservation_phone_number}, merge=True)
             message = f'{reservation_phone_number}\n{self.messages[CheckReservationStatus.CHECK_RESERVATION_PHONE_NUMBER.name]}'
             return message, next_status.name
         else:
