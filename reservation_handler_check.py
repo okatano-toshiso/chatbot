@@ -44,8 +44,8 @@ class ReservationCheckHandler:
         system_content = generate_reserve_number()
         reservation_number = self.get_chatgpt_response(system_content, user_message)
         if is_valid_reserve_number(reservation_number):
-            self.check_reserves[CheckReservationStatus.CHECK_RESERVATION_NUMBER.key] = reservation_number
-            self.db_ref.set({CheckReservationStatus.CHECK_RESERVATION_NUMBER.key: reservation_number}, merge=True)
+            self.check_reserves[CheckReservationStatus.CHECK_RESERVATION_NUMBER.key] = int(reservation_number)
+            self.db_ref.set({CheckReservationStatus.CHECK_RESERVATION_NUMBER.key: int(reservation_number)}, merge=True)
             message = f'{reservation_number}\n{self.messages[CheckReservationStatus.CHECK_RESERVATION_NUMBER.name]}'
             return message, next_status.name
         else:
@@ -75,10 +75,13 @@ class ReservationCheckHandler:
     def _handle_check_reservation_get_number(self, user_message, next_status, user_id):
         print(user_id)
         if user_message == '確認':
+            self.db_ref.set({
+                'line_id': user_id,
+                'token': self.access_token,
+            }, merge=True)
             data_doc = self.db_ref.get()
             if data_doc.exists:
                 datas = data_doc.to_dict()
-                print(datas)
                 message = str(datas)
             else:
                 message = "データが見つかりませんでした。"
