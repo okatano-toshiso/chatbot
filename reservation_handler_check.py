@@ -1,12 +1,13 @@
 import os, textwrap
 from datetime import datetime, timedelta
-from reservation_status import CheckReservationStatus
+from reservation_status import ReservationStatus, CheckReservationStatus
 from google.cloud import firestore, storage
 from chatgpt_api import get_chatgpt_response
 from generate import (
     generate_reserve_number
 )
 from validation import (
+    is_valid_phone_number,
     is_valid_reserve_number
 )
 import requests
@@ -22,10 +23,13 @@ class ReservationCheckHandler:
         self.api_key = os.environ['OPENAI_API_KEY']
         self.access_token = os.environ['ACCESS_TOKEN']
         self.messages = messages
-        self.reserves = {}
+        self.check_reserves = {}
         self.temp_data = {}
         self.handlers = {
-            CheckReservationStatus.CHECK_RESERVATION_NUMBER: self._handle_check_reservation_number
+            CheckReservationStatus.CHECK_RESERVATION_NUMBER: self._handle_check_reservation_number,
+            CheckReservationStatus.CHECK_RESERVATION_NAME: self._handle_check_reservation_name,
+            CheckReservationStatus.CHECK_RESERVATION_PHONE_NUMBER: self._handle_check_reservation_phone_number,
+            CheckReservationStatus.CHECK_RESERVATION_GET_NUMBER: self._handle_check_reservation_get_number
         }
 
 
@@ -39,14 +43,44 @@ class ReservationCheckHandler:
     def _handle_check_reservation_number(self, user_message, next_status, **kwargs):
         system_content = generate_reserve_number()
         reservation_number = self.get_chatgpt_response(system_content, user_message)
-
         if is_valid_reserve_number(reservation_number):
-            self.reserves[CheckReservationStatus.CHECK_RESERVATION_NUMBER.key] = reservation_number
+            self.check_reserves[CheckReservationStatus.CHECK_RESERVATION_NUMBER.key] = reservation_number
             self.db_ref.set({CheckReservationStatus.CHECK_RESERVATION_NUMBER.key: reservation_number})
-            message = f'{reservation_number} {self.messages[CheckReservationStatus.CHECK_RESERVATION_NUMBER.name]}'
+            message = f'{reservation_number}\n{self.messages[CheckReservationStatus.CHECK_RESERVATION_NUMBER.name]}'
             return message, next_status.name
         else:
-            return self.messages['NEW_RESERVATION_CHECKIN_ERROR'], CheckReservationStatus.CHECK_RESERVATION_NUMBER.name
+            return self.messages[CheckReservationStatus.CHECK_RESERVATION_NUMBER.name + '_ERROR'], CheckReservationStatus.CHECK_RESERVATION_NUMBER.name
+
+
+    def _handle_check_reservation_name(self, user_message, next_status, **kwargs):
+        reservation_name = user_message
+        if reservation_name:
+            self.check_reserves[CheckReservationStatus.CHECK_RESERVATION_NAME.key] = reservation_name
+            self.db_ref.set({CheckReservationStatus.CHECK_RESERVATION_NAME.key: reservation_name})
+            message = f'{reservation_name}\n{self.messages[CheckReservationStatus.CHECK_RESERVATION_NAME.name]}'
+            return message, next_status.name
+        else:
+            return self.messages[CheckReservationStatus.CHECK_RESERVATION_NAME.name + '_ERROR'], CheckReservationStatus.CHECK_RESERVATION_NAME.name
+
+    def _handle_check_reservation_phone_number(self, user_message, next_status, **kwargs):
+        reservation_phone_number = user_message
+        if is_valid_phone_number(reservation_phone_number):
+            self.check_reserves[CheckReservationStatus.CHECK_RESERVATION_PHONE_NUMBER.key] = reservation_phone_number
+            self.db_ref.set({CheckReservationStatus.CHECK_RESERVATION_PHONE_NUMBER.key: reservation_phone_number})
+            message = f'{reservation_phone_number}\n{self.messages[CheckReservationStatus.CHECK_RESERVATION_PHONE_NUMBER.name]}'
+            return message, next_status.name
+        else:
+            return self.messages[CheckReservationStatus.CHECK_RESERVATION_PHONE_NUMBER.name + '_ERROR'], CheckReservationStatus.CHECK_RESERVATION_PHONE_NUMBER.name
+
+    def _handle_check_reservation_get_number(self, user_message, next_status, user_id):
+        print(user_id)
+        if user_message == '確認':
+            # self.check_reserves[CheckReservationStatus.CHECK_RESERVATION_PHONE_NUMBER.key] = reservation_phone_number
+            # self.db_ref.set({CheckReservationStatus.CHECK_RESERVATION_PHONE_NUMBER.key: reservation_phone_number})
+            message = f'{self.messages[CheckReservationStatus.CHECK_RESERVATION_GET_NUMBER.name]}'
+            return message, next_status.name
+        else:
+            return self.messages[CheckReservationStatus.CHECK_RESERVATION_GET_NUMBER.name + '_ERROR'], ReservationStatus.RESERVATION_MENU.name
 
 
     def get_chatgpt_response(self, system_content, user_message):

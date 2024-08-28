@@ -118,6 +118,29 @@ MESSAGES = {
     CheckReservationStatus.CHECK_RESERVATION_NUMBER.name:textwrap.dedent("""
         予約番号を確認しました。
         予約時の代表者様氏名を教えてください。
+    """).strip(),
+    CheckReservationStatus.CHECK_RESERVATION_NUMBER.name + "_ERROR":textwrap.dedent("""
+        正しい予約番号を入力してください。予約番号は半角数字のみになります。
+    """).strip(),
+    CheckReservationStatus.CHECK_RESERVATION_NAME.name:textwrap.dedent("""
+        予約時の代表者氏名を確認しました。
+        代表者様のご連絡先電話番号を教えてください。
+    """).strip(),
+    CheckReservationStatus.CHECK_RESERVATION_NAME.name + "_ERROR":textwrap.dedent("""
+        正しい代表者氏名を入力してください。
+    """).strip(),
+    CheckReservationStatus.CHECK_RESERVATION_PHONE_NUMBER.name:textwrap.dedent("""
+        予約時の代表者の電話番号を確認しました。
+        予約の確認をいたします。「確認」と回答をお願いいたします。
+    """).strip(),
+    CheckReservationStatus.CHECK_RESERVATION_PHONE_NUMBER.name + "_ERROR":textwrap.dedent("""
+        正しい電話番号を入力してください。
+    """).strip(),
+    CheckReservationStatus.CHECK_RESERVATION_GET_NUMBER.name:textwrap.dedent("""
+        （仮）予約内容を出力します。予約内容を変更したいときは「変更」と入力してください。それ以外はメニュー画面に戻ります。
+    """).strip(),
+    CheckReservationStatus.CHECK_RESERVATION_GET_NUMBER.name + "_ERROR":textwrap.dedent("""
+        予約内容を確認しないということですね。メニュー画面に戻ります。
     """).strip()
 
 }
