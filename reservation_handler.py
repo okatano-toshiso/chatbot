@@ -36,6 +36,8 @@ class ReservationHandler:
         token_data = {'token': self.access_token}
         getReserveIdUrl = os.environ['API_SET_RESERVE_ID']
         response = requests.post(getReserveIdUrl, json=token_data)
+        print(response)
+        print(response.status_code)
         if response.status_code == 200:
             latest_reserve_id = response.json().get('latest_reserve_id')
             return int(latest_reserve_id) + 1
@@ -242,7 +244,7 @@ class ReservationHandler:
             message = message_template.format(**reserve_datas)
             return message, next_status.name
         else:
-            return self.messages['NEW_RESERVATION_RESERVE_CONFIRM_ERROR'], 'USER__RESERVATION_DEFAULT'
+            return self.messages['NEW_RESERVATION_RESERVE_CONFIRM_ERROR'], ReservationStatus.RESERVATION_MENU.name
 
 
     def _handle_reserve_execute(self, user_message, next_status, user_id):
@@ -262,7 +264,7 @@ class ReservationHandler:
             message = textwrap.dedent(f'{reservation_message}\n{reservation_id}').strip()
             return message, next_status.name
         else:
-            return self.messages['NEW_RESERVATION_RESERVE_CONFIRM_ERROR'], 'USER__RESERVATION_DEFAULT'
+            return self.messages['NEW_RESERVATION_RESERVE_CONFIRM_ERROR'], ReservationStatus.RESERVATION_MENU.name
 
 
     def _handle_reserve_complete(self, user_message, next_status, **kwargs):
@@ -270,7 +272,7 @@ class ReservationHandler:
             message = '予約を完了しました。'
             return message, next_status.name
         else:
-            return self.messages['NEW_RESERVATION_RESERVE_CONFIRM_ERROR'], 'USER__RESERVATION_DEFAULT'
+            return self.messages['NEW_RESERVATION_RESERVE_CONFIRM_ERROR'], ReservationStatus.RESERVATION_MENU.name
 
 
     def _calculate_checkout_date(self, checkin_date, stay_length):
