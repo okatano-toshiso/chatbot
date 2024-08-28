@@ -75,9 +75,13 @@ class ReservationCheckHandler:
     def _handle_check_reservation_get_number(self, user_message, next_status, user_id):
         print(user_id)
         if user_message == '確認':
+            data_doc = self.db_ref.get()
+            datas = data_doc.to_dict()
+            print(datas)
+            message = datas
             # self.check_reserves[CheckReservationStatus.CHECK_RESERVATION_PHONE_NUMBER.key] = reservation_phone_number
             # self.db_ref.set({CheckReservationStatus.CHECK_RESERVATION_PHONE_NUMBER.key: reservation_phone_number})
-            message = f'{self.messages[CheckReservationStatus.CHECK_RESERVATION_GET_NUMBER.name]}'
+            # message = f'{self.messages[CheckReservationStatus.CHECK_RESERVATION_GET_NUMBER.name]}'
             return message, next_status.name
         else:
             return self.messages[CheckReservationStatus.CHECK_RESERVATION_GET_NUMBER.name + '_ERROR'], ReservationStatus.RESERVATION_MENU.name
