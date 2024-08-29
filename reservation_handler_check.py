@@ -81,11 +81,19 @@ class ReservationCheckHandler:
             }, merge=True)
             data_doc = self.db_ref.get()
             if data_doc.exists:
-                datas = data_doc.to_dict()
-                message = str(datas)
-            else:
-                message = "データが見つかりませんでした。"
-            return message, next_status.name
+                data = data_doc.to_dict()
+                url = os.environ['API_CHECK_RESERVE_DATA']
+            try:
+                response = requests.post(url, json=data)
+                response.raise_for_status()
+                print(response)
+                return self.messages[CheckReservationStatus.CHECK_RESERVATION_PHONE_NUMBER]
+            except requests.exceptions.HTTPError as http_err:
+                print(f'HTTP error occurred: {http_err}')
+                return f'Failed to submit reservation: {http_err}', 'ERROR_STATUS'
+            except Exception as err:
+                print(f'An error occurred: {err}')
+                return f'An unexpected error has occurred.: {err}', 'ERROR_STATUS'
         else:
             return self.messages[CheckReservationStatus.CHECK_RESERVATION_GET_NUMBER.name + '_ERROR'], ReservationStatus.RESERVATION_MENU.name
 

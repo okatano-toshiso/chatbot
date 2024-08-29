@@ -308,7 +308,8 @@ def generate_response(
         return reservation_check_handler.handle_reservation_step(
             CheckReservationStatus.CHECK_RESERVATION_GET_NUMBER,
             user_message,
-            CheckReservationStatus.CHECK_RESERVATION_GET_NUMBER
+            CheckReservationStatus.CHECK_RESERVATION_GET_NUMBER,
+            user_id
         )
 
 
