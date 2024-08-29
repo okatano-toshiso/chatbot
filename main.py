@@ -688,12 +688,11 @@ def handle_message(event: MessageEvent) -> None:
     judge_reset = get_chatgpt_response(
         OPENAI_API_KEY, "gpt-3.5-turbo", 0, system_content, user_message
     )
-
-    if judge_reset:
+    print(judge_reset)
+    if judge_reset == "True":
         user_states[user_id] = str(ReservationStatus.RESERVATION_MENU.name)
         chatgpt_response = textwrap.dedent(f"""
-        最初のメニューに戻りました。
-        {MESSAGES[ReservationStatus.RESERVATION_MENU.name]}
+        最初のメニューに戻りました。\n{MESSAGES[ReservationStatus.RESERVATION_MENU.name]}
         """).strip()
         reply_to_user(event.reply_token, chatgpt_response)
 
