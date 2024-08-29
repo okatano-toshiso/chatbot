@@ -683,6 +683,11 @@ def handle_message(event: MessageEvent) -> None:
     user_id = event.source.user_id
     user_message = event.message.text
 
+    if user_message in ["メニューに戻りたい", "最初からやり直したい", "やり直す", "リセット"]:
+        user_states[user_id] = str(ReservationStatus.RESERVATION_MENU.name)
+        chatgpt_response = "最初のメニューに戻りました。どうぞご利用ください。"
+        reply_to_user(event.reply_token, chatgpt_response)
+
     if USE_HISTORY:
         previous_messages = get_previous_messages(user_id)
         history = format_history(previous_messages)
@@ -698,7 +703,6 @@ def handle_message(event: MessageEvent) -> None:
         user_message, history, user_status_code, user_id
     )
 
-    print(user_status_code)
 
     user_states[user_id] = str(user_status_code)
 
