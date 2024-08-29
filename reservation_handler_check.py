@@ -11,6 +11,7 @@ from validation import (
     is_valid_reserve_number
 )
 import requests
+import json
 
 reserves = {}
 users = {}
@@ -84,19 +85,21 @@ class ReservationCheckHandler:
                 data = data_doc.to_dict()
                 url = os.environ['API_CHECK_RESERVE_DATA']
             try:
-                response = requests.post(url, json=data)
+                json_data = json.dumps(data)
+                print(json_data)
+                response = requests.post(url, json=json.loads(json_data))
                 if response.status_code == 200:
                     print(response.json())
-                    return self.messages[CheckReservationStatus.CHECK_RESERVATION_GET_NUMBER], next_status.name
+                    return self.messages[CheckReservationStatus.CHECK_RESERVATION_GET_NUMBER.name], next_status.name
                 else:
                     print(f'Error: Received unexpected status code {response.status_code}')
-                    return self.messages[str(CheckReservationStatus.CHECK_RESERVATION_GET_NUMBER) + '_ERROR'], ReservationStatus.RESERVATION_MENU.name
+                    return self.messages[str(CheckReservationStatus.CHECK_RESERVATION_GET_NUMBER.name) + '_ERROR'], ReservationStatus.RESERVATION_MENU.name
             except requests.exceptions.HTTPError as http_err:
                 print(f'HTTP error occurred: {http_err}')
-                return self.messages[str(CheckReservationStatus.CHECK_RESERVATION_GET_NUMBER) + '_ERROR'], ReservationStatus.RESERVATION_MENU.name
+                return self.messages[str(CheckReservationStatus.CHECK_RESERVATION_GET_NUMBER.name) + '_ERROR'], ReservationStatus.RESERVATION_MENU.name
             except Exception as err:
                 print(f'An error occurred: {err}')
-                return self.messages[str(CheckReservationStatus.CHECK_RESERVATION_GET_NUMBER) + '_ERROR'], ReservationStatus.RESERVATION_MENU.name
+                return self.messages[str(CheckReservationStatus.CHECK_RESERVATION_GET_NUMBER.name) + '_ERROR'], ReservationStatus.RESERVATION_MENU.name
         else:
             return self.messages[str(CheckReservationStatus.CHECK_RESERVATION_GET_NUMBER.name) + '_ERROR'], ReservationStatus.RESERVATION_MENU.name
 
