@@ -106,6 +106,7 @@ MESSAGES = {
         予約内容
         ----------------------------------------
         お名前：{name}
+        オナマエ：{name_kana}
         チェックイン：{check_in}
         チェックアウト：{check_out}
         電話番号：{phone_number}

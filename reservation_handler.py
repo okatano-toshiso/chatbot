@@ -288,7 +288,9 @@ class ReservationHandler:
             current_date = datetime.now().strftime('%Y-%m-%d')
             current_datetime = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             user_datas = self.set_user_data(db_users_ref, user_id, datas, current_datetime)
+            print(user_datas)
             reserve_datas = self.set_reserve_data(db_reserves_ref, user_id, datas, new_reserve_id, current_date, current_datetime)
+            print(reserve_datas)
             reservation_message, reservation_id = self.send_reservation_data(reserve_datas, user_datas)
             message = textwrap.dedent(f'{reservation_message}\n{reservation_id}').strip()
             return message, next_status.name
