@@ -81,6 +81,9 @@ MESSAGES = {
     ReservationStatus.NEW_RESERVATION_NAME.name + "_ERROR":textwrap.dedent("""
         代表者様氏名をご記入してメッセージを送付してください。
     """).strip(),
+    ReservationStatus.NEW_RESERVATION_NAME_KANA.name + "_ERROR":textwrap.dedent("""
+        申し訳ございません。お名前の読みがわかりませんでした。再度、ご入力をお願いいたします。
+    """).strip(),
     ReservationStatus.NEW_RESERVATION_ADULT.name:textwrap.dedent("""
         ありがとうございます。
         続きましては、宿泊当日に連絡可能な電話番号を教えてください。

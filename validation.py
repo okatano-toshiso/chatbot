@@ -71,7 +71,7 @@ def is_valid_reserve_number(value: int) -> bool:
     return value.isdigit() and len(value) <= 255
 
 
-def is_valid_japanese_character(value: str) -> bool:
+def is_valid_japaneses_character(value: str) -> bool:
     try:
         if re.fullmatch(r'[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FFF]+', value):
             return True

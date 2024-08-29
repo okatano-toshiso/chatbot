@@ -226,8 +226,11 @@ class ReservationHandler:
             self.db_ref.set({ReservationStatus.NEW_RESERVATION_NAME.key: name}, merge=True)
             system_content = generate_name_kana()
             name_kana = self.get_chatgpt_response(system_content, name)
-            self.reserves[ReservationStatus.NEW_RESERVATION_NAME_KANA.key] = name_kana
-            self.db_ref.set({ReservationStatus.NEW_RESERVATION_NAME_KANA.key: name_kana}, merge=True)
+            if is_valid_japanese_katakana(name_kana):
+                self.reserves[ReservationStatus.NEW_RESERVATION_NAME_KANA.key] = name_kana
+                self.db_ref.set({ReservationStatus.NEW_RESERVATION_NAME_KANA.key: name_kana}, merge=True)
+            else:
+                return self.messages['NEW_RESERVATION_NAME_KANA_ERROR'], ReservationStatus.NEW_RESERVATION_NAME.name
             message = textwrap.dedent(f'代表者氏名は {name} 、読みは{name_kana}でよろしいでしょうか。 {self.messages[ReservationStatus.NEW_RESERVATION_NAME.name]}').strip()
             return message, next_status.name
         else:
