@@ -684,11 +684,12 @@ def handle_message(event: MessageEvent) -> None:
     user_id = event.source.user_id
     user_message = event.message.text
 
-    print("最初に戻るジャッジメントですの！")
-    print(user_message)
-    print(generate_judge_reset(user_message))
+    system_content = generate_judge_reset()
+    judge_reset = get_chatgpt_response(
+        OPENAI_API_KEY, "gpt-3.5-turbo", 0, system_content, user_message
+    )
 
-    if generate_judge_reset(user_message):
+    if judge_reset:
         user_states[user_id] = str(ReservationStatus.RESERVATION_MENU.name)
         chatgpt_response = textwrap.dedent(f"""
         最初のメニューに戻りました。
