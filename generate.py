@@ -578,4 +578,4 @@ def generate_judge_reset() -> bool:
     このメッセージの内容に基づいて、ユーザーがメニューに戻りたい、または会話をリセットしたいと思っているかどうかを判断してください。
     ユーザーがメニューに戻りたい、またはリセットしたいと考えている場合は「True」と答えてください。そうでない場合は「False」と答えてください。
     """
-    return judge_reset.strip() == "True"
+    return judge_reset
