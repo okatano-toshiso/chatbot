@@ -137,10 +137,23 @@ MESSAGES = {
         正しい電話番号を入力してください。
     """).strip(),
     CheckReservationStatus.CHECK_RESERVATION_GET_NUMBER.name:textwrap.dedent("""
-        （仮）予約内容を出力します。予約内容を変更したいときは「変更」と入力してください。それ以外はメニュー画面に戻ります。
+        予約内容を出力します。
+        ----------------------------------------
+        お名前：{name}
+        チェックイン：{check_in}
+        チェックアウト：{check_out}
+        電話番号：{phone_number}
+        ルームタイプ：{room_type}
+        ご利用者人数：{count_of_person}
+        ----------------------------------------
+        予約内容を変更したいときは「変更」と入力してください。それ以外はメニュー画面に戻ります。
     """).strip(),
     CheckReservationStatus.CHECK_RESERVATION_GET_NUMBER.name + "_ERROR":textwrap.dedent("""
         予約内容を確認しないということですね。メニュー画面に戻ります。
+    """).strip(),
+    CheckReservationStatus.CHECK_RESERVATION_GET_NUMBER.name + "_ERROR_API":textwrap.dedent("""
+        ご入力いただいた予約番号と代表者氏名と電話番号に該当する予約がございませんでした。\n
+        恐れ入りますが、再度ご入力いただきましてご確認をお願いいたします。
     """).strip()
 
 }
