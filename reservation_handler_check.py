@@ -92,9 +92,6 @@ class ReservationCheckHandler:
                     reserve_datas = response.json()
                     message_template = self.messages[CheckReservationStatus.CHECK_RESERVATION_GET_NUMBER.name]
                     message = message_template.format(**reserve_datas)
-
-# {'reservation_id': 1, 'reservation_date': '2024-08-28T00:00:00', 'check_in': '2024-12-25', 'check_out': '2024-12-26', 'status': 'RESERVE', 'count_of_person': 1, 'hotel_code': None, 'room_number': None, 'room_type': 'シングル(S)', 'name': '開発テスト', 'name_kana': None, 'phone_number': '09012345678', 'age': None, 'adult': True}
-
                     return message, next_status.name
                 else:
                     print(f'Error: Received unexpected status code {response.status_code}')

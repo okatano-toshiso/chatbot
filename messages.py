@@ -76,10 +76,17 @@ MESSAGES = {
     """).strip(),
     ReservationStatus.NEW_RESERVATION_NAME.name:textwrap.dedent("""
         代表者様氏名のご記入ありがとうございます。
-        続きましては、宿泊当日に連絡可能の電話番号を教えてください
+        代表者様は成人されておりますか、それとも未成年でいらっしゃいますか？
     """).strip(),
     ReservationStatus.NEW_RESERVATION_NAME.name + "_ERROR":textwrap.dedent("""
         代表者様氏名をご記入してメッセージを送付してください。
+    """).strip(),
+    ReservationStatus.NEW_RESERVATION_ADULT.name:textwrap.dedent("""
+        ありがとうございます。
+        続きましては、宿泊当日に連絡可能な電話番号を教えてください。
+    """).strip(),
+    ReservationStatus.NEW_RESERVATION_ADULT.name + "_ERROR":textwrap.dedent("""
+        申し訳ございませんが、未成年の方からのご予約はお受けできません。ご理解のほどよろしくお願い申し上げます。
     """).strip(),
     ReservationStatus.NEW_RESERVATION_PHONE_NUMBER.name:textwrap.dedent("""
         当日連絡可能な電話番号を承りました。予約に必要な情報は以上になります。

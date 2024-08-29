@@ -257,7 +257,15 @@ def generate_response(
         return reservation_handler.handle_reservation_step(
             ReservationStatus.NEW_RESERVATION_NAME,
             user_message,
-            ReservationStatus.NEW_RESERVATION_PHONE_NUMBER,
+            ReservationStatus.NEW_RESERVATION_ADULT,
+        )
+
+    if user_status_code == ReservationStatus.NEW_RESERVATION_ADULT.name:
+
+        return reservation_handler.handle_reservation_step(
+            ReservationStatus.NEW_RESERVATION_ADULT,
+            user_message,
+            ReservationStatus.NEW_RESERVATION_PHONE_NUMBER
         )
 
     if user_status_code == ReservationStatus.NEW_RESERVATION_PHONE_NUMBER.name:
@@ -688,6 +696,7 @@ def handle_message(event: MessageEvent) -> None:
     judge_reset = get_chatgpt_response(
         OPENAI_API_KEY, "gpt-3.5-turbo", 0, system_content, user_message
     )
+    print(judge_reset)
     if judge_reset == "True":
         user_states[user_id] = str(ReservationStatus.RESERVATION_MENU.name)
         chatgpt_response = textwrap.dedent(f"""

@@ -11,6 +11,7 @@ from generate import (
     generate_room_type_smoker,
     generate_room_type_no_smoker,
     generate_reserve_confirm,
+    generate_judge_adult
 )
 from validation import (
     is_valid_date,
@@ -111,6 +112,7 @@ class ReservationHandler:
             ReservationStatus.NEW_RESERVATION_ROOM_TYPE_SMOKER: self._handle_room_type_smoker,
             ReservationStatus.NEW_RESERVATION_ROOM_TYPE_NO_SMOKER: self._handle_room_type_no_smoker,
             ReservationStatus.NEW_RESERVATION_NAME: self._handle_name,
+            ReservationStatus.NEW_RESERVATION_ADULT: self._handle_adult,
             ReservationStatus.NEW_RESERVATION_PHONE_NUMBER: self._handle_phone_number,
             ReservationStatus.NEW_RESERVATION_RESERVE_CONFIRM: self._handle_reserve_confirm,
             ReservationStatus.NEW_RESERVATION_RESERVE_EXECUTE: self._handle_reserve_execute,
@@ -220,6 +222,20 @@ class ReservationHandler:
             return message, next_status.name
         else:
             return self.messages['NEW_RESERVATION_NAME_ERROR'], ReservationStatus.NEW_RESERVATION_NAME.name
+
+
+    def _handle_adult(self, user_message, next_status, **kwargs):
+        adult = user_message
+        system_content = generate_judge_adult()
+        adult = self.get_chatgpt_response(system_content, user_message)
+        if adult == "True":
+            is_adult = (adult == "True")
+            self.reserves[ReservationStatus.NEW_RESERVATION_ADULT.key] = is_adult
+            self.db_ref.set({ReservationStatus.NEW_RESERVATION_ADULT.key: is_adult}, merge=True)
+            message = textwrap.dedent(f'{self.messages[ReservationStatus.NEW_RESERVATION_ADULT.name]}').strip()
+            return message, next_status.name
+        else:
+            return self.messages['NEW_RESERVATION_NAME_ERROR'], ReservationStatus.NEW_RESERVATION_ADULT.name
 
 
     def _handle_phone_number(self, user_message, next_status, **kwargs):
