@@ -253,7 +253,7 @@ class ReservationHandler:
         if user_message == '予約':
             new_reserve_id = self.get_new_reserve_id()
             if new_reserve_id is None:
-                return 'Failed to obtain a reservation number.', 'ERROR_STATUS'
+                return 'Failed to obtain a reservation number.', ReservationStatus.RESERVATION_MENU.name
             data_doc = self.db_ref.get()
             datas = data_doc.to_dict()
             current_date = datetime.now().strftime('%Y-%m-%d')
