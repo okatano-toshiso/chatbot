@@ -285,6 +285,7 @@ class ReservationHandler:
                 return 'Failed to obtain a reservation number.', ReservationStatus.RESERVATION_MENU.name
             data_doc = self.db_ref.get()
             datas = data_doc.to_dict()
+            print(datas)
             current_date = datetime.now().strftime('%Y-%m-%d')
             current_datetime = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             user_datas = self.set_user_data(db_users_ref, user_id, datas, current_datetime)
