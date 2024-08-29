@@ -34,6 +34,7 @@ from generate import (
     generate_room_type_smoker,
     generate_room_type_no_smoker,
     generate_select,
+    generate_judge_reset
 )
 from menu_items import MenuItem
 from message import MESSAGES
@@ -683,9 +684,12 @@ def handle_message(event: MessageEvent) -> None:
     user_id = event.source.user_id
     user_message = event.message.text
 
-    if user_message in ["メニューに戻りたい", "最初からやり直したい", "やり直す", "リセット"]:
+    if generate_judge_reset(user_message):
         user_states[user_id] = str(ReservationStatus.RESERVATION_MENU.name)
-        chatgpt_response = "最初のメニューに戻りました。どうぞご利用ください。"
+        chatgpt_response = textwrap.dedent(f"""
+        最初のメニューに戻りました。
+        {MESSAGES[ReservationStatus.RESERVATION_MENU.name]}
+        """).strip()
         reply_to_user(event.reply_token, chatgpt_response)
 
     if USE_HISTORY:

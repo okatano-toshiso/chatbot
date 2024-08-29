@@ -571,3 +571,11 @@ def generate_reserve_number():
         ---
     """
     return reserve_number
+
+def generate_judge_reset(user_message: str) -> bool:
+    judge_reset = f"""
+    あなたはユーザーの意図を判断するシステムです。ユーザーが次のメッセージを送信しました: 「{user_message}」
+    このメッセージの内容に基づいて、ユーザーがメニューに戻りたい、または会話をリセットしたいと思っているかどうかを判断してください。
+    ユーザーがメニューに戻りたい、またはリセットしたいと考えている場合は「True」と答えてください。そうでない場合は「False」と答えてください。
+    """
+    return judge_reset.strip() == "True"
