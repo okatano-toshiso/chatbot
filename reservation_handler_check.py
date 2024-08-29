@@ -85,17 +85,20 @@ class ReservationCheckHandler:
                 url = os.environ['API_CHECK_RESERVE_DATA']
             try:
                 response = requests.post(url, json=data)
-                response.raise_for_status()
-                print(response)
-                return self.messages[CheckReservationStatus.CHECK_RESERVATION_PHONE_NUMBER]
+                if response.status_code == 200:
+                    print(response.json())
+                    return self.messages[CheckReservationStatus.CHECK_RESERVATION_GET_NUMBER], next_status.name
+                else:
+                    print(f'Error: Received unexpected status code {response.status_code}')
+                    return self.messages[str(CheckReservationStatus.CHECK_RESERVATION_GET_NUMBER) + '_ERROR'], ReservationStatus.RESERVATION_MENU.name
             except requests.exceptions.HTTPError as http_err:
                 print(f'HTTP error occurred: {http_err}')
-                return f'Failed to submit reservation: {http_err}', 'ERROR_STATUS'
+                return self.messages[str(CheckReservationStatus.CHECK_RESERVATION_GET_NUMBER) + '_ERROR'], ReservationStatus.RESERVATION_MENU.name
             except Exception as err:
                 print(f'An error occurred: {err}')
-                return f'An unexpected error has occurred.: {err}', 'ERROR_STATUS'
+                return self.messages[str(CheckReservationStatus.CHECK_RESERVATION_GET_NUMBER) + '_ERROR'], ReservationStatus.RESERVATION_MENU.name
         else:
-            return self.messages[CheckReservationStatus.CHECK_RESERVATION_GET_NUMBER.name + '_ERROR'], ReservationStatus.RESERVATION_MENU.name
+            return self.messages[str(CheckReservationStatus.CHECK_RESERVATION_GET_NUMBER.name) + '_ERROR'], ReservationStatus.RESERVATION_MENU.name
 
 
     def get_chatgpt_response(self, system_content, user_message):
