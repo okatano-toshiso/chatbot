@@ -1,4 +1,5 @@
 from datetime import datetime
+import re
 
 
 def is_valid_date(date_string: str) -> bool:
@@ -68,3 +69,24 @@ def is_valid_reserve_confirm(reserve_confirm: str) -> bool:
 
 def is_valid_reserve_number(value: int) -> bool:
     return value.isdigit() and len(value) <= 255
+
+
+def is_valid_japanese_character(value: str) -> bool:
+    try:
+        if re.fullmatch(r'[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FFF]+', value):
+            return True
+        else:
+            return False
+    except ValueError:
+        return False
+
+
+def is_valid_japanese_katakana(value: str) -> bool:
+    try:
+        if re.fullmatch(r'[\u30A0-\u30FF]+', value):
+            return True
+        else:
+            return False
+    except ValueError:
+        return False
+

@@ -11,7 +11,9 @@ from generate import (
     generate_room_type_smoker,
     generate_room_type_no_smoker,
     generate_reserve_confirm,
-    generate_judge_adult
+    generate_judge_adult,
+    generate_name,
+    generate_name_kana
 )
 from validation import (
     is_valid_date,
@@ -20,7 +22,9 @@ from validation import (
     is_valid_phone_number,
     is_valid_room_type_smoker,
     is_valid_room_type_no_smoker,
-    is_valid_reserve_confirm
+    is_valid_reserve_confirm,
+    is_valid_japaneses_character,
+    is_valid_japanese_katakana
 )
 import requests
 import uuid
@@ -215,10 +219,16 @@ class ReservationHandler:
 
     def _handle_name(self, user_message, next_status, **kwargs):
         name = user_message
-        if name:
+        # system_content = generate_name()
+        # name = self.get_chatgpt_response(system_content, user_message)
+        if is_valid_japaneses_character(name):
             self.reserves[ReservationStatus.NEW_RESERVATION_NAME.key] = name
             self.db_ref.set({ReservationStatus.NEW_RESERVATION_NAME.key: name}, merge=True)
-            message = textwrap.dedent(f'代表者氏名は {name}  {self.messages[ReservationStatus.NEW_RESERVATION_NAME.name]}').strip()
+            system_content = generate_name_kana()
+            name_kana = self.get_chatgpt_response(system_content, name)
+            self.reserves[ReservationStatus.NEW_RESERVATION_NAME_KANA.key] = name_kana
+            self.db_ref.set({ReservationStatus.NEW_RESERVATION_NAME_KANA.key: name_kana}, merge=True)
+            message = textwrap.dedent(f'代表者氏名は {name} 、読みは{name_kana}でよろしいでしょうか。 {self.messages[ReservationStatus.NEW_RESERVATION_NAME.name]}').strip()
             return message, next_status.name
         else:
             return self.messages['NEW_RESERVATION_NAME_ERROR'], ReservationStatus.NEW_RESERVATION_NAME.name
@@ -235,7 +245,7 @@ class ReservationHandler:
             message = textwrap.dedent(f'{self.messages[ReservationStatus.NEW_RESERVATION_ADULT.name]}').strip()
             return message, next_status.name
         else:
-            return self.messages['NEW_RESERVATION_NAME_ERROR'], ReservationStatus.NEW_RESERVATION_ADULT.name
+            return self.messages['NEW_RESERVATION_ADULT_ERROR'], ReservationStatus.RESERVATION_MENU.name
 
 
     def _handle_phone_number(self, user_message, next_status, **kwargs):

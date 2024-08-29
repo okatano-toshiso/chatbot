@@ -69,7 +69,7 @@ MESSAGES = {
     """).strip(),
     ReservationStatus.NEW_RESERVATION_ROOM_TYPE.name:textwrap.dedent("""
         部屋タイプのご記入ありがとうございます。
-        続きましては、代表者の氏名を教えてください。
+        続きましては、代表者の氏名を日本語で教えてください。
     """).strip(),
     ReservationStatus.NEW_RESERVATION_ROOM_TYPE.name + "_ERROR":textwrap.dedent("""
         正しい部屋タイプ名を記入してメッセージを送信してください。
