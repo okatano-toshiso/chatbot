@@ -56,6 +56,7 @@ class ReservationHandler:
             'line_id': user_id,
             'token': self.access_token,
             'name': datas['name'],
+            'name_kana': datas['name_kana'],
             'phone_number': datas['phone_number'],
             'created_at': current_datetime,
             'updated_at': current_datetime
@@ -70,6 +71,7 @@ class ReservationHandler:
             'reservation_date': current_date,
             'reservation_id': new_reserve_id,
             'line_id': user_id,
+            'adult': datas['adult'],
             'check_in': datas['check_in'],
             'check_out': datas['check_out'],
             'room_type': datas['room_type'],
@@ -285,13 +287,10 @@ class ReservationHandler:
                 return 'Failed to obtain a reservation number.', ReservationStatus.RESERVATION_MENU.name
             data_doc = self.db_ref.get()
             datas = data_doc.to_dict()
-            print(datas)
             current_date = datetime.now().strftime('%Y-%m-%d')
             current_datetime = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             user_datas = self.set_user_data(db_users_ref, user_id, datas, current_datetime)
-            print(user_datas)
             reserve_datas = self.set_reserve_data(db_reserves_ref, user_id, datas, new_reserve_id, current_date, current_datetime)
-            print(reserve_datas)
             reservation_message, reservation_id = self.send_reservation_data(reserve_datas, user_datas)
             message = textwrap.dedent(f'{reservation_message}\n{reservation_id}').strip()
             return message, next_status.name
