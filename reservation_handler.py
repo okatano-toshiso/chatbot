@@ -41,8 +41,6 @@ class ReservationHandler:
         token_data = {'token': self.access_token}
         getReserveIdUrl = os.environ['API_SET_RESERVE_ID']
         response = requests.post(getReserveIdUrl, json=token_data)
-        print(response)
-        print(response.status_code)
         if response.status_code == 200:
             latest_reserve_id = response.json().get('latest_reserve_id')
             return int(latest_reserve_id) + 1
@@ -292,6 +290,8 @@ class ReservationHandler:
             user_datas = self.set_user_data(db_users_ref, user_id, datas, current_datetime)
             reserve_datas = self.set_reserve_data(db_reserves_ref, user_id, datas, new_reserve_id, current_date, current_datetime)
             reservation_message, reservation_id = self.send_reservation_data(reserve_datas, user_datas)
+            db_reserves_ref.delete()
+            db_users_ref.delete()
             message = textwrap.dedent(f'{reservation_message}\n{reservation_id}').strip()
             return message, next_status.name
         else:
