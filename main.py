@@ -699,6 +699,8 @@ def handle_message(event: MessageEvent) -> None:
     print(judge_reset)
     if judge_reset == "True":
         user_states[user_id] = str(ReservationStatus.RESERVATION_MENU.name)
+        db_reserves_ref = db.collection("users").document(user_id).collection("reserves").document(unique_code)
+        db_reserves_ref.delete()
         chatgpt_response = textwrap.dedent(f"""
         最初のメニューに戻りました。\n{MESSAGES[ReservationStatus.RESERVATION_MENU.name]}
         """).strip()
