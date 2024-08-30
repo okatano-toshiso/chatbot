@@ -49,8 +49,8 @@ class ReservationHandler:
             return None
 
 
-    def set_user_data(self, db_users_ref, user_id, datas, current_datetime):
-        db_users_ref.set({
+    def set_user_data(self, db_line_users_ref, user_id, datas, current_datetime):
+        db_line_users_ref.set({
             'line_id': user_id,
             'token': self.access_token,
             'name': datas['name'],
@@ -60,12 +60,12 @@ class ReservationHandler:
             'created_at': current_datetime,
             'updated_at': current_datetime
         }, merge=True)
-        users_doc = db_users_ref.get()
+        users_doc = db_line_users_ref.get()
         return users_doc.to_dict()
 
 
-    def set_reserve_data(self, db_reserves_ref, user_id, datas, new_reserve_id, current_date, current_datetime):
-        db_reserves_ref.set({
+    def set_reserve_data(self, db_line_reserves_ref, user_id, datas, new_reserve_id, current_date, current_datetime):
+        db_line_reserves_ref.set({
             'token': self.access_token,
             'reservation_date': current_date,
             'reservation_id': new_reserve_id,
@@ -78,7 +78,7 @@ class ReservationHandler:
             'created_at': current_datetime,
             'updated_at': current_datetime
         }, merge=True)
-        reserves_doc = db_reserves_ref.get()
+        reserves_doc = db_line_reserves_ref.get()
         return reserves_doc.to_dict()
 
 
@@ -119,8 +119,7 @@ class ReservationHandler:
             ReservationStatus.NEW_RESERVATION_ADULT: self._handle_adult,
             ReservationStatus.NEW_RESERVATION_PHONE_NUMBER: self._handle_phone_number,
             ReservationStatus.NEW_RESERVATION_RESERVE_CONFIRM: self._handle_reserve_confirm,
-            ReservationStatus.NEW_RESERVATION_RESERVE_EXECUTE: self._handle_reserve_execute,
-            ReservationStatus.NEW_RESERVATION_RESERVE_COMPLETE: self._handle_reserve_complete
+            ReservationStatus.NEW_RESERVATION_RESERVE_EXECUTE: self._handle_reserve_execute
         }
 
 
@@ -248,6 +247,7 @@ class ReservationHandler:
             message = textwrap.dedent(f'{self.messages[ReservationStatus.NEW_RESERVATION_ADULT.name]}').strip()
             return message, next_status.name
         else:
+            self.db_ref.delete()
             return self.messages['NEW_RESERVATION_ADULT_ERROR'], ReservationStatus.RESERVATION_MENU.name
 
 
@@ -273,36 +273,32 @@ class ReservationHandler:
             message = message_template.format(**reserve_datas)
             return message, next_status.name
         else:
+            self.db_ref.delete()
             return self.messages['NEW_RESERVATION_RESERVE_CONFIRM_ERROR'], ReservationStatus.RESERVATION_MENU.name
 
 
     def _handle_reserve_execute(self, user_message, next_status, user_id):
-        db_reserves_ref = db.collection('users').document(user_id).collection('reserves').document(unique_code)
-        db_users_ref = db.collection('users').document(user_id).collection('datas').document(unique_code)
+        db_line_reserves_ref = db.collection('users').document(user_id).collection('line_reserves').document(unique_code)
+        db_line_users_ref = db.collection('users').document(user_id).collection('line_users').document(unique_code)
         if user_message == '予約':
             new_reserve_id = self.get_new_reserve_id()
             if new_reserve_id is None:
+                self.db_ref.delete()
                 return 'Failed to obtain a reservation number.', ReservationStatus.RESERVATION_MENU.name
             data_doc = self.db_ref.get()
             datas = data_doc.to_dict()
             current_date = datetime.now().strftime('%Y-%m-%d')
             current_datetime = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-            user_datas = self.set_user_data(db_users_ref, user_id, datas, current_datetime)
-            reserve_datas = self.set_reserve_data(db_reserves_ref, user_id, datas, new_reserve_id, current_date, current_datetime)
+            user_datas = self.set_user_data(db_line_users_ref, user_id, datas, current_datetime)
+            reserve_datas = self.set_reserve_data(db_line_reserves_ref, user_id, datas, new_reserve_id, current_date, current_datetime)
             reservation_message, reservation_id = self.send_reservation_data(reserve_datas, user_datas)
-            db_reserves_ref.delete()
-            db_users_ref.delete()
+            db_line_users_ref.delete()
+            db_line_reserves_ref.delete()
+            self.db_ref.delete()
             message = textwrap.dedent(f'{reservation_message}\n{reservation_id}').strip()
             return message, next_status.name
         else:
-            return self.messages['NEW_RESERVATION_RESERVE_CONFIRM_ERROR'], ReservationStatus.RESERVATION_MENU.name
-
-
-    def _handle_reserve_complete(self, user_message, next_status, **kwargs):
-        if user_message:
-            message = '予約を完了しました。'
-            return message, next_status.name
-        else:
+            self.db_ref.delete()
             return self.messages['NEW_RESERVATION_RESERVE_CONFIRM_ERROR'], ReservationStatus.RESERVATION_MENU.name
 
 
