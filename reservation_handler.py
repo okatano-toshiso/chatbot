@@ -57,6 +57,7 @@ class ReservationHandler:
             'token': self.access_token,
             'name': datas['name'],
             'name_kana': datas['name_kana'],
+            'adult': datas['adult'],
             'phone_number': datas['phone_number'],
             'created_at': current_datetime,
             'updated_at': current_datetime
@@ -71,7 +72,6 @@ class ReservationHandler:
             'reservation_date': current_date,
             'reservation_id': new_reserve_id,
             'line_id': user_id,
-            'adult': datas['adult'],
             'check_in': datas['check_in'],
             'check_out': datas['check_out'],
             'room_type': datas['room_type'],
