@@ -27,7 +27,7 @@ class ReservationCheckHandler:
         self.check_reserves = {}
         self.temp_data = {}
         self.handlers = {
-            CheckReservationStatus.CHECK_RESERVATION_NUMBER: self._handle_check_reservation_number,
+            # CheckReservationStatus.CHECK_RESERVATION_NUMBER: self._handle_check_reservation_number,
             CheckReservationStatus.CHECK_RESERVATION_NAME: self._handle_check_reservation_name,
             CheckReservationStatus.CHECK_RESERVATION_PHONE_NUMBER: self._handle_check_reservation_phone_number,
             CheckReservationStatus.CHECK_RESERVATION_GET_NUMBER: self._handle_check_reservation_get_number
@@ -41,16 +41,16 @@ class ReservationCheckHandler:
             raise ValueError(f'Unsupported reservation status: {status}')
 
 
-    def _handle_check_reservation_number(self, user_message, next_status, **kwargs):
-        system_content = generate_reserve_number()
-        reservation_number = self.get_chatgpt_response(system_content, user_message)
-        if is_valid_reserve_number(reservation_number):
-            self.check_reserves[CheckReservationStatus.CHECK_RESERVATION_NUMBER.key] = int(reservation_number)
-            self.db_ref.set({CheckReservationStatus.CHECK_RESERVATION_NUMBER.key: int(reservation_number)}, merge=True)
-            message = f'{reservation_number}\n{self.messages[CheckReservationStatus.CHECK_RESERVATION_NUMBER.name]}'
-            return message, next_status.name
-        else:
-            return self.messages[CheckReservationStatus.CHECK_RESERVATION_NUMBER.name + '_ERROR'], CheckReservationStatus.CHECK_RESERVATION_NUMBER.name
+    # def _handle_check_reservation_number(self, user_message, next_status, **kwargs):
+    #     system_content = generate_reserve_number()
+    #     reservation_number = self.get_chatgpt_response(system_content, user_message)
+    #     if is_valid_reserve_number(reservation_number):
+    #         self.check_reserves[CheckReservationStatus.CHECK_RESERVATION_NUMBER.key] = int(reservation_number)
+    #         self.db_ref.set({CheckReservationStatus.CHECK_RESERVATION_NUMBER.key: int(reservation_number)}, merge=True)
+    #         message = f'{reservation_number}\n{self.messages[CheckReservationStatus.CHECK_RESERVATION_NUMBER.name]}'
+    #         return message, next_status.name
+    #     else:
+    #         return self.messages[CheckReservationStatus.CHECK_RESERVATION_NUMBER.name + '_ERROR'], CheckReservationStatus.CHECK_RESERVATION_NUMBER.name
 
 
     def _handle_check_reservation_name(self, user_message, next_status, **kwargs):

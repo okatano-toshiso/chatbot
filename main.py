@@ -177,7 +177,7 @@ def generate_response(
             return str(RESERVATION_RECEPTION_START), user_status_code
         elif MenuItem.CONFIRM_RESERVATION.value in bot_response:
             CHECK_RESERVATION_START = MESSAGES[CheckReservationStatus.CHECK_RESERVATION_START.name]
-            user_status_code = CheckReservationStatus.CHECK_RESERVATION_NUMBER.name
+            user_status_code = CheckReservationStatus.CHECK_RESERVATION_NAME.name
             return str(CHECK_RESERVATION_START), user_status_code
         elif MenuItem.MODIFY_RESERVATION.value in bot_response:
             RESERVATION_RECEPTION_UPDATA = MESSAGES["reservation_reception_updata"]
@@ -292,12 +292,12 @@ def generate_response(
             user_id
         )
 
-    if user_status_code == CheckReservationStatus.CHECK_RESERVATION_NUMBER.name:
-        return reservation_check_handler.handle_reservation_step(
-            CheckReservationStatus.CHECK_RESERVATION_NUMBER,
-            user_message,
-            CheckReservationStatus.CHECK_RESERVATION_NAME
-        )
+    # if user_status_code == CheckReservationStatus.CHECK_RESERVATION_NUMBER.name:
+    #     return reservation_check_handler.handle_reservation_step(
+    #         CheckReservationStatus.CHECK_RESERVATION_NUMBER,
+    #         user_message,
+    #         CheckReservationStatus.CHECK_RESERVATION_NAME
+    #     )
 
     if user_status_code == CheckReservationStatus.CHECK_RESERVATION_NAME.name:
         return reservation_check_handler.handle_reservation_step(

@@ -124,15 +124,15 @@ MESSAGES = {
     """).strip(),
     CheckReservationStatus.CHECK_RESERVATION_START.name:textwrap.dedent("""
         予約確認ですね。
-        予約時に控えていただきました予約番号のみを入力してください。
+        予約時に使用した代表者氏名を教えてください。
     """).strip(),
-    CheckReservationStatus.CHECK_RESERVATION_NUMBER.name:textwrap.dedent("""
-        予約番号を確認しました。
-        予約時の代表者様氏名を教えてください。
-    """).strip(),
-    CheckReservationStatus.CHECK_RESERVATION_NUMBER.name + "_ERROR":textwrap.dedent("""
-        正しい予約番号を入力してください。予約番号は半角数字のみになります。
-    """).strip(),
+    # CheckReservationStatus.CHECK_RESERVATION_NUMBER.name:textwrap.dedent("""
+    #     予約番号を確認しました。
+    #     予約時の代表者様氏名を教えてください。
+    # """).strip(),
+    # CheckReservationStatus.CHECK_RESERVATION_NUMBER.name + "_ERROR":textwrap.dedent("""
+    #     正しい予約番号を入力してください。予約番号は半角数字のみになります。
+    # """).strip(),
     CheckReservationStatus.CHECK_RESERVATION_NAME.name:textwrap.dedent("""
         予約時の代表者氏名を確認しました。
         代表者様のご連絡先電話番号を教えてください。
