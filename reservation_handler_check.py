@@ -30,7 +30,8 @@ class ReservationCheckHandler:
             # CheckReservationStatus.CHECK_RESERVATION_NUMBER: self._handle_check_reservation_number,
             CheckReservationStatus.CHECK_RESERVATION_NAME: self._handle_check_reservation_name,
             CheckReservationStatus.CHECK_RESERVATION_PHONE_NUMBER: self._handle_check_reservation_phone_number,
-            CheckReservationStatus.CHECK_RESERVATION_GET_NUMBER: self._handle_check_reservation_get_number
+            CheckReservationStatus.CHECK_RESERVATION_GET_NUMBER: self._handle_check_reservation_get_number,
+            CheckReservationStatus.CHECK_RESERVATION_GET_NUMBER_MORE: self._handle_check_reservation_get_number_more
         }
 
 
@@ -39,19 +40,6 @@ class ReservationCheckHandler:
             return self.handlers[status](user_message, next_status, user_id=user_id)
         else:
             raise ValueError(f'Unsupported reservation status: {status}')
-
-
-    # def _handle_check_reservation_number(self, user_message, next_status, **kwargs):
-    #     system_content = generate_reserve_number()
-    #     reservation_number = self.get_chatgpt_response(system_content, user_message)
-    #     if is_valid_reserve_number(reservation_number):
-    #         self.check_reserves[CheckReservationStatus.CHECK_RESERVATION_NUMBER.key] = int(reservation_number)
-    #         self.db_ref.set({CheckReservationStatus.CHECK_RESERVATION_NUMBER.key: int(reservation_number)}, merge=True)
-    #         message = f'{reservation_number}\n{self.messages[CheckReservationStatus.CHECK_RESERVATION_NUMBER.name]}'
-    #         return message, next_status.name
-    #     else:
-    #         return self.messages[CheckReservationStatus.CHECK_RESERVATION_NUMBER.name + '_ERROR'], CheckReservationStatus.CHECK_RESERVATION_NUMBER.name
-
 
     def _handle_check_reservation_name(self, user_message, next_status, **kwargs):
         reservation_name = user_message
@@ -74,7 +62,6 @@ class ReservationCheckHandler:
             return self.messages[CheckReservationStatus.CHECK_RESERVATION_PHONE_NUMBER.name + '_ERROR'], CheckReservationStatus.CHECK_RESERVATION_PHONE_NUMBER.name
 
     def _handle_check_reservation_get_number(self, user_message, next_status, user_id):
-        print(user_id)
         if user_message == '確認':
             self.db_ref.set({
                 'line_id': user_id,
@@ -86,13 +73,29 @@ class ReservationCheckHandler:
                 url = os.environ['API_CHECK_RESERVE_DATA']
             try:
                 json_data = json.dumps(data)
-                print(json_data)
                 response = requests.post(url, json=json.loads(json_data))
                 if response.status_code == 200:
-                    reserve_datas = response.json()
-                    message_template = self.messages[CheckReservationStatus.CHECK_RESERVATION_GET_NUMBER.name]
-                    message = message_template.format(**reserve_datas)
-                    return message, next_status.name
+                    reserve_datas = response.json().get('reservations', [])
+                    message = "予約内容を出力します。\n"
+                    for index, reserve_data in enumerate(reserve_datas):
+                        if index >= 5:
+                            break
+                        message_template = self.messages[CheckReservationStatus.CHECK_RESERVATION_GET_NUMBER.name]
+                        message += message_template.format(**reserve_data) + "\n"
+                    if len(reserve_datas) > 5:
+                        message += """----------------------------------------
+                        予約内容を変更したいときは変更したい予約番号を入力してください。
+                        続きの予約を見たい場合は「もっと見る」と応答してください。
+                        """
+                        next_stage = CheckReservationStatus.CHECK_RESERVATION_GET_NUMBER_MORE.name
+                    else:
+                        message += """----------------------------------------
+                        予約内容を変更したいときは変更したい予約番号を入力してください。
+                        """
+                        # temp function
+                        next_stage = ReservationStatus.RESERVATION_MENU.name
+                    message = message.strip()
+                    return message, next_stage
                 else:
                     print(f'Error: Received unexpected status code {response.status_code}')
                     return self.messages[str(CheckReservationStatus.CHECK_RESERVATION_GET_NUMBER.name) + '_ERROR_API'], ReservationStatus.RESERVATION_MENU.name
@@ -104,6 +107,46 @@ class ReservationCheckHandler:
                 return self.messages[str(CheckReservationStatus.CHECK_RESERVATION_GET_NUMBER.name) + '_ERROR'], ReservationStatus.RESERVATION_MENU.name
         else:
             return self.messages[str(CheckReservationStatus.CHECK_RESERVATION_GET_NUMBER.name) + '_ERROR'], ReservationStatus.RESERVATION_MENU.name
+
+    def _handle_check_reservation_get_number_more(self, user_message, next_status, user_id):
+        if user_message == 'もっと見る':
+            self.db_ref.set({
+                'line_id': user_id,
+                'token': self.access_token,
+            }, merge=True)
+            data_doc = self.db_ref.get()
+            if data_doc.exists:
+                data = data_doc.to_dict()
+                url = os.environ['API_CHECK_RESERVE_DATA']
+            try:
+                json_data = json.dumps(data)
+                response = requests.post(url, json=json.loads(json_data))
+                if response.status_code == 200:
+                    reserve_datas = response.json().get('reservations', [])
+                    message = "続きの予約内容を出力します。\n"
+                    for index, reserve_data in enumerate(reserve_datas):
+                        if index < 5:
+                            continue
+                        message_template = self.messages[CheckReservationStatus.CHECK_RESERVATION_GET_NUMBER.name]
+                        message += message_template.format(**reserve_data) + "\n"
+                    message += """----------------------------------------
+                        予約内容を変更したいときは変更したい予約番号を入力してください。
+                    """
+                    next_pahase = next_status.name
+                    message = message.strip()
+                    return message, next_pahase
+                else:
+                    print(f'Error: Received unexpected status code {response.status_code}')
+                    return self.messages[str(CheckReservationStatus.CHECK_RESERVATION_GET_NUMBER.name) + '_ERROR_API'], ReservationStatus.RESERVATION_MENU.name
+            except requests.exceptions.HTTPError as http_err:
+                print(f'HTTP error occurred: {http_err}')
+                return self.messages[str(CheckReservationStatus.CHECK_RESERVATION_GET_NUMBER.name) + '_ERROR'], ReservationStatus.RESERVATION_MENU.name
+            except Exception as err:
+                print(f'An error occurred: {err}')
+                return self.messages[str(CheckReservationStatus.CHECK_RESERVATION_GET_NUMBER.name) + '_ERROR'], ReservationStatus.RESERVATION_MENU.name
+        else:
+            return self.messages[str(CheckReservationStatus.CHECK_RESERVATION_GET_NUMBER.name) + '_ERROR'], ReservationStatus.RESERVATION_MENU.name
+
 
 
     def get_chatgpt_response(self, system_content, user_message):

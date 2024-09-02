@@ -28,7 +28,7 @@ class CheckReservationStatus(Enum):
     CHECK_RESERVATION_NAME = ("CHECK_RESERVATION_NAME", 'name')
     CHECK_RESERVATION_PHONE_NUMBER = ("CHECK_RESERVATION_PHONE_NUMBER", 'phone_number')
     CHECK_RESERVATION_GET_NUMBER = ("CHECK_RESERVATION_GET_NUMBER", None)
-
+    CHECK_RESERVATION_GET_NUMBER_MORE = ("CHECK_RESERVATION_GET_NUMBER_MORE", None)
     @property
     def key(self):
         return self.value[1]
