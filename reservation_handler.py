@@ -69,6 +69,8 @@ class ReservationHandler:
             'reservation_date': current_date,
             'reservation_id': new_reserve_id,
             'line_id': user_id,
+            'name': datas['name'],
+            'phone_number': datas['phone_number'],
             'check_in': datas['check_in'],
             'check_out': datas['check_out'],
             'room_type': datas['room_type'],

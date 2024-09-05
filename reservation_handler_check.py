@@ -83,14 +83,10 @@ class ReservationCheckHandler:
                         message_template = self.messages[CheckReservationStatus.CHECK_RESERVATION_GET_NUMBER.name]
                         message += message_template.format(**reserve_data) + "\n"
                     if len(reserve_datas) > 5:
-                        message += """----------------------------------------
-                        予約内容を変更したいときは変更したい予約番号を入力してください。
-                        続きの予約を見たい場合は「もっと見る」と応答してください。
-                        """
+                        message += """----------------------------------------\n予約内容を変更したいときは変更したい予約番号を入力してください。\n続きの予約を見たい場合は「もっと見る」と応答してください。"""
                         next_stage = CheckReservationStatus.CHECK_RESERVATION_GET_NUMBER_MORE.name
                     else:
-                        message += """----------------------------------------
-                        予約内容を変更したいときは変更したい予約番号を入力してください。
+                        message += """----------------------------------------\n予約内容を変更したいときは変更したい予約番号を入力してください。
                         """
                         # temp function
                         next_stage = ReservationStatus.RESERVATION_MENU.name
