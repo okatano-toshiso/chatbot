@@ -1,7 +1,7 @@
 import os, textwrap
 from datetime import datetime, timedelta
 from reservation_status import ReservationStatus, CheckReservationStatus
-from google.cloud import firestore, storage
+# from google.cloud import firestore, storage
 from chatgpt_api import get_chatgpt_response
 from generate import (
     generate_reserve_number
@@ -15,7 +15,7 @@ import json
 
 reserves = {}
 users = {}
-db = firestore.Client()
+# db = firestore.Client()
 
 class ReservationCheckHandler:
 
