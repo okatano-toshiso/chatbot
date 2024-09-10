@@ -1,20 +1,21 @@
 # Import necessary modules
 import json, os, tempfile, textwrap, re, uuid, requests
+import boto3
 from datetime import datetime, timedelta
 from flask import Request, abort
-from google.cloud import firestore, storage
-from langchain.chat_models import ChatOpenAI
+# from google.cloud import firestore, storage
+# from langchain.chat_models import ChatOpenAI
 from linebot import LineBotApi, WebhookHandler
 from linebot.exceptions import InvalidSignatureError
 from linebot.models import MessageEvent, TextMessage, TextSendMessage
-from llama_index import (
-    LLMPredictor,
-    ServiceContext,
-    PromptTemplate,
-    StorageContext,
-    load_index_from_storage,
-)
-from llama_index.indices.base import BaseIndex
+# from llama_index import (
+#     LLMPredictor,
+#     ServiceContext,
+#     PromptTemplate,
+#     StorageContext,
+#     load_index_from_storage,
+# )
+# from llama_index.indices.base import BaseIndex
 from openai import OpenAI
 from validation import (
     is_valid_date,
@@ -37,11 +38,12 @@ from generate import (
     generate_judge_reset
 )
 from menu_items import MenuItem
-from message import MESSAGES
-from reservation_status import ReservationStatus, CheckReservationStatus
+from messages import MESSAGES
+from reservation_status import ReservationStatus, CheckReservationStatus, ErrorReservationStatus
 from reservation_handler import ReservationHandler, ReservationStatus
 from reservation_handler_check import ReservationCheckHandler
 
+from boto3.dynamodb.conditions import Key
 
 # Define constants
 FILES_TO_DOWNLOAD = ["docstore.json", "index_store.json", "vector_store.json"]
@@ -50,11 +52,11 @@ BUCKET_NAME = "udemy-vector-store_1045"
 # Initialize LINE Bot API and Firestore client
 line_bot_api = LineBotApi(os.environ["LINE_CHANNEL_ACCESS_TOKEN"])
 handler = WebhookHandler(os.environ["LINE_CHANNEL_SECRET"])
-db = firestore.Client()
+# db = firestore.Client()
 
 # Initialize Google Cloud Storage client and bucket
-storage_client = storage.Client()
-bucket = storage_client.bucket(BUCKET_NAME)
+# storage_client = storage.Client()
+# bucket = storage_client.bucket(BUCKET_NAME)
 
 OPENAI_API_KEY = os.environ["OPENAI_API_KEY"]
 client = OpenAI(
@@ -63,7 +65,7 @@ client = OpenAI(
 
 # user status Initialize
 USER_STATUS_CODE = ReservationStatus.RESERVATION_MENU.name
-USE_HISTORY = True
+USE_HISTORY = False
 access_token = os.environ["ACCESS_TOKEN"]
 
 
@@ -73,63 +75,65 @@ def get_object_updated_time(object_name: str) -> datetime:
     blob.reload()
     return blob.updated
 
+dynamodb = boto3.resource('dynamodb', region_name='ap-northeast-1')
+reserves_table = dynamodb.Table("line_reserves")
 
 # Function to download files from storage to a temporary director
-def download_files_from_storage(temp_dir: str) -> None:
-    for file in FILES_TO_DOWNLOAD:
-        blob = bucket.blob(file)
-        blob.download_to_filename(f"{temp_dir}/{file}")
+# def download_files_from_storage(temp_dir: str) -> None:
+#     for file in FILES_TO_DOWNLOAD:
+#         blob = bucket.blob(file)
+#         blob.download_to_filename(f"{temp_dir}/{file}")
 
 
 # Function to set up storage and load index from downloaded files
-def setup_storage_and_load_index() -> BaseIndex:
-    with tempfile.TemporaryDirectory() as temp_dir:
-        download_files_from_storage(temp_dir)
-        service_context = ServiceContext.from_defaults(
-            llm_predictor=LLMPredictor(
-                llm=ChatOpenAI(
-                    temperature=0,
-                    model_name="gpt-3.5-turbo",
-                    max_tokens=512
-                )
-            )
-        )
-        storage_context = StorageContext.from_defaults(persist_dir=temp_dir)
-        return load_index_from_storage(
-            storage_context=storage_context, service_context=service_context
-        )
+# def setup_storage_and_load_index() -> BaseIndex:
+#     with tempfile.TemporaryDirectory() as temp_dir:
+#         download_files_from_storage(temp_dir)
+#         service_context = ServiceContext.from_defaults(
+#             llm_predictor=LLMPredictor(
+#                 llm=ChatOpenAI(
+#                     temperature=0,
+#                     model_name="gpt-3.5-turbo",
+#                     max_tokens=512
+#                 )
+#             )
+#         )
+#         storage_context = StorageContext.from_defaults(persist_dir=temp_dir)
+#         return load_index_from_storage(
+#             storage_context=storage_context, service_context=service_context
+#         )
 
 
 # Initialize index and updated time
-index = setup_storage_and_load_index()
-updated_time = get_object_updated_time(FILES_TO_DOWNLOAD[0])
+# index = setup_storage_and_load_index()
+# updated_time = get_object_updated_time(FILES_TO_DOWNLOAD[0])
 
 
 # Function to reload the index if it has been updated
-def reload_index_if_updated() -> None:
-    global index, updated_time
-    latest_updated_time = get_object_updated_time(FILES_TO_DOWNLOAD[0])
-    if updated_time != latest_updated_time:
-        index = setup_storage_and_load_index()
-        updated_time = latest_updated_time
+# def reload_index_if_updated() -> None:
+#     global index, updated_time
+#     latest_updated_time = get_object_updated_time(FILES_TO_DOWNLOAD[0])
+#     if updated_time != latest_updated_time:
+#         index = setup_storage_and_load_index()
+#         updated_time = latest_updated_time
 
 
 # Function to get previous messages from the Firestore database
-def get_previous_messages(user_id: str) -> list:
-    query = (
-        db.collection("users")
-        .document(user_id)
-        .collection("messages")
-        .order_by("timestamp", direction=firestore.Query.DESCENDING)
-        .limit(3)
-    )
-    return [
-        {
-            "chatgpt_response": doc.to_dict()["chatgpt_response"],
-            "user_message": doc.to_dict()["user_message"],
-        }
-        for doc in query.stream()
-    ]
+# def get_previous_messages(user_id: str) -> list:
+#     query = (
+#         db.collection("users")
+#         .document(user_id)
+#         .collection("messages")
+#         .order_by("timestamp", direction=firestore.Query.DESCENDING)
+#         .limit(3)
+#     )
+#     return [
+#         {
+#             "chatgpt_response": doc.to_dict()["chatgpt_response"],
+#             "user_message": doc.to_dict()["user_message"],
+#         }
+#         for doc in query.stream()
+#     ]
 
 
 # Function to format previous messages into a string
@@ -154,8 +158,12 @@ def generate_response(
     user_message: str, history: str = None, user_status_code: str = None, user_id: str = None
 ) -> str:
 
-    db_reserves_ref = db.collection("users").document(user_id).collection("reserves").document(unique_code)
-    db_cehck_reserves_ref = db.collection("users").document(user_id).collection("check_reserves").document(unique_code)
+    # db_reserves_ref = db.collection("users").document(user_id).collection("reserves").document(unique_code)
+    # db_cehck_reserves_ref = db.collection("users").document(user_id).collection("check_reserves").document(unique_code)
+
+    db_reserves_ref = "line_reserves"
+    db_cehck_reserves_ref = None
+
 
     reservation_handler = ReservationHandler(db_reserves_ref, OPENAI_API_KEY, MESSAGES)
     reservation_check_handler = ReservationCheckHandler(db_cehck_reserves_ref, OPENAI_API_KEY, MESSAGES)
@@ -192,15 +200,17 @@ def generate_response(
             user_status_code = "FAQ"
             return str(FAQ), user_status_code
         else:
-            RESERVATION_RECEPTION_ERROR = MESSAGES["reservation_reception_error"]
-            return str(RESERVATION_RECEPTION_ERROR), user_status_code
+            ERROR_RESERVATION_MENU = MESSAGES[ErrorReservationStatus.ERROR_RESERVATION_MENU.name]
+            return str(ERROR_RESERVATION_MENU), user_status_code
 
     if user_status_code == ReservationStatus.NEW_RESERVATION_CHECKIN.name:
 
         return reservation_handler.handle_reservation_step(
             ReservationStatus.NEW_RESERVATION_CHECKIN,
             user_message,
-            ReservationStatus.NEW_RESERVATION_CHECKOUT
+            ReservationStatus.NEW_RESERVATION_CHECKOUT,
+            user_id,
+            unique_code
         )
 
     if user_status_code == ReservationStatus.NEW_RESERVATION_CHECKOUT.name:
@@ -208,7 +218,9 @@ def generate_response(
         return reservation_handler.handle_reservation_step(
             ReservationStatus.NEW_RESERVATION_CHECKOUT,
             user_message,
-            ReservationStatus.NEW_RESERVATION_COUNT_OF_PERSON
+            ReservationStatus.NEW_RESERVATION_COUNT_OF_PERSON,
+            user_id,
+            unique_code
         )
 
 
@@ -217,7 +229,9 @@ def generate_response(
         return reservation_handler.handle_reservation_step(
             ReservationStatus.NEW_RESERVATION_COUNT_OF_PERSON,
             user_message,
-            ReservationStatus.NEW_RESERVATION_SMOKER
+            ReservationStatus.NEW_RESERVATION_SMOKER,
+            user_id,
+            unique_code
         )
 
     if user_status_code == ReservationStatus.NEW_RESERVATION_SMOKER.name:
@@ -226,6 +240,8 @@ def generate_response(
             ReservationStatus.NEW_RESERVATION_SMOKER,
             user_message,
             ReservationStatus.NEW_RESERVATION_ROOM_TYPE,
+            user_id,
+            unique_code
         )
 
     if user_status_code == ReservationStatus.NEW_RESERVATION_SMOKER.name:
@@ -234,6 +250,8 @@ def generate_response(
             ReservationStatus.NEW_RESERVATION_SMOKER,
             user_message,
             ReservationStatus.NEW_RESERVATION_ROOM_TYPE,
+            user_id,
+            unique_code
         )
 
     if user_status_code == ReservationStatus.NEW_RESERVATION_ROOM_TYPE_SMOKER.name:
@@ -242,6 +260,8 @@ def generate_response(
             ReservationStatus.NEW_RESERVATION_ROOM_TYPE_SMOKER,
             user_message,
             ReservationStatus.NEW_RESERVATION_NAME,
+            user_id,
+            unique_code
         )
 
     if user_status_code == ReservationStatus.NEW_RESERVATION_ROOM_TYPE_NO_SMOKER.name:
@@ -250,6 +270,8 @@ def generate_response(
             ReservationStatus.NEW_RESERVATION_ROOM_TYPE_NO_SMOKER,
             user_message,
             ReservationStatus.NEW_RESERVATION_NAME,
+            user_id,
+            unique_code
         )
 
     if user_status_code == ReservationStatus.NEW_RESERVATION_NAME.name:
@@ -258,6 +280,8 @@ def generate_response(
             ReservationStatus.NEW_RESERVATION_NAME,
             user_message,
             ReservationStatus.NEW_RESERVATION_ADULT,
+            user_id,
+            unique_code
         )
 
     if user_status_code == ReservationStatus.NEW_RESERVATION_ADULT.name:
@@ -265,7 +289,9 @@ def generate_response(
         return reservation_handler.handle_reservation_step(
             ReservationStatus.NEW_RESERVATION_ADULT,
             user_message,
-            ReservationStatus.NEW_RESERVATION_PHONE_NUMBER
+            ReservationStatus.NEW_RESERVATION_PHONE_NUMBER,
+            user_id,
+            unique_code
         )
 
     if user_status_code == ReservationStatus.NEW_RESERVATION_PHONE_NUMBER.name:
@@ -273,7 +299,9 @@ def generate_response(
         return reservation_handler.handle_reservation_step(
             ReservationStatus.NEW_RESERVATION_PHONE_NUMBER,
             user_message,
-            ReservationStatus.NEW_RESERVATION_RESERVE_CONFIRM
+            ReservationStatus.NEW_RESERVATION_RESERVE_CONFIRM,
+            user_id,
+            unique_code
         )
 
     if user_status_code == ReservationStatus.NEW_RESERVATION_RESERVE_CONFIRM.name:
@@ -281,7 +309,9 @@ def generate_response(
         return reservation_handler.handle_reservation_step(
             ReservationStatus.NEW_RESERVATION_RESERVE_CONFIRM,
             user_message,
-            ReservationStatus.NEW_RESERVATION_RESERVE_EXECUTE
+            ReservationStatus.NEW_RESERVATION_RESERVE_EXECUTE,
+            user_id,
+            unique_code
         )
 
     if user_status_code == ReservationStatus.NEW_RESERVATION_RESERVE_EXECUTE.name:
@@ -289,14 +319,17 @@ def generate_response(
             ReservationStatus.NEW_RESERVATION_RESERVE_EXECUTE,
             user_message,
             ReservationStatus.RESERVATION_MENU,
-            user_id
+            user_id,
+            unique_code
         )
 
     if user_status_code == CheckReservationStatus.CHECK_RESERVATION_NAME.name:
         return reservation_check_handler.handle_reservation_step(
             CheckReservationStatus.CHECK_RESERVATION_NAME,
             user_message,
-            CheckReservationStatus.CHECK_RESERVATION_PHONE_NUMBER
+            CheckReservationStatus.CHECK_RESERVATION_PHONE_NUMBER,
+            user_id,
+            unique_code
         )
 
     if user_status_code == CheckReservationStatus.CHECK_RESERVATION_PHONE_NUMBER.name:
@@ -304,6 +337,8 @@ def generate_response(
             CheckReservationStatus.CHECK_RESERVATION_PHONE_NUMBER,
             user_message,
             CheckReservationStatus.CHECK_RESERVATION_GET_NUMBER,
+            user_id,
+            unique_code
         )
 
     if user_status_code == CheckReservationStatus.CHECK_RESERVATION_GET_NUMBER.name:
@@ -311,7 +346,8 @@ def generate_response(
             CheckReservationStatus.CHECK_RESERVATION_GET_NUMBER,
             user_message,
             CheckReservationStatus.CHECK_RESERVATION_GET_NUMBER,
-            user_id
+            user_id,
+            unique_code
         )
 
     if user_status_code == CheckReservationStatus.CHECK_RESERVATION_GET_NUMBER_MORE.name:
@@ -319,7 +355,8 @@ def generate_response(
             CheckReservationStatus.CHECK_RESERVATION_GET_NUMBER_MORE,
             user_message,
             CheckReservationStatus.CHECK_RESERVATION_GET_NUMBER_MORE,
-            user_id
+            user_id,
+            unique_code
         )
 
     if user_status_code == "USER__RESERVATION_CHECK":
@@ -617,34 +654,34 @@ def generate_response(
             )
             return str(USER__RESERVATION_CANCEL), user_status_code
 
-    if user_status_code == "FAQ":
-        COMMON_PROMPT = textwrap.dedent("""
-            あなたは親切なアシスタントです。
-            {history_section}
-            以下に文献の情報を提供します。
-            ---------------------
-            {{context_str}}
-            ---------------------
-            与えられた情報を元にユーザーへのアドバイスを200文字以内で出力してください。
-            文献の情報から回答できない入力の場合は、そのように出力してください。
-            入力：{{query_str}}
-            出力：
-        """).strip()
-        if USE_HISTORY:
-            history_section = textwrap.dedent(f"""
-                これまでのユーザーとアシスタントの会話の履歴は以下のようになっています。
-                ---------------------
-                {history}
-                ---------------------
-                過去にした質問を確認してください。
-                情報を重複して尋ねないように注意してください。
-                また、追加のリクエストや質問がないかをお尋ねし、お客様に安心感を提供してください。
-            """).strip()
-        else:
-            history_section = ""
-        PROMPT = COMMON_PROMPT.format(history_section=history_section)
-        query_engine = index.as_query_engine(text_qa_template=PromptTemplate(PROMPT))
-        return str(query_engine.query(user_message)), user_status_code
+    # if user_status_code == "FAQ":
+    #     COMMON_PROMPT = textwrap.dedent("""
+    #         あなたは親切なアシスタントです。
+    #         {history_section}
+    #         以下に文献の情報を提供します。
+    #         ---------------------
+    #         {{context_str}}
+    #         ---------------------
+    #         与えられた情報を元にユーザーへのアドバイスを200文字以内で出力してください。
+    #         文献の情報から回答できない入力の場合は、そのように出力してください。
+    #         入力：{{query_str}}
+    #         出力：
+    #     """).strip()
+    #     if USE_HISTORY:
+    #         history_section = textwrap.dedent(f"""
+    #             これまでのユーザーとアシスタントのmain会話の履歴は以下のようになっています。
+    #             ---------------------
+    #             {history}
+    #             ---------------------
+    #             過去にした質問を確認してください。
+    #             情報を重複して尋ねないように注意してください。
+    #             また、追加のリクエストや質問がないかをお尋ねし、お客様に安心感を提供してください。
+    #         """).strip()
+    #     else:
+    #         history_section = ""
+    #     PROMPT = COMMON_PROMPT.format(history_section=history_section)
+    #     query_engine = index.as_query_engine(text_qa_template=PromptTemplate(PROMPT))
+    #     return str(query_engine.query(user_message)), user_status_code
 
 
 # Function to reply to the user using LINE Bot API
@@ -653,15 +690,15 @@ def reply_to_user(reply_token: str, chatgpt_response: str) -> None:
 
 
 # Function to save messages to the Firestore database
-def save_message_to_db(user_id: str, user_message: str, chatgpt_response: str) -> None:
-    doc_ref = db.collection("users").document(user_id).collection("messages").document()
-    doc_ref.set(
-        {
-            "user_message": user_message,
-            "chatgpt_response": chatgpt_response,
-            "timestamp": datetime.now(),
-        }
-    )
+# def save_message_to_db(user_id: str, user_message: str, chatgpt_response: str) -> None:
+#     doc_ref = db.collection("users").document(user_id).collection("messages").document()
+#     doc_ref.set(
+#         {
+#             "user_message": user_message,
+#             "chatgpt_response": chatgpt_response,
+#             "timestamp": datetime.now(),
+#         }
+#     )
 
 
 def is_first_time_user(user_id):
@@ -671,15 +708,51 @@ def is_first_time_user(user_id):
 
 ###################
 # Main function to handle incoming requests
-def main(request: Request) -> str:
-    signature = request.headers["X-Line-Signature"]
-    body = request.get_data(as_text=True)
+
+def lambda_handler(event, context):
+    print("event")
+    print(event)
+    print("context")
+    print(context)
+
+    print("body:"+str(event['body']))
+    print("context:"+str(context))
+
+    headers = event["headers"]
+    body = event["body"]
+    signature = headers['x-line-signature']
+
     try:
         handler.handle(body, signature)
     except InvalidSignatureError:
-        abort(400)
-    return "OK"
+        return {
+            'statusCode': 400,
+            'body': 'Invalid signature'
+        }
+    
+    return {
+        'statusCode': 200,
+        'body': 'OK'
+    }
 
+
+# def main(request: Request) -> str:
+#     signature = request.headers["X-Line-Signature"]
+#     body = request.get_data(as_text=True)
+#     try:
+#         handler.handle(body, signature)
+#     except InvalidSignatureError:
+#         abort(400)
+#     return "OK"
+
+def delete_session_user(unique_code, table_name, db_name):
+    dynamodb = boto3.resource(db_name)
+    table = dynamodb.Table(table_name)
+    table.delete_item(
+        Key={
+            'unique_code': unique_code
+        }
+    )
 
 
 user_states = {}
@@ -688,7 +761,7 @@ user_states = {}
 def handle_message(event: MessageEvent) -> None:
     global user_states
     global USER_STATUS_CODE
-    reload_index_if_updated()
+    # reload_index_if_updated()
     user_id = event.source.user_id
     user_message = event.message.text
 
@@ -699,8 +772,9 @@ def handle_message(event: MessageEvent) -> None:
     print(judge_reset)
     if judge_reset == "True":
         user_states[user_id] = str(ReservationStatus.RESERVATION_MENU.name)
-        db_reserves_ref = db.collection("users").document(user_id).collection("reserves").document(unique_code)
-        db_reserves_ref.delete()
+
+        delete_session_user(unique_code, 'line_reserves', 'dynamodb')
+
         chatgpt_response = textwrap.dedent(f"""
         最初のメニューに戻りました。\n{MESSAGES[ReservationStatus.RESERVATION_MENU.name]}
         """).strip()

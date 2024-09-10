@@ -1,7 +1,7 @@
 # message.py
 import textwrap
 from menu_items import MenuItem
-from reservation_status import ReservationStatus, CheckReservationStatus
+from reservation_status import ReservationStatus, CheckReservationStatus, ErrorReservationStatus
 
 MESSAGES = {
     ReservationStatus.RESERVATION_MENU.name:textwrap.dedent(f"""
@@ -164,8 +164,10 @@ MESSAGES = {
     CheckReservationStatus.CHECK_RESERVATION_GET_NUMBER.name + "_ERROR_API":textwrap.dedent("""
         LINEユーザーとご入力いただいた予約番号、代表者氏名、電話番号に該当する予約がございませんでした。\n
         恐れ入りますが、再度ご入力いただきましてご確認をお願いいたします。
+    """).strip(),
+   ErrorReservationStatus.ERROR_RESERVATION_MENU.name:textwrap.dedent("""
+        正しい用件を再度、ご記入してメッセージを送付してください。
     """).strip()
-
 }
 
 

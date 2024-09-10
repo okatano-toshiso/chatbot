@@ -32,3 +32,11 @@ class CheckReservationStatus(Enum):
     @property
     def key(self):
         return self.value[1]
+
+class ErrorReservationStatus(Enum):
+    ERROR_RESERVATION_MENU = ("ERROR_RESERVATION_MENU", None)
+    @property
+    def key(self):
+        return self.value[1]
+
+
