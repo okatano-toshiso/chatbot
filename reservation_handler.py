@@ -29,6 +29,7 @@ from validation import (
 import requests
 import uuid
 import boto3
+import json 
 
 reserves = {}
 users = {}
@@ -40,10 +41,21 @@ class ReservationHandler:
     def get_new_reserve_id(self):
         token_data = {'token': self.access_token}
         getReserveIdUrl = os.environ['API_SET_RESERVE_ID']
-        response = requests.post(getReserveIdUrl, json=token_data)
+        response = requests.get(getReserveIdUrl, json=token_data)
+
         if response.status_code == 200:
-            latest_reserve_id = response.json().get('latest_reserve_id')
-            return int(latest_reserve_id) + 1
+            # 一度パースしてからbodyを再度パース
+            response_body = json.loads(response.json().get('body'))
+            latest_reserve_id = response_body.get('latest_reserve_id')
+    
+            print("Latest Reserve ID:", latest_reserve_id)
+    
+            if latest_reserve_id is not None:
+                return int(latest_reserve_id) + 1
+            else:
+                print('No reserve ID found in response')
+                # 適切なデフォルト値を返すかエラー処理を行う
+                return None
         else:
             print('Cannot get the latest reserve ID')
             return None
@@ -345,20 +357,31 @@ class ReservationHandler:
 
     def _handle_reserve_execute(self, user_message, next_status, user_id ,unique_code):
         if user_message == '予約':
-            # new_reserve_id = self.get_new_reserve_id()
-            # if new_reserve_id is None:
-            #     self.db_ref.delete()
-            #     return 'Failed to obtain a reservation number.', ReservationStatus.RESERVATION_MENU.name
-            # data_doc = self.db_ref.get()
-            # datas = data_doc.to_dict()
-            # current_date = datetime.now().strftime('%Y-%m-%d')
-            # current_datetime = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-            # user_datas = self.set_line_users_data(user_id, datas, current_datetime)
-            # reserve_datas = self.set_line_reserves_data(user_id, datas, new_reserve_id, current_date, current_datetime)
-            # reservation_message, reservation_id = self.send_reservation_data(reserve_datas, user_datas)
-            # self.db_ref.delete()
-            # message = textwrap.dedent(f'{reservation_message}\n{reservation_id}').strip()
-            message = "AWS環境のAPI準備中です。\nセッションデータは削除します。"
+            new_reserve_id = self.get_new_reserve_id()
+            if new_reserve_id is None:
+                self.table.delete_item(
+                    Key={
+                        'unique_code': unique_code
+                    }
+                )
+                return 'Failed to obtain a reservation number.', ReservationStatus.RESERVATION_MENU.name
+            table_datas = self.table.get_item(
+                Key={
+                    'unique_code': unique_code
+                }
+            )
+            datas = table_datas['Item']
+            current_date = datetime.now().strftime('%Y-%m-%d')
+            current_datetime = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            user_datas = self.set_line_users_data(user_id, datas, current_datetime)
+            reserve_datas = self.set_line_reserves_data(user_id, datas, new_reserve_id, current_date, current_datetime)
+            reservation_message, reservation_id = self.send_reservation_data(reserve_datas, user_datas)
+            self.table.delete_item(
+                Key={
+                    'unique_code': unique_code
+                }
+            )
+            message = textwrap.dedent(f'{reservation_message}\n{reservation_id}').strip()
             self.table.delete_item(
                 Key={
                     'unique_code': unique_code
