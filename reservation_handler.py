@@ -44,18 +44,13 @@ class ReservationHandler:
         response = requests.get(getReserveIdUrl, json=token_data)
 
         if response.status_code == 200:
-            # 一度パースしてからbodyを再度パース
             response_body = json.loads(response.json().get('body'))
             latest_reserve_id = response_body.get('latest_reserve_id')
-    
-            print("Latest Reserve ID:", latest_reserve_id)
-    
+
             if latest_reserve_id is not None:
                 return int(latest_reserve_id) + 1
             else:
-                print('No reserve ID found in response')
-                # 適切なデフォルト値を返すかエラー処理を行う
-                return None
+                return int(1)
         else:
             print('Cannot get the latest reserve ID')
             return None
@@ -199,6 +194,7 @@ class ReservationHandler:
         count_of_person = self.get_chatgpt_response(system_content, user_message)
 
         if is_single_digit_number(count_of_person):
+            count_of_person = int(count_of_person)
             self.reserves[ReservationStatus.NEW_RESERVATION_COUNT_OF_PERSON.key] = count_of_person
             self.table.update_item(
                 Key={'unique_code': unique_code},
