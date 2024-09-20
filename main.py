@@ -76,7 +76,8 @@ def get_object_updated_time(object_name: str) -> datetime:
     return blob.updated
 
 dynamodb = boto3.resource('dynamodb', region_name='ap-northeast-1')
-reserves_table = dynamodb.Table("line_reserves")
+reserves_table = dynamodb.Table("dev-commapi-dymdb-api-LineChatBot")
+table_name = "dev-commapi-dymdb-api-LineChatBot"
 
 # Function to download files from storage to a temporary director
 # def download_files_from_storage(temp_dir: str) -> None:
@@ -161,7 +162,7 @@ def generate_response(
     # db_reserves_ref = db.collection("users").document(user_id).collection("reserves").document(unique_code)
     # db_cehck_reserves_ref = db.collection("users").document(user_id).collection("check_reserves").document(unique_code)
 
-    db_reserves_ref = "line_reserves"
+    db_reserves_ref = table_name
     db_cehck_reserves_ref = None
 
 
@@ -773,7 +774,7 @@ def handle_message(event: MessageEvent) -> None:
     if judge_reset == "True":
         user_states[user_id] = str(ReservationStatus.RESERVATION_MENU.name)
 
-        delete_session_user(unique_code, 'line_reserves', 'dynamodb')
+        delete_session_user(unique_code, table_name, 'dynamodb')
 
         chatgpt_response = textwrap.dedent(f"""
         最初のメニューに戻りました。\n{MESSAGES[ReservationStatus.RESERVATION_MENU.name]}

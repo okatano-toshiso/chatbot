@@ -12,6 +12,7 @@ from validation import (
 )
 import requests
 import json
+import boto3
 
 reserves = {}
 users = {}
@@ -19,8 +20,10 @@ users = {}
 
 class ReservationCheckHandler:
 
-    def __init__(self, db_ref, api_key, messages):
-        self.db_ref = db_ref
+    # def __init__(self, db_ref, api_key, messages):
+    def __init__(self, table_name, api_key, messages):
+        self.dynamodb = boto3.resource('dynamodb')
+        self.table = self.dynamodb.Table(table_name)
         self.api_key = os.environ['OPENAI_API_KEY']
         self.access_token = os.environ['ACCESS_TOKEN']
         self.messages = messages
@@ -35,17 +38,22 @@ class ReservationCheckHandler:
         }
 
 
-    def handle_reservation_step(self, status, user_message, next_status, user_id=None):
+    def handle_reservation_step(self, status, user_message, next_status, user_id=None ,unique_code=None):
         if status in self.handlers:
-            return self.handlers[status](user_message, next_status, user_id=user_id)
+            return self.handlers[status](user_message, next_status, user_id=user_id ,unique_code=unique_code)
         else:
             raise ValueError(f'Unsupported reservation status: {status}')
 
-    def _handle_check_reservation_name(self, user_message, next_status, **kwargs):
+    def _handle_check_reservation_name(self, user_message, next_status, user_id ,unique_code):
         reservation_name = user_message
         if reservation_name:
             self.check_reserves[CheckReservationStatus.CHECK_RESERVATION_NAME.key] = reservation_name
-            self.db_ref.set({CheckReservationStatus.CHECK_RESERVATION_NAME.key: reservation_name}, merge=True)
+            self.table.update_item(
+                Key={'unique_code': unique_code},
+                UpdateExpression="SET #co = :cd",
+                ExpressionAttributeNames={'#co': CheckReservationStatus.CHECK_RESERVATION_NAME.key},
+                ExpressionAttributeValues={':cd': reservation_name}
+            )
             message = f'{reservation_name}\n{self.messages[CheckReservationStatus.CHECK_RESERVATION_NAME.name]}'
             return message, next_status.name
         else:
