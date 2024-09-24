@@ -112,7 +112,6 @@ class ReservationCheckHandler:
             try:
                 json_data = json.dumps(data)
                 response = requests.get(url, json=json.loads(json_data))
-                print("response", response)
                 try:
                     response = requests.get(url, params=reserve_datas)
                     if response.status_code != 200:
@@ -122,7 +121,6 @@ class ReservationCheckHandler:
 
                 if response.status_code == 200:
                     reserve_datas = json.loads(response.json().get('body', []))
-                    print('予約内容', reserve_datas)
                     if not reserve_datas:
                         return "予約データはありませんでした。", ReservationStatus.RESERVATION_MENU.name
 
@@ -153,36 +151,53 @@ class ReservationCheckHandler:
         else:
             return self.messages[str(CheckReservationStatus.CHECK_RESERVATION_GET_NUMBER.name) + '_ERROR'], ReservationStatus.RESERVATION_MENU.name
 
-    def _handle_check_reservation_get_number_more(self, user_message, next_status, user_id):
+    def _handle_check_reservation_get_number_more(self, user_message, next_status, user_id ,unique_code):
         if user_message == 'もっと見る':
-            self.db_ref.set({
-                'line_id': user_id,
-                'token': self.access_token,
-            }, merge=True)
-            data_doc = self.db_ref.get()
-            if data_doc.exists:
-                data = data_doc.to_dict()
-                url = os.environ['API_CHECK_RESERVE_DATA']
+            self.table.update_item(
+                Key={'unique_code': unique_code},
+                UpdateExpression="SET #co = :cd",
+                ExpressionAttributeNames={
+                    '#co': 'line_id'
+                },
+                ExpressionAttributeValues={
+                    ':cd': user_id
+                }
+            )
+            table_datas = self.table.get_item(
+                Key={
+                    'unique_code': unique_code
+                }
+            )
+            reserve_datas = table_datas.get('Item', {})
+            keys_to_remove = ['ExpirationTime', 'unique_code']
+            for key in keys_to_remove:
+                if key in reserve_datas:
+                    del reserve_datas[key]
+            if reserve_datas:
+                data = reserve_datas
+                url = os.environ['API_SAVE_RESERVE_DATA']
             try:
                 json_data = json.dumps(data)
-                response = requests.post(url, json=json.loads(json_data))
-                if response.status_code == 200:
-                    reserve_datas = response.json().get('reservations', [])
+                response = requests.get(url, json=json.loads(json_data))
+                try:
+                    response = requests.get(url, params=reserve_datas)
+                    if response.status_code != 200:
+                        print(f"error: status_code is {response.status_code}")
+                except requests.exceptions.RequestException as e:
+                    print(f"error message: {e}")
+
+                reserve_datas = json.loads(response.json().get('body', []))
+
+                for index, reserve_data in enumerate(reserve_datas):
                     message = "続きの予約内容を出力します。\n"
-                    for index, reserve_data in enumerate(reserve_datas):
-                        if index < 5:
-                            continue
-                        message_template = self.messages[CheckReservationStatus.CHECK_RESERVATION_GET_NUMBER.name]
-                        message += message_template.format(**reserve_data) + "\n"
-                    message += """----------------------------------------
-                        予約内容を変更したいときは変更したい予約番号を入力してください。
-                    """
-                    next_pahase = next_status.name
-                    message = message.strip()
-                    return message, next_pahase
-                else:
-                    print(f'Error: Received unexpected status code {response.status_code}')
-                    return self.messages[str(CheckReservationStatus.CHECK_RESERVATION_GET_NUMBER.name) + '_ERROR_API'], ReservationStatus.RESERVATION_MENU.name
+                    if index < 5:
+                        continue
+                    message_template = self.messages[CheckReservationStatus.CHECK_RESERVATION_GET_NUMBER.name]
+                    message += message_template.format(**reserve_data) + "\n"
+                message += """----------------------------------------予約内容を変更したいときは変更したい予約番号を入力してください。"""
+                next_pahase = next_status.name
+                message = message.strip()
+                return message, next_pahase
             except requests.exceptions.HTTPError as http_err:
                 print(f'HTTP error occurred: {http_err}')
                 return self.messages[str(CheckReservationStatus.CHECK_RESERVATION_GET_NUMBER.name) + '_ERROR'], ReservationStatus.RESERVATION_MENU.name
@@ -191,8 +206,6 @@ class ReservationCheckHandler:
                 return self.messages[str(CheckReservationStatus.CHECK_RESERVATION_GET_NUMBER.name) + '_ERROR'], ReservationStatus.RESERVATION_MENU.name
         else:
             return self.messages[str(CheckReservationStatus.CHECK_RESERVATION_GET_NUMBER.name) + '_ERROR'], ReservationStatus.RESERVATION_MENU.name
-
-
 
     def get_chatgpt_response(self, system_content, user_message):
         return get_chatgpt_response(self.api_key, 'gpt-3.5-turbo', 0, system_content, user_message)
