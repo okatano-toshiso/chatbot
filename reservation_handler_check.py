@@ -20,7 +20,7 @@ users = {}
 
 class ReservationCheckHandler:
 
-    # def __init__(self, db_ref, api_key, messages):
+
     def __init__(self, table_name, api_key, messages):
         self.dynamodb = boto3.resource('dynamodb')
         self.table = self.dynamodb.Table(table_name)
@@ -44,46 +44,88 @@ class ReservationCheckHandler:
         else:
             raise ValueError(f'Unsupported reservation status: {status}')
 
+
     def _handle_check_reservation_name(self, user_message, next_status, user_id ,unique_code):
+
         reservation_name = user_message
+
+        current_time = datetime.now()
+        expiry_time = current_time + timedelta(minutes=5)
+        expiry_timestamp = int(expiry_time.timestamp())
+
         if reservation_name:
             self.check_reserves[CheckReservationStatus.CHECK_RESERVATION_NAME.key] = reservation_name
-            self.table.update_item(
-                Key={'unique_code': unique_code},
-                UpdateExpression="SET #co = :cd",
-                ExpressionAttributeNames={'#co': CheckReservationStatus.CHECK_RESERVATION_NAME.key},
-                ExpressionAttributeValues={':cd': reservation_name}
+            self.table.put_item(
+                Item={
+                    'unique_code': unique_code,
+                    'line_id': user_id,
+                    'ExpirationTime' :expiry_timestamp,
+                    'name': reservation_name,
+                }
             )
             message = f'{reservation_name}\n{self.messages[CheckReservationStatus.CHECK_RESERVATION_NAME.name]}'
             return message, next_status.name
         else:
             return self.messages[CheckReservationStatus.CHECK_RESERVATION_NAME.name + '_ERROR'], CheckReservationStatus.CHECK_RESERVATION_NAME.name
 
-    def _handle_check_reservation_phone_number(self, user_message, next_status, **kwargs):
+    def _handle_check_reservation_phone_number(self, user_message, next_status, user_id ,unique_code):
         reservation_phone_number = user_message
         if is_valid_phone_number(reservation_phone_number):
             self.check_reserves[CheckReservationStatus.CHECK_RESERVATION_PHONE_NUMBER.key] = reservation_phone_number
-            self.db_ref.set({CheckReservationStatus.CHECK_RESERVATION_PHONE_NUMBER.key: reservation_phone_number}, merge=True)
+            self.table.update_item(
+                Key={'unique_code': unique_code},
+                UpdateExpression="SET #co = :cd",
+                ExpressionAttributeNames={'#co': CheckReservationStatus.CHECK_RESERVATION_PHONE_NUMBER.key},
+                ExpressionAttributeValues={':cd': reservation_phone_number}
+            )
             message = f'{reservation_phone_number}\n{self.messages[CheckReservationStatus.CHECK_RESERVATION_PHONE_NUMBER.name]}'
             return message, next_status.name
         else:
             return self.messages[CheckReservationStatus.CHECK_RESERVATION_PHONE_NUMBER.name + '_ERROR'], CheckReservationStatus.CHECK_RESERVATION_PHONE_NUMBER.name
 
-    def _handle_check_reservation_get_number(self, user_message, next_status, user_id):
+    def _handle_check_reservation_get_number(self, user_message, next_status, user_id ,unique_code):
+
         if user_message == '確認':
-            self.db_ref.set({
-                'line_id': user_id,
-                'token': self.access_token,
-            }, merge=True)
-            data_doc = self.db_ref.get()
-            if data_doc.exists:
-                data = data_doc.to_dict()
-                url = os.environ['API_CHECK_RESERVE_DATA']
+            self.table.update_item(
+                Key={'unique_code': unique_code},
+                UpdateExpression="SET #co = :cd",
+                ExpressionAttributeNames={
+                    '#co': 'line_id'
+                },
+                ExpressionAttributeValues={
+                    ':cd': user_id
+                }
+            )
+            table_datas = self.table.get_item(
+                Key={
+                    'unique_code': unique_code
+                }
+            )
+            reserve_datas = table_datas.get('Item', {})
+            keys_to_remove = ['ExpirationTime', 'unique_code']
+            for key in keys_to_remove:
+                if key in reserve_datas:
+                    del reserve_datas[key]
+            if reserve_datas:
+                data = reserve_datas
+                url = os.environ['API_SAVE_RESERVE_DATA']
             try:
                 json_data = json.dumps(data)
-                response = requests.post(url, json=json.loads(json_data))
+                response = requests.get(url, json=json.loads(json_data))
+                print("response", response)
+                try:
+                    response = requests.get(url, params=reserve_datas)
+                    if response.status_code != 200:
+                        print(f"error: status_code is {response.status_code}")
+                except requests.exceptions.RequestException as e:
+                    print(f"error message: {e}")
+
                 if response.status_code == 200:
-                    reserve_datas = response.json().get('reservations', [])
+                    reserve_datas = json.loads(response.json().get('body', []))
+                    print('予約内容', reserve_datas)
+                    if not reserve_datas:
+                        return "予約データはありませんでした。", ReservationStatus.RESERVATION_MENU.name
+
                     message = "予約内容を出力します。\n"
                     for index, reserve_data in enumerate(reserve_datas):
                         if index >= 5:
@@ -96,7 +138,6 @@ class ReservationCheckHandler:
                     else:
                         message += """----------------------------------------\n予約内容を変更したいときは変更したい予約番号を入力してください。
                         """
-                        # temp function
                         next_stage = ReservationStatus.RESERVATION_MENU.name
                     message = message.strip()
                     return message, next_stage

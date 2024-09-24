@@ -163,7 +163,7 @@ def generate_response(
     # db_cehck_reserves_ref = db.collection("users").document(user_id).collection("check_reserves").document(unique_code)
 
     db_reserves_ref = table_name
-    db_cehck_reserves_ref = None
+    db_cehck_reserves_ref = table_name
 
 
     reservation_handler = ReservationHandler(db_reserves_ref, OPENAI_API_KEY, MESSAGES)
