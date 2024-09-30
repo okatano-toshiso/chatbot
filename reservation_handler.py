@@ -59,7 +59,7 @@ class ReservationHandler:
     def set_line_users_data(self, user_id, datas, current_datetime):
         line_users = {
             'line_id': user_id,
-            'token': self.access_token,
+            # 'token': self.access_token,
             'name': datas['name'],
             'name_kana': datas['name_kana'],
             'adult': datas['adult'],
@@ -72,7 +72,7 @@ class ReservationHandler:
 
     def set_line_reserves_data(self, user_id, datas, new_reserve_id, current_date, current_datetime):
         line_reserves = {
-            'token': self.access_token,
+            # 'token': self.access_token,
             'reservation_date': current_date,
             'reservation_id': new_reserve_id,
             'line_id': user_id,
@@ -94,11 +94,23 @@ class ReservationHandler:
             'line_users': [user_datas]
         }
         url = os.environ['API_SAVE_RESERVE_DATA']
+        access_token = os.environ.get('ACCESS_TOKEN') 
+        headers = {
+            'Authorization': f'Bearer {access_token}',
+            'Content-Type': 'application/json'
+        }
         try:
-            response = requests.post(url, json=data)
-            response.raise_for_status()
-            reservation_id = reserve_datas.get('reservation_id')
-            return self.messages[ReservationStatus.NEW_RESERVATION_RESERVE_COMPLETE.name], reservation_id
+            response = requests.post(url, json=data, headers=headers)
+            if response.status_code == 200:
+                # response.raise_for_status()
+                # return self.messages["NEW_RESERVATION_RESERVE_COMPLETE"], reservation_id
+                reservation_id = reserve_datas.get('reservation_id')
+                return self.messages[ReservationStatus.NEW_RESERVATION_RESERVE_COMPLETE.name], reservation_id
+            else:
+                print(f"Unexpected status code: {response.status_code}, Response: {response.text}")
+                return self.messages["NEW_RESERVATION_RESERVE_COMPLETE_ERROR"], ReservationStatus.RESERVATION_MENU.name
+
+
         except requests.exceptions.HTTPError as http_err:
             print(f'HTTP error occurred: {http_err}')
             return f'Failed to submit reservation: {http_err}', 'ERROR_STATUS'

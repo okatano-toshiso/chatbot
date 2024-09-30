@@ -122,6 +122,9 @@ MESSAGES = {
     ReservationStatus.NEW_RESERVATION_RESERVE_COMPLETE.name:textwrap.dedent("""
         ご予約ありがとうございました。お客様の予約を完了しました。これが予約番号になりますので、メモ帳などにお控えしてください。
     """).strip(),
+    ReservationStatus.NEW_RESERVATION_RESERVE_COMPLETE.name + "_ERROR":textwrap.dedent("""
+        予約登録ができませんでした。お手数ですが、再度、予約のお申し込みをお願いいたします。
+    """).strip(),
     CheckReservationStatus.CHECK_RESERVATION_START.name:textwrap.dedent("""
         予約確認ですね。
         予約時に使用した代表者氏名を教えてください。

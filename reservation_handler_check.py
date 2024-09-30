@@ -109,11 +109,16 @@ class ReservationCheckHandler:
             if reserve_datas:
                 data = reserve_datas
                 url = os.environ['API_SAVE_RESERVE_DATA']
+                access_token = os.environ.get('ACCESS_TOKEN')
+                headers = {
+                    'Authorization': f'Bearer {access_token}',
+                    'Content-Type': 'application/json'
+                }
             try:
                 json_data = json.dumps(data)
                 response = requests.get(url, json=json.loads(json_data))
                 try:
-                    response = requests.get(url, params=reserve_datas)
+                    response = requests.get(url, params=reserve_datas, headers=headers)
                     if response.status_code != 200:
                         print(f"error: status_code is {response.status_code}")
                 except requests.exceptions.RequestException as e:
