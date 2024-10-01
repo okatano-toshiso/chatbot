@@ -176,8 +176,7 @@ class ReservationCheckHandler:
         elif user_message != 'もっと見る':
             if user_message.isdigit():
                 if any(item['reservation_id'] == int(user_message) for item in reserve_datas):
-                    print("reservation_id is true")
-                    # return self.messages[str(UpdateReservationStatus.UPDATE_RESERVATION_START.name)], next_status.name
+                    return self.messages[str(UpdateReservationStatus.UPDATE_RESERVATION_START.name)], next_status.name
                 else :
                     return self.messages[str(UpdateReservationStatus.UPDATE_RESERVATION_START.name) + "_RESERVATION_ID_ERROR"], ReservationStatus.RESERVATION_MENU.name
             else :

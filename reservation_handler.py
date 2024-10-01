@@ -160,6 +160,7 @@ class ReservationHandler:
             expiry_time = current_time + timedelta(minutes=5)
             expiry_timestamp = int(expiry_time.timestamp())
             formatted_date = datetime.strptime(check_in_date, '%Y-%m-%d').strftime('%Y-%m-%d')
+            ymd_format = datetime.strptime(check_in_date, '%Y-%m-%d').strftime('%Y年%m月%d日')
             self.reserves[ReservationStatus.NEW_RESERVATION_CHECKIN.key] = formatted_date
             self.table.put_item(
                 Item={
@@ -170,7 +171,7 @@ class ReservationHandler:
                     ReservationStatus.NEW_RESERVATION_CHECKIN.key: formatted_date
                 }
             )
-            message = f'{formatted_date} {self.messages[ReservationStatus.NEW_RESERVATION_CHECKIN.name]}'
+            message = f'{ymd_format} {self.messages[ReservationStatus.NEW_RESERVATION_CHECKIN.name]}'
             return message, next_status.name
         else:
             return self.messages['NEW_RESERVATION_CHECKIN_ERROR'], ReservationStatus.NEW_RESERVATION_CHECKIN.name
@@ -188,14 +189,16 @@ class ReservationHandler:
 
         if checkin_date and is_single_digit_number(stay_length):
             checkout_date = self._calculate_checkout_date(checkin_date, stay_length)
-            self.reserves[ReservationStatus.NEW_RESERVATION_CHECKOUT.key] = checkout_date
+            formatted_date = datetime.strptime(checkout_date, '%Y-%m-%d').strftime('%Y-%m-%d')
+            ymd_format = datetime.strptime(checkout_date, '%Y-%m-%d').strftime('%Y年%m月%d日')
+            self.reserves[ReservationStatus.NEW_RESERVATION_CHECKOUT.key] = formatted_date
             self.table.update_item(
                 Key={'unique_code': unique_code},
                 UpdateExpression="SET #co = :cd",
                 ExpressionAttributeNames={'#co': ReservationStatus.NEW_RESERVATION_CHECKOUT.key},
-                ExpressionAttributeValues={':cd': checkout_date}
+                ExpressionAttributeValues={':cd': formatted_date}
             )
-            message = textwrap.dedent(f'宿泊数は {stay_length}泊、チェックアウト日は {checkout_date}になります。 {self.messages[ReservationStatus.NEW_RESERVATION_CHECKOUT.name]}').strip()
+            message = textwrap.dedent(f'宿泊数は {stay_length}泊、チェックアウト日は {ymd_format}になります。 {self.messages[ReservationStatus.NEW_RESERVATION_CHECKOUT.name]}').strip()
             return message, next_status.name
         else:
             return self.messages['NEW_RESERVATION_CHECKOUT_ERROR'], ReservationStatus.NEW_RESERVATION_CHECKOUT.name
@@ -344,7 +347,9 @@ class ReservationHandler:
         reserve_confirm = user_message
         system_content = generate_reserve_confirm()
         reserve_confirm = self.get_chatgpt_response(system_content, user_message)
-        if is_valid_reserve_confirm(reserve_confirm):
+        print("positive?", reserve_confirm)
+        if reserve_confirm == "True":
+            print("OK")
             table_datas = self.table.get_item(
                 Key={
                     'unique_code': unique_code
@@ -355,6 +360,7 @@ class ReservationHandler:
             message = message_template.format(**reserve_datas)
             return message, next_status.name
         else:
+            print("NG")
             self.table.delete_item(
                 Key={
                     'unique_code': unique_code

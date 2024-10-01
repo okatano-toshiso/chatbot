@@ -42,6 +42,7 @@ from messages import MESSAGES
 from reservation_status import ReservationStatus, CheckReservationStatus, UpdateReservationStatus, ErrorReservationStatus
 from reservation_handler import ReservationHandler, ReservationStatus
 from reservation_handler_check import ReservationCheckHandler
+from reservation_handler_update import ReservationUpdateHandler
 
 from boto3.dynamodb.conditions import Key
 
@@ -160,14 +161,15 @@ def generate_response(
 ) -> str:
 
     # db_reserves_ref = db.collection("users").document(user_id).collection("reserves").document(unique_code)
-    # db_cehck_reserves_ref = db.collection("users").document(user_id).collection("check_reserves").document(unique_code)
+    # db_check_reserves_ref = db.collection("users").document(user_id).collection("check_reserves").document(unique_code)
 
     db_reserves_ref = table_name
-    db_cehck_reserves_ref = table_name
+    db_check_reserves_ref = table_name
 
 
     reservation_handler = ReservationHandler(db_reserves_ref, OPENAI_API_KEY, MESSAGES)
-    reservation_check_handler = ReservationCheckHandler(db_cehck_reserves_ref, OPENAI_API_KEY, MESSAGES)
+    reservation_check_handler = ReservationCheckHandler(db_check_reserves_ref, OPENAI_API_KEY, MESSAGES)
+    reservation_update_handler = ReservationUpdateHandler(db_check_reserves_ref, OPENAI_API_KEY, MESSAGES)
 
 
     if user_status_code == ReservationStatus.RESERVATION_MENU.name:
@@ -359,6 +361,54 @@ def generate_response(
             user_id,
             unique_code
         )
+
+    if user_status_code == UpdateReservationStatus.UPDATE_RESERVATION_START.name:
+        return reservation_update_handler.handle_reservation_step(
+            UpdateReservationStatus.UPDATE_RESERVATION_START,
+            user_message,
+            UpdateReservationStatus.UPDATE_RESERVATION_START,
+            user_id,
+            unique_code
+        )
+
+    if user_status_code == UpdateReservationStatus.UPDATE_RESERVATION_CHECKIN.name:
+        return reservation_update_handler.handle_reservation_step(
+            UpdateReservationStatus.UPDATE_RESERVATION_CHECKIN,
+            user_message,
+            UpdateReservationStatus.UPDATE_RESERVATION_CHECKOUT,
+            user_id,
+            unique_code
+        )
+
+    if user_status_code == UpdateReservationStatus.UPDATE_RESERVATION_CHECKOUT.name:
+        return reservation_update_handler.handle_reservation_step(
+            UpdateReservationStatus.UPDATE_RESERVATION_CHECKOUT,
+            user_message,
+            UpdateReservationStatus.UPDATE_RESERVATION_CONFIRM,
+            user_id,
+            unique_code
+        )
+
+    if user_status_code == UpdateReservationStatus.UPDATE_RESERVATION_CONFIRM.name:
+        return reservation_update_handler.handle_reservation_step(
+            UpdateReservationStatus.UPDATE_RESERVATION_CONFIRM,
+            user_message,
+            UpdateReservationStatus.UPDATE_RESERVATION_COMPLETE,
+            user_id,
+            unique_code
+        )
+
+    if user_status_code == UpdateReservationStatus.UPDATE_RESERVATION_COMPLETE.name:
+        return reservation_update_handler.handle_reservation_step(
+            UpdateReservationStatus.UPDATE_RESERVATION_COMPLETE,
+            user_message,
+            UpdateReservationStatus.UPDATE_RESERVATION_START,
+            user_id,
+            unique_code
+        )
+
+
+
 
     if user_status_code == "USER__RESERVATION_CHECK":
         if user_message:  # 有効な予約番号かどうかはAPIでチェックする(bool)

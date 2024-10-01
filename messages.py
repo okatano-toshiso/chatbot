@@ -24,7 +24,7 @@ MESSAGES = {
         ですね。宿泊開始日（到着日）のご記入ありがとうございます。続きましては、宿泊予定数をお教えください。
     """).strip(),
     ReservationStatus.NEW_RESERVATION_CHECKIN.name + "_ERROR":textwrap.dedent("""
-        正しい宿泊開始日(yyyy-mm-dd)を再度、ご記入してメッセージを送付してください。
+        恐れ入りますが、入力された日付を確認できませんでした。もう一度、わかりやすい日付や日数を教えてください。例：明日、来週、2024年8月15日など。
     """).strip(),
     ReservationStatus.NEW_RESERVATION_CHECKOUT.name:textwrap.dedent("""
         宿泊予定数のご記入ありがとうございます。\n続きましては、ご利用者人数をお教えください。
@@ -145,7 +145,8 @@ MESSAGES = {
     """).strip(),
     CheckReservationStatus.CHECK_RESERVATION_PHONE_NUMBER.name:textwrap.dedent("""
         予約時の代表者の電話番号を確認しました。
-        予約の確認をいたします。「確認」と回答をお願いいたします。
+        お答えいただいた予約内容を確認する場合には、確認したい旨をお伝えください。
+        確認しない、予約しない場合はその旨をお伝えください。
     """).strip(),
     CheckReservationStatus.CHECK_RESERVATION_PHONE_NUMBER.name + "_ERROR":textwrap.dedent("""
         正しい電話番号を入力してください。
@@ -178,6 +179,15 @@ MESSAGES = {
         4.代表者氏名
         5.連絡先電話番号
 """).strip(),
+    UpdateReservationStatus.UPDATE_RESERVATION_START.name + "_SELECT_ERROR":textwrap.dedent("""
+        予約変更したい項目がわかりませんでした。再度、変更したい項目を選びなおしてください。
+        ----------------------------------------
+        1.チェックインと宿泊数
+        2.利用者人数
+        3.部屋タイプ
+        4.代表者氏名
+        5.連絡先電話番号
+    """).strip(),
     UpdateReservationStatus.UPDATE_RESERVATION_START.name + "_ERROR":textwrap.dedent("""
         予約変更をしないと承りました。
         メニュー画面に戻ります。
@@ -185,6 +195,44 @@ MESSAGES = {
     UpdateReservationStatus.UPDATE_RESERVATION_START.name + "_RESERVATION_ID_ERROR":textwrap.dedent("""
         有効な予約番号ではございませんでした。
         恐れ入りますが、再度、予約番号を入力しなおしてください。
+    """).strip(),
+    UpdateReservationStatus.UPDATE_RESERVATION_START.name + "_CHECKIN":textwrap.dedent("""
+        ホテルのチェックイン日はいつに変更いたしますか。
+        宿泊日は変更しない場合、予約した日付をおっしゃってください。
+    """).strip(),
+    UpdateReservationStatus.UPDATE_RESERVATION_CHECKIN.name:textwrap.dedent("""
+        に変更ですね。
+        次は変更したい宿泊日数を教えてください。
+    """).strip(),
+    UpdateReservationStatus.UPDATE_RESERVATION_CHECKIN.name + "_ERROR":textwrap.dedent("""
+        恐れ入りますが、入力された日付を確認できませんでした。もう一度、わかりやすい日付や日数を教えてください。例：明日、来週、2024年8月15日など。
+    """).strip(),
+    UpdateReservationStatus.UPDATE_RESERVATION_CHECKOUT.name:textwrap.dedent("""
+        上記日程で変更する場合には、予約内容を確認したい旨をお伝えください。
+        確認しない、予約しない場合はその旨をお伝えください。
+    """).strip(),
+    UpdateReservationStatus.UPDATE_RESERVATION_CHECKOUT.name + "_ERROR":textwrap.dedent("""
+        恐れ入りますが、入力された宿泊日数を確認できませんでした。もう一度、わかりやすい日数を教えてください。例：3、3日、3泊。一週間など。
+    """).strip(),
+    UpdateReservationStatus.UPDATE_RESERVATION_CONFIRM.name:textwrap.dedent("""
+        それでは、予約内容を確認させていただきます。
+        <!-- このタイミングで空き室検索APIを実施(return bool)。 空き室がある場合は下記メッセージを表示する。 -->
+        下記が宿泊予約の内容になりますのでご確認ください。\n
+        予約内容
+        ----------------------------------------
+        お名前：{name}
+        オナマエ：{name_kana}
+        チェックイン：{check_in}
+        チェックアウト：{check_out}
+        電話番号：{phone_number}
+        ルームタイプ：{room_type}
+        ご利用者人数：{count_of_person}
+        ----------------------------------------
+        この予約内容でよろしければ、「予約」と回答してください｡
+        """).strip(),
+    UpdateReservationStatus.UPDATE_RESERVATION_CONFIRM.name + "_ERROR":textwrap.dedent("""
+        予約変更をしないと承りました。
+        メニュー画面に戻ります。
     """).strip(),
     ErrorReservationStatus.ERROR_RESERVATION_MENU.name:textwrap.dedent("""
         正しい用件を再度、ご記入してメッセージを送付してください。
