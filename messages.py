@@ -1,7 +1,7 @@
 # message.py
 import textwrap
 from menu_items import MenuItem
-from reservation_status import ReservationStatus, CheckReservationStatus, ErrorReservationStatus
+from reservation_status import ReservationStatus, CheckReservationStatus, UpdateReservationStatus, ErrorReservationStatus
 
 MESSAGES = {
     ReservationStatus.RESERVATION_MENU.name:textwrap.dedent(f"""
@@ -152,6 +152,7 @@ MESSAGES = {
     """).strip(),
     CheckReservationStatus.CHECK_RESERVATION_GET_NUMBER.name:textwrap.dedent("""
         ----------------------------------------
+        ID : {id}
         予約番号：{reservation_id}
         予約日時：{reservation_date}
         お名前：{name}
@@ -168,7 +169,24 @@ MESSAGES = {
         LINEユーザーとご入力いただいた代表者氏名、電話番号に該当する予約がございませんでした。\n
         恐れ入りますが、再度ご入力いただきましてご確認をお願いいたします。
     """).strip(),
-   ErrorReservationStatus.ERROR_RESERVATION_MENU.name:textwrap.dedent("""
+    UpdateReservationStatus.UPDATE_RESERVATION_START.name:textwrap.dedent("""
+        予約の変更をしたい項目を送信してください。
+        ----------------------------------------
+        1.チェックインと宿泊数
+        2.利用者人数
+        3.部屋タイプ
+        4.代表者氏名
+        5.連絡先電話番号
+""").strip(),
+    UpdateReservationStatus.UPDATE_RESERVATION_START.name + "_ERROR":textwrap.dedent("""
+        予約変更をしないと承りました。
+        メニュー画面に戻ります。
+    """).strip(),
+    UpdateReservationStatus.UPDATE_RESERVATION_START.name + "_RESERVATION_ID_ERROR":textwrap.dedent("""
+        有効な予約番号ではございませんでした。
+        恐れ入りますが、再度、予約番号を入力しなおしてください。
+    """).strip(),
+    ErrorReservationStatus.ERROR_RESERVATION_MENU.name:textwrap.dedent("""
         正しい用件を再度、ご記入してメッセージを送付してください。
     """).strip()
 }

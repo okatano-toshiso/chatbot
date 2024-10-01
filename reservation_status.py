@@ -33,6 +33,17 @@ class CheckReservationStatus(Enum):
     def key(self):
         return self.value[1]
 
+class UpdateReservationStatus(Enum):
+    UPDATE_RESERVATION_START = ("UPDATE_RESERVATION_START", None)
+    UPDATE_RESERVATION_CHECKIN = ("UPDATE_RESERVATION_CHECKIN", "check_in")
+    UPDATE_RESERVATION_CHECKOUT = ("UPDATE_RESERVATION_CHECKOUT", "check_out")
+    UPDATE_RESERVATION_CONFIRM = ("UPDATE_RESERVATION_CONFIRM", None)
+    UPDATE_RESERVATION_EXECUTE = ("UPDATE_RESERVATION_EXECUTE", None)
+    UPDATE_RESERVATION_COMPLETE = ("UPDATE_RESERVATION_COMPLETE", None)
+    @property
+    def key(self):
+        return self.value[1]
+
 class ErrorReservationStatus(Enum):
     ERROR_RESERVATION_MENU = ("ERROR_RESERVATION_MENU", None)
     @property

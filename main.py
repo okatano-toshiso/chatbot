@@ -39,7 +39,7 @@ from generate import (
 )
 from menu_items import MenuItem
 from messages import MESSAGES
-from reservation_status import ReservationStatus, CheckReservationStatus, ErrorReservationStatus
+from reservation_status import ReservationStatus, CheckReservationStatus, UpdateReservationStatus, ErrorReservationStatus
 from reservation_handler import ReservationHandler, ReservationStatus
 from reservation_handler_check import ReservationCheckHandler
 
@@ -346,7 +346,7 @@ def generate_response(
         return reservation_check_handler.handle_reservation_step(
             CheckReservationStatus.CHECK_RESERVATION_GET_NUMBER,
             user_message,
-            CheckReservationStatus.CHECK_RESERVATION_GET_NUMBER,
+            CheckReservationStatus.CHECK_RESERVATION_GET_NUMBER_MORE,
             user_id,
             unique_code
         )
@@ -355,7 +355,7 @@ def generate_response(
         return reservation_check_handler.handle_reservation_step(
             CheckReservationStatus.CHECK_RESERVATION_GET_NUMBER_MORE,
             user_message,
-            CheckReservationStatus.CHECK_RESERVATION_GET_NUMBER_MORE,
+            UpdateReservationStatus.UPDATE_RESERVATION_START,
             user_id,
             unique_code
         )
@@ -711,14 +711,6 @@ def is_first_time_user(user_id):
 # Main function to handle incoming requests
 
 def lambda_handler(event, context):
-    print("event")
-    print(event)
-    print("context")
-    print(context)
-
-    print("body:"+str(event['body']))
-    print("context:"+str(context))
-
     headers = event["headers"]
     body = event["body"]
     signature = headers['x-line-signature']
@@ -730,7 +722,7 @@ def lambda_handler(event, context):
             'statusCode': 400,
             'body': 'Invalid signature'
         }
-    
+
     return {
         'statusCode': 200,
         'body': 'OK'
