@@ -29,7 +29,7 @@ from validation import (
 import requests
 import uuid
 import boto3
-import json 
+import json
 
 reserves = {}
 users = {}
@@ -94,7 +94,7 @@ class ReservationHandler:
             'line_users': [user_datas]
         }
         url = os.environ['API_SAVE_RESERVE_DATA']
-        access_token = os.environ.get('ACCESS_TOKEN') 
+        access_token = os.environ.get('ACCESS_TOKEN')
         headers = {
             'Authorization': f'Bearer {access_token}',
             'Content-Type': 'application/json'
@@ -416,5 +416,5 @@ class ReservationHandler:
 
 
     def get_chatgpt_response(self, system_content, user_message):
-        return get_chatgpt_response(self.api_key, 'gpt-3.5-turbo', 0, system_content, user_message)
+        return get_chatgpt_response(self.api_key, 'gpt-4o', 0, system_content, user_message)
 

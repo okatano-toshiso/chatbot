@@ -180,7 +180,7 @@ def generate_response(
     if user_status_code == "USER__RESERVATION_INDEX":
         system_content = generate_index()
         bot_response = get_chatgpt_response(
-            OPENAI_API_KEY, "gpt-3.5-turbo", 0, system_content, user_message
+            OPENAI_API_KEY, "gpt-4o", 0, system_content, user_message
         )
         if MenuItem.NEW_RESERVATION.value in bot_response:
             RESERVATION_RECEPTION_START = MESSAGES[ReservationStatus.NEW_RESERVATION_START.name]

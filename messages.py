@@ -151,6 +151,8 @@ MESSAGES = {
     CheckReservationStatus.CHECK_RESERVATION_PHONE_NUMBER.name + "_ERROR":textwrap.dedent("""
         正しい電話番号を入力してください。
     """).strip(),
+
+
     CheckReservationStatus.CHECK_RESERVATION_GET_NUMBER.name:textwrap.dedent("""
         ----------------------------------------
         ID : {id}
@@ -221,7 +223,6 @@ MESSAGES = {
         予約内容
         ----------------------------------------
         お名前：{name}
-        オナマエ：{name_kana}
         チェックイン：{check_in}
         チェックアウト：{check_out}
         電話番号：{phone_number}

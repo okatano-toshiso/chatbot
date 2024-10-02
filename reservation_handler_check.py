@@ -4,6 +4,7 @@ from reservation_status import ReservationStatus, CheckReservationStatus, Update
 # from google.cloud import firestore, storage
 from chatgpt_api import get_chatgpt_response
 from generate import (
+    generate_reserve_confirm,
     generate_reserve_number
 )
 from validation import (
@@ -66,6 +67,8 @@ class ReservationCheckHandler:
             print(f'An error occurred: {err}')
             return None
         if response.status_code == 200:
+            if response.text is None or response.text == '' or response.text == 'null':
+                return None
             return json.loads(response.json().get('body', []))
         else:
             print(f'Error: Received unexpected status code {response.status_code}')
@@ -135,12 +138,14 @@ class ReservationCheckHandler:
             return self.messages[CheckReservationStatus.CHECK_RESERVATION_PHONE_NUMBER.name + '_ERROR'], CheckReservationStatus.CHECK_RESERVATION_PHONE_NUMBER.name
 
     def _handle_check_reservation_get_number(self, user_message, next_status, user_id ,unique_code):
-
+        check_confirm = user_message
+        system_content = generate_reserve_confirm()
+        check_confirm = self.get_chatgpt_response(system_content, user_message)
         reserve_datas = self._fetch_reservation_data(unique_code, user_id)
+        if reserve_datas is None or reserve_datas == [] or reserve_datas == {}:
+            return self.messages[CheckReservationStatus.CHECK_RESERVATION_GET_NUMBER.name + '_ERROR_API'], ReservationStatus.RESERVATION_MENU.name
 
-        if user_message == '確認':
-            if not reserve_datas:
-                return "予約データはありませんでした。", ReservationStatus.RESERVATION_MENU.name
+        if check_confirm == "True" or check_confirm == "はい" or  check_confirm == True or  check_confirm == 1:
             message = "予約内容を出力します。\n"
             for index, reserve_data in enumerate(reserve_datas):
                 if index >= 5:
@@ -161,9 +166,10 @@ class ReservationCheckHandler:
 
         reserve_datas = self._fetch_reservation_data(unique_code, user_id)
 
+        if not reserve_datas:
+            return self.messages[CheckReservationStatus.CHECK_RESERVATION_GET_NUMBER.name + "_ERROR_API"], ReservationStatus.RESERVATION_MENU.name
+
         if user_message == 'もっと見る':
-            if not reserve_datas:
-                return "予約データはありませんでした。", ReservationStatus.RESERVATION_MENU.name
             for index, reserve_data in enumerate(reserve_datas):
                 message = "続きの予約内容を出力します。\n"
                 if index < 5:
@@ -176,6 +182,13 @@ class ReservationCheckHandler:
         elif user_message != 'もっと見る':
             if user_message.isdigit():
                 if any(item['reservation_id'] == int(user_message) for item in reserve_datas):
+                    self.check_reserves['reservation_id'] = int(user_message)
+                    self.table.update_item(
+                        Key={'unique_code': unique_code},
+                        UpdateExpression="SET #co = :cd",
+                        ExpressionAttributeNames={'#co': 'reservation_id'},
+                        ExpressionAttributeValues={':cd': int(user_message)}
+                    )
                     return self.messages[str(UpdateReservationStatus.UPDATE_RESERVATION_START.name)], next_status.name
                 else :
                     return self.messages[str(UpdateReservationStatus.UPDATE_RESERVATION_START.name) + "_RESERVATION_ID_ERROR"], ReservationStatus.RESERVATION_MENU.name
@@ -185,5 +198,5 @@ class ReservationCheckHandler:
             return self.messages[str(UpdateReservationStatus.UPDATE_RESERVATION_START.name) + '_ERROR'], ReservationStatus.RESERVATION_MENU.name
 
     def get_chatgpt_response(self, system_content, user_message):
-        return get_chatgpt_response(self.api_key, 'gpt-3.5-turbo', 0, system_content, user_message)
+        return get_chatgpt_response(self.api_key, 'gpt-4o', 0, system_content, user_message)
 
