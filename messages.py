@@ -202,6 +202,9 @@ MESSAGES = {
         ホテルのチェックイン日はいつに変更いたしますか。
         宿泊日は変更しない場合、予約した日付をおっしゃってください。
     """).strip(),
+    UpdateReservationStatus.UPDATE_RESERVATION_START.name + "_COUNT_OF_PERSON":textwrap.dedent("""
+        ご利用人数を何名様に変更されますか？
+    """).strip(),
     UpdateReservationStatus.UPDATE_RESERVATION_CHECKIN.name:textwrap.dedent("""
         に変更ですね。
         次は変更したい宿泊日数を教えてください。
@@ -210,11 +213,19 @@ MESSAGES = {
         恐れ入りますが、入力された日付を確認できませんでした。もう一度、わかりやすい日付や日数を教えてください。例：明日、来週、2024年8月15日など。
     """).strip(),
     UpdateReservationStatus.UPDATE_RESERVATION_CHECKOUT.name:textwrap.dedent("""
-        上記日程で変更する場合には、予約内容を確認したい旨をお伝えください。
+        上記日程で変更する場合には、変更内容を確認したい旨をお伝えください。
         確認しない、予約しない場合はその旨をお伝えください。
     """).strip(),
     UpdateReservationStatus.UPDATE_RESERVATION_CHECKOUT.name + "_ERROR":textwrap.dedent("""
         恐れ入りますが、入力された宿泊日数を確認できませんでした。もう一度、わかりやすい日数を教えてください。例：3、3日、3泊。一週間など。
+    """).strip(),
+    UpdateReservationStatus.UPDATE_RESERVATION_COUNT_OF_PERSON.name:textwrap.dedent("""
+        ご利用者変更人数をうけたまわりました。
+        変更内容を確認したい旨をお伝えください。
+        確認しない、予約しない場合はその旨をお伝えください。
+    """).strip(),
+    UpdateReservationStatus.UPDATE_RESERVATION_COUNT_OF_PERSON.name + "_ERROR":textwrap.dedent("""
+        恐れ入りますが、ご利用人数をお伺いしております。例：1、一人、夫婦など
     """).strip(),
     UpdateReservationStatus.UPDATE_RESERVATION_CONFIRM.name:textwrap.dedent("""
         それでは、予約内容を確認させていただきます。
@@ -229,11 +240,18 @@ MESSAGES = {
         ルームタイプ：{room_type}
         ご利用者人数：{count_of_person}
         ----------------------------------------
-        この予約内容でよろしければ、「予約」と回答してください｡
+        この予約内容でよろしければ、「変更」と回答してください｡
         """).strip(),
     UpdateReservationStatus.UPDATE_RESERVATION_CONFIRM.name + "_ERROR":textwrap.dedent("""
         予約変更をしないと承りました。
         メニュー画面に戻ります。
+    """).strip(),
+    UpdateReservationStatus.UPDATE_RESERVATION_EXECUTE.name:textwrap.dedent("""
+        ご予約内容の変更手続きが完了いたしました。変更処理をいたしました予約番号をお伝えいたします。その他にご不明点やご要望がございましたら、どうぞお申し付けください。
+        メニュー画面に戻りますので、引き続きスムーズにご利用いただけます。
+    """).strip(),
+    UpdateReservationStatus.UPDATE_RESERVATION_EXECUTE.name + "_ERROR":textwrap.dedent("""
+        申し訳ございません。ただいまご予約内容の変更がうまく反映されませんでした。恐れ入りますが、もう一度お試しいただけますでしょうか。
     """).strip(),
     ErrorReservationStatus.ERROR_RESERVATION_MENU.name:textwrap.dedent("""
         正しい用件を再度、ご記入してメッセージを送付してください。

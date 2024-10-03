@@ -7,6 +7,7 @@ from generate import (
     generate_update_menu,
     generate_start_date,
     generate_stay,
+    generate_count_of_person,
     generate_reserve_confirm
 )
 from validation import (
@@ -21,9 +22,9 @@ from decimal import Decimal
 
 reserves = {}
 users = {}
-# db = firestore.Client()
 
 class ReservationUpdateHandler:
+
 
     def _convert_decimal_to_int(self, data):
         if isinstance(data, dict):
@@ -53,14 +54,11 @@ class ReservationUpdateHandler:
             }
         )
         reserve_datas = table_datas.get('Item', {})
-
         keys_to_remove = ['ExpirationTime', 'unique_code']
         for key in keys_to_remove:
             if key in reserve_datas:
                 del reserve_datas[key]
-
         reserve_datas = self._convert_decimal_to_int(reserve_datas)
-
         if reserve_datas:
             data = reserve_datas
             url = os.environ['API_SAVE_RESERVE_DATA']
@@ -85,14 +83,71 @@ class ReservationUpdateHandler:
             print(f'An error occurred: {err}')
             return None
         if response.status_code == 200:
-            print(f"Response text: {response.text}")
-            print(f"Response text の型: {type(response.text)}")
             if response.text is None or response.text == '' or response.text == 'null':
                 return None
             return json.loads(response.json().get('body', []))
         else:
             print(f'Error: Received unexpected status code {response.status_code}')
             return None
+
+
+    def set_line_users_data_update(self, user_id, datas, current_datetime):
+        line_users = {
+            'line_id': datas['line_id'],
+            'name': datas['name'],
+            'phone_number': datas['phone_number'],
+            'created_at': current_datetime,
+            'updated_at': current_datetime
+        }
+        return line_users
+
+
+    def set_line_reserves_data_update(self, user_id, datas, new_reserve_id, current_date, current_datetime):
+        line_reserves = {
+            'id': datas['id'],
+            'reservation_id': datas['reservation_id'],
+            'reservation_date': current_date,
+            'line_id': datas['line_id'],
+            'name': datas['name'],
+            'phone_number': datas['phone_number'],
+            'check_in': datas['check_in'],
+            'check_out': datas['check_out'],
+            'room_type': datas['room_type'],
+            'count_of_person': datas['count_of_person'],
+            'status': 'UPDATED',
+            'created_at': datas['created_at'],
+            'updated_at': current_datetime
+        }
+        return  line_reserves
+
+
+    def send_reservation_data_update(self, reserve_datas, user_datas):
+        data = {
+            'line_reserves': [reserve_datas],
+            'line_users': [user_datas]
+        }
+        url = os.environ['API_SAVE_RESERVE_DATA']
+        access_token = os.environ.get('ACCESS_TOKEN')
+        headers = {
+            'Authorization': f'Bearer {access_token}',
+            'Content-Type': 'application/json'
+        }
+        try:
+            response = requests.put(url, json=data, headers=headers)
+            if response.status_code == 200:
+                # response.raise_for_status()
+                # return self.messages["NEW_RESERVATION_RESERVE_COMPLETE"], reservation_id
+                reservation_id = reserve_datas.get('reservation_id')
+                return self.messages[UpdateReservationStatus.UPDATE_RESERVATION_EXECUTE.name], reservation_id
+            else:
+                print(f"Unexpected status code: {response.status_code}, Response: {response.text}")
+                return self.messages[UpdateReservationStatus.UPDATE_RESERVATION_EXECUTE.name + "_ERROR"], ReservationStatus.RESERVATION_MENU.name
+        except requests.exceptions.HTTPError as http_err:
+            print(f'HTTP error occurred: {http_err}')
+            return f'Failed to submit reservation: {http_err}', 'ERROR_STATUS'
+        except Exception as err:
+            print(f'An error occurred: {err}')
+            return f'An unexpected error has occurred.: {err}', 'ERROR_STATUS'
 
 
     def __init__(self, table_name, api_key, messages):
@@ -109,8 +164,9 @@ class ReservationUpdateHandler:
             UpdateReservationStatus.UPDATE_RESERVATION_START: self._handle_update_reservation_start,
             UpdateReservationStatus.UPDATE_RESERVATION_CHECKIN: self._handle_update_reservation_checkin,
             UpdateReservationStatus.UPDATE_RESERVATION_CHECKOUT: self._handle_update_reservation_checkout,
+            UpdateReservationStatus.UPDATE_RESERVATION_COUNT_OF_PERSON: self._handle_update_reservation_count_of_person,
             UpdateReservationStatus.UPDATE_RESERVATION_CONFIRM: self._handle_update_reservation_confirm,
-            # UpdateReservationStatus.UPDATE_RESERVATION_EXECUTE: self._handle_update_reservation_execute,
+            UpdateReservationStatus.UPDATE_RESERVATION_EXECUTE: self._handle_update_reservation_execute,
             # UpdateReservationStatus.UPDATE_RESERVATION_COMPLETE: self._handle_update_reservation_complete
         }
 
@@ -133,20 +189,22 @@ class ReservationUpdateHandler:
 
         if isinstance(reserve_datas, list):
             for data in reserve_datas:
+                # unique_code と ExpirationTime を各データに追加
                 data['unique_code'] = unique_code
                 data['ExpirationTime'] = expiry_timestamp
 
-        elif isinstance(reserve_datas, dict):
-            reserve_datas['unique_code'] = unique_code
-            reserve_datas['ExpirationTime'] = expiry_timestamp
-
-        print('reserve_datas', reserve_datas)
+                # データをDynamoDBに挿入（各アイテムを個別に put_item で保存）
+                try:
+                    response = self.table.put_item(Item=data)
+                    print("Data inserted successfully:", response)
+                except Exception as e:
+                    print("An error occurred:", e)
 
         try:
             response = self.table.put_item(Item=reserve_datas)
             print("Data inserted successfully:", response)
         except Exception as e:
-            print("An error occurred222222:", e)
+            print("An error occurred:", e)
 
         # 1. チェックイン日と宿泊数
         # 2. 利用者人数
@@ -164,10 +222,8 @@ class ReservationUpdateHandler:
                 message = f'{self.messages[UpdateReservationStatus.UPDATE_RESERVATION_START.name + "_CHECKIN"]}'
                 return message, UpdateReservationStatus.UPDATE_RESERVATION_CHECKIN.name
             if update_menu == 2:
-                message = f'{self.messages[UpdateReservationStatus.UPDATE_RESERVATION_CHECKIN.name]}'
-                return message, UpdateReservationStatus.UPDATE_RESERVATION_CHECKIN.name
-                # message = f'{update_menu}\n{self.messages[UpdateReservationStatus.UPDATE_RESERVATION_COUNT_OF_PERSON.name]}'
-                # return message, UpdateReservationStatus.UPDATE_RESERVATION_COUNT_OF_PERSON.name
+                message = f'{self.messages[UpdateReservationStatus.UPDATE_RESERVATION_START.name + "_COUNT_OF_PERSON"]}'
+                return message, UpdateReservationStatus.UPDATE_RESERVATION_COUNT_OF_PERSON.name
             if update_menu == 3:
                 message = f'{self.messages[UpdateReservationStatus.UPDATE_RESERVATION_CHECKIN.name]}'
                 return message, UpdateReservationStatus.UPDATE_RESERVATION_CHECKIN.name
@@ -188,6 +244,7 @@ class ReservationUpdateHandler:
         else:
             return self.messages[UpdateReservationStatus.UPDATE_RESERVATION_START.name + '_SELECT_ERROR'], UpdateReservationStatus.UPDATE_RESERVATION_START.name
 
+
     def _handle_update_reservation_checkin(self, user_message, next_status, user_id ,unique_code):
         system_content = generate_start_date()
         check_in_date = self.get_chatgpt_response(system_content, user_message)
@@ -205,6 +262,7 @@ class ReservationUpdateHandler:
             return message, next_status.name
         else:
             return self.messages[UpdateReservationStatus.UPDATE_RESERVATION_CHECKIN.name + '_ERROR'], UpdateReservationStatus.UPDATE_RESERVATION_CHECKIN.name
+
 
     def _handle_update_reservation_checkout(self, user_message, next_status, user_id ,unique_code):
         system_content = generate_stay()
@@ -235,27 +293,41 @@ class ReservationUpdateHandler:
             return self.messages[UpdateReservationStatus.UPDATE_RESERVATION_CHECKOUT.name + '_ERROR'], UpdateReservationStatus.UPDATE_RESERVATION_CHECKOUT.name
 
 
+    def _handle_update_reservation_count_of_person(self, user_message, next_status, user_id ,unique_code):
+        system_content = generate_count_of_person()
+        count_of_person = self.get_chatgpt_response(system_content, user_message)
+
+        if is_single_digit_number(count_of_person):
+            count_of_person = int(count_of_person)
+            self.check_reserves[UpdateReservationStatus.UPDATE_RESERVATION_COUNT_OF_PERSON.key] = count_of_person
+            self.table.update_item(
+                Key={'unique_code': unique_code},
+                UpdateExpression="SET #co = :cd",
+                ExpressionAttributeNames={'#co': UpdateReservationStatus.UPDATE_RESERVATION_COUNT_OF_PERSON.key},
+                ExpressionAttributeValues={':cd': count_of_person}
+            )
+            message = textwrap.dedent(f'利用者人数を {count_of_person} 人に変更いたします。{self.messages[UpdateReservationStatus.UPDATE_RESERVATION_COUNT_OF_PERSON.name]}').strip()
+            return message, next_status.name
+        else:
+            return self.messages[UpdateReservationStatus.UPDATE_RESERVATION_COUNT_OF_PERSON + '_ERROR'], UpdateReservationStatus.UPDATE_RESERVATION_COUNT_OF_PERSON.name
+
+
     def _handle_update_reservation_confirm(self, user_message, next_status, user_id ,unique_code):
         reserve_confirm = user_message
         system_content = generate_reserve_confirm()
         reserve_confirm = self.get_chatgpt_response(system_content, user_message)
-        print(type(reserve_confirm))
-        print(reserve_confirm)
 
         if reserve_confirm == "True" or reserve_confirm == "はい" or  reserve_confirm == True or  reserve_confirm == 1:
-            print("OK")
             table_datas = self.table.get_item(
                 Key={
                     'unique_code': unique_code
                 }
             )
             reserve_datas = table_datas['Item']
-            print(reserve_datas)
             message_template = self.messages[UpdateReservationStatus.UPDATE_RESERVATION_CONFIRM.name]
             message = message_template.format(**reserve_datas)
             return message, next_status.name
         else:
-            print("NG")
             self.table.delete_item(
                 Key={
                     'unique_code': unique_code
@@ -264,7 +336,33 @@ class ReservationUpdateHandler:
             return self.messages[UpdateReservationStatus.UPDATE_RESERVATION_CONFIRM.name + "_ERROR"], ReservationStatus.RESERVATION_MENU.name
 
 
-
+    def _handle_update_reservation_execute(self, user_message, next_status, user_id ,unique_code):
+        if user_message == '変更':
+            table_datas = self.table.get_item(
+                Key={
+                    'unique_code': unique_code
+                }
+            )
+            datas = table_datas['Item']
+            current_date = datetime.now().strftime('%Y-%m-%d')
+            current_datetime = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            user_datas = self.set_line_users_data_update(user_id, datas, current_datetime)
+            reserve_datas = self.set_line_reserves_data_update(user_id, datas, None, current_date, current_datetime)
+            reservation_message, reservation_id = self.send_reservation_data_update(reserve_datas, user_datas)
+            self.table.delete_item(
+                Key={
+                    'unique_code': unique_code
+                }
+            )
+            message = textwrap.dedent(f'{reservation_message}\n{reservation_id}').strip()
+            return message, next_status.name
+        else:
+            self.table.delete_item(
+                Key={
+                    'unique_code': unique_code
+                }
+            )
+            return self.messages['NEW_RESERVATION_RESERVE_CONFIRM_ERROR'], ReservationStatus.RESERVATION_MENU.name
 
 
     def _calculate_checkout_date(self, checkin_date, stay_length):

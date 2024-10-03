@@ -6,7 +6,7 @@ from chatgpt_api import get_chatgpt_response
 from generate import (
     generate_start_date,
     generate_stay,
-    generate_number,
+    generate_count_of_person,
     generate_smoker,
     generate_room_type_smoker,
     generate_room_type_no_smoker,
@@ -205,8 +205,9 @@ class ReservationHandler:
 
 
     def _handle_count_of_person(self, user_message, next_status, user_id ,unique_code):
-        system_content = generate_number()
+        system_content = generate_count_of_person()
         count_of_person = self.get_chatgpt_response(system_content, user_message)
+        print(count_of_person)
 
         if is_single_digit_number(count_of_person):
             count_of_person = int(count_of_person)
@@ -396,11 +397,6 @@ class ReservationHandler:
                 }
             )
             message = textwrap.dedent(f'{reservation_message}\n{reservation_id}').strip()
-            self.table.delete_item(
-                Key={
-                    'unique_code': unique_code
-                }
-            )
             return message, next_status.name
         else:
             self.table.delete_item(

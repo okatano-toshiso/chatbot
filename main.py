@@ -30,7 +30,7 @@ from generate import (
     generate_index,
     generate_start_date,
     generate_stay,
-    generate_number,
+    generate_count_of_person,
     generate_smoker,
     generate_room_type_smoker,
     generate_room_type_no_smoker,
@@ -165,11 +165,12 @@ def generate_response(
 
     db_reserves_ref = table_name
     db_check_reserves_ref = table_name
+    db_update_reserves_ref = table_name
 
 
     reservation_handler = ReservationHandler(db_reserves_ref, OPENAI_API_KEY, MESSAGES)
     reservation_check_handler = ReservationCheckHandler(db_check_reserves_ref, OPENAI_API_KEY, MESSAGES)
-    reservation_update_handler = ReservationUpdateHandler(db_check_reserves_ref, OPENAI_API_KEY, MESSAGES)
+    reservation_update_handler = ReservationUpdateHandler(db_update_reserves_ref, OPENAI_API_KEY, MESSAGES)
 
 
     if user_status_code == ReservationStatus.RESERVATION_MENU.name:
@@ -389,25 +390,33 @@ def generate_response(
             unique_code
         )
 
+    if user_status_code == UpdateReservationStatus.UPDATE_RESERVATION_COUNT_OF_PERSON.name:
+        return reservation_update_handler.handle_reservation_step(
+            UpdateReservationStatus.UPDATE_RESERVATION_COUNT_OF_PERSON,
+            user_message,
+            UpdateReservationStatus.UPDATE_RESERVATION_CONFIRM,
+            user_id,
+            unique_code
+        )
+
+
     if user_status_code == UpdateReservationStatus.UPDATE_RESERVATION_CONFIRM.name:
         return reservation_update_handler.handle_reservation_step(
             UpdateReservationStatus.UPDATE_RESERVATION_CONFIRM,
             user_message,
-            UpdateReservationStatus.UPDATE_RESERVATION_COMPLETE,
+            UpdateReservationStatus.UPDATE_RESERVATION_EXECUTE,
             user_id,
             unique_code
         )
 
-    if user_status_code == UpdateReservationStatus.UPDATE_RESERVATION_COMPLETE.name:
+    if user_status_code == UpdateReservationStatus.UPDATE_RESERVATION_EXECUTE.name:
         return reservation_update_handler.handle_reservation_step(
-            UpdateReservationStatus.UPDATE_RESERVATION_COMPLETE,
+            UpdateReservationStatus.UPDATE_RESERVATION_EXECUTE,
             user_message,
-            UpdateReservationStatus.UPDATE_RESERVATION_START,
+            UpdateReservationStatus.UPDATE_RESERVATION_COMPLETE,
             user_id,
             unique_code
         )
-
-
 
 
     if user_status_code == "USER__RESERVATION_CHECK":
@@ -570,7 +579,7 @@ def generate_response(
             return str(USER__RESERVATION_UPDATA_STAY), user_status_code
 
     if user_status_code == "USER__RESERVATION_UPDATA_NUMBER":
-        system_content = generate_number()
+        system_content = generate_count_of_person()
         bot_response = get_chatgpt_response(
             OPENAI_API_KEY, "gpt-3.5-turbo", 0, system_content, user_message
         )
