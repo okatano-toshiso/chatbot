@@ -400,6 +400,45 @@ def generate_response(
         )
 
 
+    if user_status_code == UpdateReservationStatus.UPDATE_RESERVATION_COUNT_OF_PERSON.name:
+        return reservation_update_handler.handle_reservation_step(
+            UpdateReservationStatus.UPDATE_RESERVATION_COUNT_OF_PERSON,
+            user_message,
+            UpdateReservationStatus.UPDATE_RESERVATION_CONFIRM,
+            user_id,
+            unique_code
+        )
+
+    if user_status_code == UpdateReservationStatus.UPDATE_RESERVATION_SMOKER.name:
+
+        return reservation_update_handler.handle_reservation_step(
+            UpdateReservationStatus.UPDATE_RESERVATION_SMOKER,
+            user_message,
+            UpdateReservationStatus.UPDATE_RESERVATION_ROOM_TYPE,
+            user_id,
+            unique_code
+        )
+
+    if user_status_code == UpdateReservationStatus.UPDATE_RESERVATION_ROOM_TYPE_SMOKER.name:
+
+        return reservation_update_handler.handle_reservation_step(
+            UpdateReservationStatus.UPDATE_RESERVATION_ROOM_TYPE_SMOKER,
+            user_message,
+            UpdateReservationStatus.UPDATE_RESERVATION_CONFIRM,
+            user_id,
+            unique_code
+        )
+
+    if user_status_code == ReservationStatus.NEW_RESERVATION_ROOM_TYPE_NO_SMOKER.name:
+
+        return reservation_handler.handle_reservation_step(
+            UpdateReservationStatus.UPDATE_RESERVATION_ROOM_TYPE_NO_SMOKER,
+            user_message,
+            UpdateReservationStatus.UPDATE_RESERVATION_CONFIRM,
+            user_id,
+            unique_code
+        )
+
     if user_status_code == UpdateReservationStatus.UPDATE_RESERVATION_CONFIRM.name:
         return reservation_update_handler.handle_reservation_step(
             UpdateReservationStatus.UPDATE_RESERVATION_CONFIRM,

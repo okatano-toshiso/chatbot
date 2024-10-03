@@ -8,12 +8,18 @@ from generate import (
     generate_start_date,
     generate_stay,
     generate_count_of_person,
-    generate_reserve_confirm
+    generate_smoker,
+    generate_reserve_confirm,
+    generate_room_type_smoker,
+    generate_room_type_no_smoker
 )
 from validation import (
     is_valid_phone_number,
     is_valid_date,
-    is_single_digit_number
+    is_single_digit_number,
+    is_valid_smoker,
+    is_valid_room_type_smoker,
+    is_valid_room_type_no_smoker
 )
 import requests
 import json
@@ -165,6 +171,9 @@ class ReservationUpdateHandler:
             UpdateReservationStatus.UPDATE_RESERVATION_CHECKIN: self._handle_update_reservation_checkin,
             UpdateReservationStatus.UPDATE_RESERVATION_CHECKOUT: self._handle_update_reservation_checkout,
             UpdateReservationStatus.UPDATE_RESERVATION_COUNT_OF_PERSON: self._handle_update_reservation_count_of_person,
+            UpdateReservationStatus.UPDATE_RESERVATION_SMOKER: self._handle_smoker,
+            UpdateReservationStatus.UPDATE_RESERVATION_ROOM_TYPE_SMOKER: self._handle_room_type_smoker,
+            UpdateReservationStatus.UPDATE_RESERVATION_ROOM_TYPE_NO_SMOKER: self._handle_room_type_no_smoker,
             UpdateReservationStatus.UPDATE_RESERVATION_CONFIRM: self._handle_update_reservation_confirm,
             UpdateReservationStatus.UPDATE_RESERVATION_EXECUTE: self._handle_update_reservation_execute,
             # UpdateReservationStatus.UPDATE_RESERVATION_COMPLETE: self._handle_update_reservation_complete
@@ -225,10 +234,8 @@ class ReservationUpdateHandler:
                 message = f'{self.messages[UpdateReservationStatus.UPDATE_RESERVATION_START.name + "_COUNT_OF_PERSON"]}'
                 return message, UpdateReservationStatus.UPDATE_RESERVATION_COUNT_OF_PERSON.name
             if update_menu == 3:
-                message = f'{self.messages[UpdateReservationStatus.UPDATE_RESERVATION_CHECKIN.name]}'
-                return message, UpdateReservationStatus.UPDATE_RESERVATION_CHECKIN.name
-                # message = f'{update_menu}\n{self.messages[UpdateReservationStatus.UPDATE_RESERVATION_ROOM_TYPE.name]}'
-                # return message, UpdateReservationStatus.UPDATE_RESERVATION_ROOM_TYPE.name
+                message = f'{self.messages[UpdateReservationStatus.UPDATE_RESERVATION_START.name + "_SMOKER"]}'
+                return message, UpdateReservationStatus.UPDATE_RESERVATION_SMOKER.name
             if update_menu == 4:
                 message = f'{self.messages[UpdateReservationStatus.UPDATE_RESERVATION_CHECKIN.name]}'
                 return message, UpdateReservationStatus.UPDATE_RESERVATION_CHECKIN.name
@@ -310,6 +317,58 @@ class ReservationUpdateHandler:
             return message, next_status.name
         else:
             return self.messages[UpdateReservationStatus.UPDATE_RESERVATION_COUNT_OF_PERSON + '_ERROR'], UpdateReservationStatus.UPDATE_RESERVATION_COUNT_OF_PERSON.name
+
+
+    def _handle_smoker(self, user_message, next_status, user_id ,unique_code):
+        system_content = generate_smoker()
+        smoker = self.get_chatgpt_response(system_content, user_message)
+        if is_valid_smoker(smoker):
+            if smoker == '喫煙':
+                message = textwrap.dedent(f'禁煙か喫煙かは {smoker}ですね。{self.messages[ReservationStatus.NEW_RESERVATION_SMOKER.name]}').strip()
+                next_status =  UpdateReservationStatus.UPDATE_RESERVATION_ROOM_TYPE_SMOKER
+                return message, next_status.name
+            elif smoker == '禁煙':
+                message = textwrap.dedent(f'禁煙か喫煙かは {smoker}ですね。{self.messages[ReservationStatus.NEW_RESERVATION_NO_SMOKER.name]}').strip()
+                next_status =  UpdateReservationStatus.UPDATE_RESERVATION_ROOM_TYPE_NO_SMOKER
+                return message, next_status.name
+        else:
+            return self.messages[ReservationStatus.NEW_RESERVATION_SMOKER.name + '_ERROR'], UpdateReservationStatus.UPDATE_RESERVATION_START.name
+
+
+    def _handle_room_type_smoker(self, user_message, next_status, user_id ,unique_code):
+        system_content = generate_room_type_smoker()
+        room_type_smoker = self.get_chatgpt_response(system_content, user_message)
+
+        if is_valid_room_type_smoker(room_type_smoker):
+            self.check_reserves[UpdateReservationStatus.UPDATE_RESERVATION_ROOM_TYPE.key] = room_type_smoker
+            self.table.update_item(
+                Key={'unique_code': unique_code},
+                UpdateExpression="SET #co = :cd",
+                ExpressionAttributeNames={'#co': UpdateReservationStatus.UPDATE_RESERVATION_ROOM_TYPE.key},
+                ExpressionAttributeValues={':cd': room_type_smoker}
+            )
+            message = textwrap.dedent(f'部屋タイプは {room_type_smoker} ですね。 {self.messages[UpdateReservationStatus.UPDATE_RESERVATION_ROOM_TYPE.name]}').strip()
+            return message, next_status.name
+        else:
+            return self.messages[UpdateReservationStatus.UPDATE_RESERVATION_ROOM_TYPE.name + '_ERROR'],UpdateReservationStatus.UPDATE_RESERVATION_ROOM_TYPE_SMOKER.name
+
+
+    def _handle_room_type_no_smoker(self, user_message, next_status, user_id ,unique_code):
+        system_content = generate_room_type_no_smoker()
+        room_type_no_smoker = self.get_chatgpt_response(system_content, user_message)
+
+        if is_valid_room_type_no_smoker(room_type_no_smoker):
+            self.check_reserves[UpdateReservationStatus.UPDATE_RESERVATION_ROOM_TYPE.key] = room_type_no_smoker
+            self.table.update_item(
+                Key={'unique_code': unique_code},
+                UpdateExpression="SET #co = :cd",
+                ExpressionAttributeNames={'#co': UpdateReservationStatus.UPDATE_RESERVATION_ROOM_TYPE.key},
+                ExpressionAttributeValues={':cd': room_type_no_smoker}
+            )
+            message = textwrap.dedent(f'部屋タイプは {room_type_no_smoker}  {self.messages[UpdateReservationStatus.UPDATE_RESERVATION_ROOM_TYPE.name]}').strip()
+            return message, next_status.name
+        else:
+            return self.messages[UpdateReservationStatus.UPDATE_RESERVATION_ROOM_TYPE.name + '_ERROR'],UpdateReservationStatus.UPDATE_RESERVATION_ROOM_TYPE_SMOKER.name
 
 
     def _handle_update_reservation_confirm(self, user_message, next_status, user_id ,unique_code):

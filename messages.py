@@ -33,7 +33,8 @@ MESSAGES = {
         正しいを宿泊予定数を再度、数値のみでご記入してメッセージを送付してください。
     """).strip(),
     ReservationStatus.NEW_RESERVATION_COUNT_OF_PERSON.name:textwrap.dedent("""
-        ご利用者人数のご記入ありがとうございます。続きましては、部屋は禁煙と喫煙、どちらがよろしいでしょうか？
+        ご利用者人数のご記入ありがとうございます。
+        続きましては、部屋タイプを選んでください。禁煙のお部屋と喫煙のお部屋がございますが、どちらをご希望でしょうか？
     """).strip(),
     ReservationStatus.NEW_RESERVATION_COUNT_OF_PERSON.name + "_ERROR":textwrap.dedent("""
         ご利用者人数を再度、数値のみでご記入してメッセージを送付してください。
@@ -205,6 +206,9 @@ MESSAGES = {
     UpdateReservationStatus.UPDATE_RESERVATION_START.name + "_COUNT_OF_PERSON":textwrap.dedent("""
         ご利用人数を何名様に変更されますか？
     """).strip(),
+    UpdateReservationStatus.UPDATE_RESERVATION_START.name + "_SMOKER":textwrap.dedent("""
+        部屋タイプの変更ですね。禁煙のお部屋と喫煙のお部屋がございますが、どちらをご希望でしょうか？
+    """).strip(),
     UpdateReservationStatus.UPDATE_RESERVATION_CHECKIN.name:textwrap.dedent("""
         に変更ですね。
         次は変更したい宿泊日数を教えてください。
@@ -227,6 +231,14 @@ MESSAGES = {
     UpdateReservationStatus.UPDATE_RESERVATION_COUNT_OF_PERSON.name + "_ERROR":textwrap.dedent("""
         恐れ入りますが、ご利用人数をお伺いしております。例：1、一人、夫婦など
     """).strip(),
+    UpdateReservationStatus.UPDATE_RESERVATION_ROOM_TYPE.name:textwrap.dedent("""
+        部屋タイプの変更をうけたまわりました。
+        変更内容を確認したい旨をお伝えください。
+        確認しない、予約しない場合はその旨をお伝えください。
+    """).strip(),
+    UpdateReservationStatus.UPDATE_RESERVATION_ROOM_TYPE.name + "_ERROR":textwrap.dedent("""
+        正しい部屋タイプ名を記入してメッセージを送信してください。
+    """).strip(),
     UpdateReservationStatus.UPDATE_RESERVATION_CONFIRM.name:textwrap.dedent("""
         それでは、予約内容を確認させていただきます。
         <!-- このタイミングで空き室検索APIを実施(return bool)。 空き室がある場合は下記メッセージを表示する。 -->
@@ -248,7 +260,7 @@ MESSAGES = {
     """).strip(),
     UpdateReservationStatus.UPDATE_RESERVATION_EXECUTE.name:textwrap.dedent("""
         ご予約内容の変更手続きが完了いたしました。変更処理をいたしました予約番号をお伝えいたします。その他にご不明点やご要望がございましたら、どうぞお申し付けください。
-        メニュー画面に戻りますので、引き続きスムーズにご利用いただけます。
+        メニュー画面に戻ります。
     """).strip(),
     UpdateReservationStatus.UPDATE_RESERVATION_EXECUTE.name + "_ERROR":textwrap.dedent("""
         申し訳ございません。ただいまご予約内容の変更がうまく反映されませんでした。恐れ入りますが、もう一度お試しいただけますでしょうか。
