@@ -431,7 +431,7 @@ def generate_response(
 
     if user_status_code == ReservationStatus.NEW_RESERVATION_ROOM_TYPE_NO_SMOKER.name:
 
-        return reservation_handler.handle_reservation_step(
+        return reservation_update_handler.handle_reservation_step(
             UpdateReservationStatus.UPDATE_RESERVATION_ROOM_TYPE_NO_SMOKER,
             user_message,
             UpdateReservationStatus.UPDATE_RESERVATION_CONFIRM,
