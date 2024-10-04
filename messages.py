@@ -179,8 +179,8 @@ MESSAGES = {
         1.チェックインと宿泊数
         2.利用者人数
         3.部屋タイプ
-        4.代表者氏名
-        5.連絡先電話番号
+        4.代表者
+        5.連絡先
 """).strip(),
     UpdateReservationStatus.UPDATE_RESERVATION_START.name + "_SELECT_ERROR":textwrap.dedent("""
         予約変更したい項目がわかりませんでした。再度、変更したい項目を選びなおしてください。
@@ -188,8 +188,8 @@ MESSAGES = {
         1.チェックインと宿泊数
         2.利用者人数
         3.部屋タイプ
-        4.代表者氏名
-        5.連絡先電話番号
+        4.代表者
+        5.連絡先
     """).strip(),
     UpdateReservationStatus.UPDATE_RESERVATION_START.name + "_ERROR":textwrap.dedent("""
         予約変更をしないと承りました。
@@ -200,17 +200,29 @@ MESSAGES = {
         恐れ入りますが、再度、予約番号を入力しなおしてください。
     """).strip(),
     UpdateReservationStatus.UPDATE_RESERVATION_START.name + "_CHECKIN":textwrap.dedent("""
-        ホテルのチェックイン日はいつに変更いたしますか。
-        宿泊日は変更しない場合、予約した日付をおっしゃってください。
+        {title} の変更ですね。
+        予約されているチェックイン日は {check_in} 、チェックアウト日は {check_out} になります。
+        チェックイン日はいつに変更いたしますか。
     """).strip(),
     UpdateReservationStatus.UPDATE_RESERVATION_START.name + "_COUNT_OF_PERSON":textwrap.dedent("""
-        ご利用人数を何名様に変更されますか？
+        {title} の変更ですね。
+        予約されている{title} は {count_of_person} になります。
+        {title} を何名様に変更されますか？
     """).strip(),
     UpdateReservationStatus.UPDATE_RESERVATION_START.name + "_SMOKER":textwrap.dedent("""
-        部屋タイプの変更ですね。禁煙のお部屋と喫煙のお部屋がございますが、どちらをご希望でしょうか？
+        {title} の変更ですね。
+        予約されている{title} は {room_type} になります。
+        禁煙のお部屋と喫煙のお部屋がございますが、どちらをご希望でしょうか？
     """).strip(),
     UpdateReservationStatus.UPDATE_RESERVATION_START.name + "_NAME":textwrap.dedent("""
-        代表者氏名の変更になりますね。変更したい代表者氏名をおっしゃってください。
+        {title} の変更になりますね。
+        予約されている{title} は {name} になります。
+        変更したい{title} のお名前をおっしゃってください。
+    """).strip(),
+    UpdateReservationStatus.UPDATE_RESERVATION_START.name + "_PHONE_NUMBER":textwrap.dedent("""
+        {title} の変更になりますね。
+        予約されている{title} は {phone_number} になります。
+        変更したい{title} のお名前をおっしゃってください。
     """).strip(),
     UpdateReservationStatus.UPDATE_RESERVATION_CHECKIN.name:textwrap.dedent("""
         に変更ですね。
@@ -243,12 +255,18 @@ MESSAGES = {
         正しい部屋タイプ名を記入してメッセージを送信してください。
     """).strip(),
     UpdateReservationStatus.UPDATE_RESERVATION_NAME.name:textwrap.dedent("""
-        ご利用者変更人数をうけたまわりました。
-        変更内容を確認したい旨をお伝えください。
-        確認しない、予約しない場合はその旨をお伝えください。
+        代表者の変更をうけたまわりました。
+        続きまして代表者の連絡先電話番号をおっしゃってください。
     """).strip(),
     UpdateReservationStatus.UPDATE_RESERVATION_NAME.name + "_ERROR":textwrap.dedent("""
-        恐れ入りますが、ご利用人数をお伺いしております。例：1、一人、夫婦など
+        恐れ入りますが、代表者氏名をお伺いしております。正しいお名前をおっしゃってください。
+    """).strip(),
+    UpdateReservationStatus.UPDATE_RESERVATION_PHONE_NUMBER.name:textwrap.dedent("""
+        当日の連絡用に使用する代表者電話番号の変更をうけたまわりました。
+        確認しない、予約しない場合はその旨をお伝えください。
+    """).strip(),
+    UpdateReservationStatus.UPDATE_RESERVATION_PHONE_NUMBER.name + "_ERROR":textwrap.dedent("""
+        恐れ入りますが、連絡用の電話番号をお伺いしております。正しい電話番号をおっしゃってください。
     """).strip(),
     UpdateReservationStatus.UPDATE_RESERVATION_CONFIRM.name:textwrap.dedent("""
         それでは、予約内容を確認させていただきます。
@@ -273,9 +291,10 @@ MESSAGES = {
         ----------------------------------------
         変更前の名前：{name}
         変更後の名前：{new_name}
+        変更前の電話番号：{phone_number}
+        変更後の電話番号：{new_phone_number}
         チェックイン：{check_in}
         チェックアウト：{check_out}
-        電話番号：{phone_number}
         ルームタイプ：{room_type}
         ご利用者人数：{count_of_person}
         ----------------------------------------

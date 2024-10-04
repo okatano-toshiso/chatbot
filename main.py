@@ -444,6 +444,16 @@ def generate_response(
         return reservation_update_handler.handle_reservation_step(
             UpdateReservationStatus.UPDATE_RESERVATION_NAME,
             user_message,
+            UpdateReservationStatus.UPDATE_RESERVATION_PHONE_NUMBER,
+            user_id,
+            unique_code
+        )
+
+    if user_status_code == UpdateReservationStatus.UPDATE_RESERVATION_PHONE_NUMBER.name:
+
+        return reservation_update_handler.handle_reservation_step(
+            UpdateReservationStatus.UPDATE_RESERVATION_PHONE_NUMBER,
+            user_message,
             UpdateReservationStatus.UPDATE_RESERVATION_CONFIRM,
             user_id,
             unique_code
@@ -463,7 +473,7 @@ def generate_response(
         return reservation_update_handler.handle_reservation_step(
             UpdateReservationStatus.UPDATE_RESERVATION_EXECUTE,
             user_message,
-            UpdateReservationStatus.UPDATE_RESERVATION_START,
+            ReservationStatus.RESERVATION_MENU,
             user_id,
             unique_code
         )

@@ -108,6 +108,24 @@ class ReservationUpdateHandler:
         }
         return line_users
 
+    def set_line_users_data_update(self, user_id, datas, current_datetime):
+        # 必須項目をセット
+        line_users = {
+            'line_id': datas['line_id'],
+            'name': datas['name'],
+            'phone_number': datas['phone_number'],
+            'created_at': current_datetime,
+            'updated_at': current_datetime
+        }
+
+        if 'new_name' in datas and datas['new_name']:
+            line_users['new_name'] = datas['new_name']
+
+        if 'new_phone_number' in datas and datas['new_phone_number']:
+            line_users['new_phone_number'] = datas['new_phone_number']
+
+        return line_users
+
 
     def set_line_reserves_data_update(self, user_id, datas, new_reserve_id, current_date, current_datetime):
         line_reserves = {
@@ -125,6 +143,13 @@ class ReservationUpdateHandler:
             'created_at': datas['created_at'],
             'updated_at': current_datetime
         }
+
+        if 'new_name' in datas and datas['new_name']:
+            line_reserves['name'] = datas['new_name']
+
+        if 'new_phone_number' in datas and datas['new_phone_number']:
+            line_reserves['phone_number'] = datas['new_phone_number']
+
         return  line_reserves
 
 
@@ -176,6 +201,7 @@ class ReservationUpdateHandler:
             UpdateReservationStatus.UPDATE_RESERVATION_ROOM_TYPE_SMOKER: self._handle_update_room_type_smoker,
             UpdateReservationStatus.UPDATE_RESERVATION_ROOM_TYPE_NO_SMOKER: self._handle_update_room_type_no_smoker,
             UpdateReservationStatus.UPDATE_RESERVATION_NAME: self._handle_update_name,
+            UpdateReservationStatus.UPDATE_RESERVATION_PHONE_NUMBER: self._handle_update_phone_number,
             UpdateReservationStatus.UPDATE_RESERVATION_CONFIRM: self._handle_update_reservation_confirm,
             UpdateReservationStatus.UPDATE_RESERVATION_EXECUTE: self._handle_update_reservation_execute,
             # UpdateReservationStatus.UPDATE_RESERVATION_COMPLETE: self._handle_update_reservation_complete
@@ -225,27 +251,50 @@ class ReservationUpdateHandler:
 
         if isinstance(update_menu, str) and update_menu.isdigit():
             update_menu = int(update_menu)
-        print("prompt's response", update_menu)
+
+        if reserve_datas is None:
+            pre_datas = {str(index): value for index, value in enumerate(reserve_datas)}
+            pre_datas = pre_datas['0']
 
         if isinstance(update_menu, int) and 0 <= update_menu <= 5:
             print("int check ok between 0-5")
             if update_menu == 1:
-                message = f'{self.messages[UpdateReservationStatus.UPDATE_RESERVATION_START.name + "_CHECKIN"]}'
+                extra_datas = {
+                    'title': 'チェックインと宿泊数'
+                }
+                print('reserve_datas', reserve_datas)
+                print('pre_datas', pre_datas)
+                message_template = f'{self.messages[UpdateReservationStatus.UPDATE_RESERVATION_START.name + "_CHECKIN"]}'
+                message = message_template.format(**{**pre_datas, **extra_datas})
                 return message, UpdateReservationStatus.UPDATE_RESERVATION_CHECKIN.name
             if update_menu == 2:
-                message = f'{self.messages[UpdateReservationStatus.UPDATE_RESERVATION_START.name + "_COUNT_OF_PERSON"]}'
+                extra_datas = {
+                    'title': '利用者人数'
+                }
+                message_template = f'{self.messages[UpdateReservationStatus.UPDATE_RESERVATION_START.name + "_COUNT_OF_PERSON"]}'
+                message = message_template.format(**{**pre_datas, **extra_datas})
                 return message, UpdateReservationStatus.UPDATE_RESERVATION_COUNT_OF_PERSON.name
             if update_menu == 3:
-                message = f'{self.messages[UpdateReservationStatus.UPDATE_RESERVATION_START.name + "_SMOKER"]}'
+                extra_datas = {
+                    'title': '部屋タイプ'
+                }
+                message_template = f'{self.messages[UpdateReservationStatus.UPDATE_RESERVATION_START.name + "_SMOKER"]}'
+                message = message_template.format(**{**pre_datas, **extra_datas})
                 return message, UpdateReservationStatus.UPDATE_RESERVATION_SMOKER.name
             if update_menu == 4:
-                message = f'{self.messages[UpdateReservationStatus.UPDATE_RESERVATION_START.name + "_NAME"]}'
+                extra_datas = {
+                    'title': '代表者'
+                }
+                message_template = f'{self.messages[UpdateReservationStatus.UPDATE_RESERVATION_START.name + "_NAME"]}'
+                message = message_template.format(**{**pre_datas, **extra_datas})
                 return message, UpdateReservationStatus.UPDATE_RESERVATION_NAME.name
             if update_menu == 5:
-                message = f'{self.messages[UpdateReservationStatus.UPDATE_RESERVATION_CHECKIN.name]}'
-                return message, UpdateReservationStatus.UPDATE_RESERVATION_CHECKIN.name
-                # message = f'{update_menu}\n{self.messages[UpdateReservationStatus.UPDATE_RESERVATION_PHONE_NUMBER.name]}'
-                # return message, UpdateReservationStatus.UPDATE_RESERVATION_PHONE_NUMBER.name
+                extra_datas = {
+                    'title': '連絡先'
+                }
+                message_template = f'{self.messages[UpdateReservationStatus.UPDATE_RESERVATION_START.name + "_PHONE_NUMBER"]}'
+                message = message_template.format(**{**pre_datas, **extra_datas})
+                return message, UpdateReservationStatus.UPDATE_RESERVATION_PHONE_NUMBER.name
             if update_menu == 0:
                 return self.messages[UpdateReservationStatus.UPDATE_RESERVATION_START.name + '_SELECT_ERROR'], UpdateReservationStatus.UPDATE_RESERVATION_START.name
         else:
@@ -385,7 +434,25 @@ class ReservationUpdateHandler:
             message = textwrap.dedent(f'変更する代表者氏名は {name} でよろしいでしょうか。 {self.messages[UpdateReservationStatus.UPDATE_RESERVATION_NAME.name]}').strip()
             return message, next_status.name
         else:
-            return self.messages['NEW_RESERVATION_NAME_ERROR'], UpdateReservationStatus.UPDATE_RESERVATION_NAME.name
+            return self.messages[UpdateReservationStatus.UPDATE_RESERVATION_NAME.name + '_ERROR'], UpdateReservationStatus.UPDATE_RESERVATION_NAME.name
+
+
+    def _handle_update_phone_number(self, user_message, next_status, user_id ,unique_code):
+        phone_number = user_message
+        if is_valid_phone_number(phone_number):
+            self.check_reserves[UpdateReservationStatus.UPDATE_RESERVATION_PHONE_NUMBER.key] = phone_number
+            self.table.update_item(
+                Key={'unique_code': unique_code},
+                UpdateExpression="SET #co = :cd",
+                ExpressionAttributeNames={'#co': UpdateReservationStatus.UPDATE_RESERVATION_PHONE_NUMBER.key},
+                ExpressionAttributeValues={':cd': phone_number}
+            )
+            message = textwrap.dedent(f'変更する電話番号は {phone_number} でよろしいでしょうか。 {self.messages[UpdateReservationStatus.UPDATE_RESERVATION_PHONE_NUMBER.name]}').strip()
+            return message, next_status.name
+        else:
+            return self.messages[UpdateReservationStatus.UPDATE_RESERVATION_NAME.name + '_ERROR'], UpdateReservationStatus.UPDATE_RESERVATION_PHONE_NUMBER.name
+
+
     def _handle_update_reservation_confirm(self, user_message, next_status, user_id ,unique_code):
         reserve_confirm = user_message
         system_content = generate_reserve_confirm()
