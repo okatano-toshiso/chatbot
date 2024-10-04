@@ -429,7 +429,7 @@ def generate_response(
             unique_code
         )
 
-    if user_status_code == ReservationStatus.NEW_RESERVATION_ROOM_TYPE_NO_SMOKER.name:
+    if user_status_code == UpdateReservationStatus.UPDATE_RESERVATION_ROOM_TYPE_NO_SMOKER.name:
 
         return reservation_update_handler.handle_reservation_step(
             UpdateReservationStatus.UPDATE_RESERVATION_ROOM_TYPE_NO_SMOKER,
@@ -439,7 +439,18 @@ def generate_response(
             unique_code
         )
 
+    if user_status_code == UpdateReservationStatus.UPDATE_RESERVATION_NAME.name:
+
+        return reservation_update_handler.handle_reservation_step(
+            UpdateReservationStatus.UPDATE_RESERVATION_NAME,
+            user_message,
+            UpdateReservationStatus.UPDATE_RESERVATION_CONFIRM,
+            user_id,
+            unique_code
+        )
+
     if user_status_code == UpdateReservationStatus.UPDATE_RESERVATION_CONFIRM.name:
+
         return reservation_update_handler.handle_reservation_step(
             UpdateReservationStatus.UPDATE_RESERVATION_CONFIRM,
             user_message,
@@ -452,7 +463,7 @@ def generate_response(
         return reservation_update_handler.handle_reservation_step(
             UpdateReservationStatus.UPDATE_RESERVATION_EXECUTE,
             user_message,
-            UpdateReservationStatus.UPDATE_RESERVATION_COMPLETE,
+            UpdateReservationStatus.UPDATE_RESERVATION_START,
             user_id,
             unique_code
         )
