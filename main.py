@@ -188,13 +188,25 @@ def generate_response(
             user_status_code = ReservationStatus.NEW_RESERVATION_CHECKIN.name
             return str(RESERVATION_RECEPTION_START), user_status_code
         elif MenuItem.CONFIRM_RESERVATION.value in bot_response:
-            CHECK_RESERVATION_START = MESSAGES[CheckReservationStatus.CHECK_RESERVATION_START.name]
+            extra_datas = {
+                'title': '予約情報の確認'
+            }
+            message_template = f'{MESSAGES[CheckReservationStatus.CHECK_RESERVATION_START.name]}'
+            CHECK_RESERVATION_START = message_template.format(**extra_datas)
+            # CHECK_RESERVATION_START = MESSAGES[CheckReservationStatus.CHECK_RESERVATION_START.name]
             user_status_code = CheckReservationStatus.CHECK_RESERVATION_NAME.name
             return str(CHECK_RESERVATION_START), user_status_code
         elif MenuItem.MODIFY_RESERVATION.value in bot_response:
-            RESERVATION_RECEPTION_UPDATA = MESSAGES["reservation_reception_updata"]
-            user_status_code = "USER__RESERVATION_UPDATA_RESULT"
-            return str(RESERVATION_RECEPTION_UPDATA), user_status_code
+            extra_datas = {
+                'title': '予約情報の変更'
+            }
+            message_template = f'{MESSAGES[CheckReservationStatus.CHECK_RESERVATION_START.name]}'
+            CHECK_RESERVATION_START = message_template.format(**extra_datas)
+            # CHECK_RESERVATION_START = MESSAGES[CheckReservationStatus.CHECK_RESERVATION_START.name]
+            # RESERVATION_RECEPTION_UPDATA = MESSAGES["reservation_reception_updata"]
+            user_status_code = CheckReservationStatus.CHECK_RESERVATION_NAME.name
+            # user_status_code = "USER__RESERVATION_UPDATA_RESULT"
+            return str(CHECK_RESERVATION_START), user_status_code
         elif MenuItem.CANCEL_RESERVATION.value in bot_response:
             USER__RESERVATION_CANCEL = MESSAGES["reservation_reception_cancel"]
             user_status_code = "USER__RESERVATION_CANCEL"

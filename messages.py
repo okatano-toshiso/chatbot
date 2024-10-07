@@ -127,7 +127,7 @@ MESSAGES = {
         予約登録ができませんでした。お手数ですが、再度、予約のお申し込みをお願いいたします。
     """).strip(),
     CheckReservationStatus.CHECK_RESERVATION_START.name:textwrap.dedent("""
-        予約確認ですね。
+        {title}ですね。
         予約時に使用した代表者氏名を教えてください。
     """).strip(),
     # CheckReservationStatus.CHECK_RESERVATION_NUMBER.name:textwrap.dedent("""
