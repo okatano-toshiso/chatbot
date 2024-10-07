@@ -222,7 +222,7 @@ MESSAGES = {
     UpdateReservationStatus.UPDATE_RESERVATION_START.name + "_PHONE_NUMBER":textwrap.dedent("""
         {title} の変更になりますね。
         予約されている{title} は {phone_number} になります。
-        変更したい{title} のお名前をおっしゃってください。
+        変更したい{title} の電話番号をおっしゃってください。
     """).strip(),
     UpdateReservationStatus.UPDATE_RESERVATION_CHECKIN.name:textwrap.dedent("""
         に変更ですね。
@@ -283,7 +283,7 @@ MESSAGES = {
         ----------------------------------------
         この予約内容でよろしければ、「変更」と回答してください｡
         """).strip(),
-    UpdateReservationStatus.UPDATE_RESERVATION_CONFIRM.name + "_NAME":textwrap.dedent("""
+    UpdateReservationStatus.UPDATE_RESERVATION_CONFIRM.name + "_NAME_PHONE":textwrap.dedent("""
         それでは、予約内容を確認させていただきます。
         <!-- このタイミングで空き室検索APIを実施(return bool)。 空き室がある場合は下記メッセージを表示する。 -->
         下記が宿泊予約の内容になりますのでご確認ください。\n
@@ -300,13 +300,31 @@ MESSAGES = {
         ----------------------------------------
         この予約内容でよろしければ、「変更」と回答してください｡
         """).strip(),
+    UpdateReservationStatus.UPDATE_RESERVATION_CONFIRM.name + "_PHONE":textwrap.dedent("""
+        それでは、予約内容を確認させていただきます。
+        <!-- このタイミングで空き室検索APIを実施(return bool)。 空き室がある場合は下記メッセージを表示する。 -->
+        下記が宿泊予約の内容になりますのでご確認ください。\n
+        予約内容
+        ----------------------------------------
+        変更前の電話番号：{phone_number}
+        変更後の電話番号：{new_phone_number}
+        名前：{name}
+        チェックイン：{check_in}
+        チェックアウト：{check_out}
+        ルームタイプ：{room_type}
+        ご利用者人数：{count_of_person}
+        ----------------------------------------
+        この予約内容でよろしければ、「変更」と回答してください｡
+        """).strip(),
     UpdateReservationStatus.UPDATE_RESERVATION_CONFIRM.name + "_ERROR":textwrap.dedent("""
         予約変更をしないと承りました。
         メニュー画面に戻ります。
     """).strip(),
     UpdateReservationStatus.UPDATE_RESERVATION_EXECUTE.name:textwrap.dedent("""
-        ご予約内容の変更手続きが完了いたしました。変更処理をいたしました予約番号をお伝えいたします。その他にご不明点やご要望がございましたら、どうぞお申し付けください。
-        メニュー画面に戻ります。
+        ご予約内容の変更が完了しました。変更された予約番号をご案内いたします。
+
+        引き続き、変更確認メニューに戻ります。
+        他に変更する項目がない場合は「メニューに戻る」とお伝えいただくか、このままチャットを終了してください。
     """).strip(),
     UpdateReservationStatus.UPDATE_RESERVATION_EXECUTE.name + "_ERROR":textwrap.dedent("""
         申し訳ございません。ただいまご予約内容の変更がうまく反映されませんでした。恐れ入りますが、もう一度お試しいただけますでしょうか。

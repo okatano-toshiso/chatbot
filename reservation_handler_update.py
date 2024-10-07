@@ -252,9 +252,12 @@ class ReservationUpdateHandler:
         if isinstance(update_menu, str) and update_menu.isdigit():
             update_menu = int(update_menu)
 
-        if reserve_datas is None:
+        print("reserve_datas", reserve_datas)
+        pre_datas = {}
+        if reserve_datas:
             pre_datas = {str(index): value for index, value in enumerate(reserve_datas)}
             pre_datas = pre_datas['0']
+        print("pre_datas:", pre_datas)
 
         if isinstance(update_menu, int) and 0 <= update_menu <= 5:
             print("int check ok between 0-5")
@@ -262,8 +265,6 @@ class ReservationUpdateHandler:
                 extra_datas = {
                     'title': 'チェックインと宿泊数'
                 }
-                print('reserve_datas', reserve_datas)
-                print('pre_datas', pre_datas)
                 message_template = f'{self.messages[UpdateReservationStatus.UPDATE_RESERVATION_START.name + "_CHECKIN"]}'
                 message = message_template.format(**{**pre_datas, **extra_datas})
                 return message, UpdateReservationStatus.UPDATE_RESERVATION_CHECKIN.name
@@ -466,8 +467,10 @@ class ReservationUpdateHandler:
             )
             reserve_datas = table_datas['Item']
 
-            if 'new_name' in reserve_datas:
-                message_template = self.messages[UpdateReservationStatus.UPDATE_RESERVATION_CONFIRM.name + "_NAME"]
+            if 'new_name' in reserve_datas and 'new_phone_number' in reserve_datas:
+                message_template = self.messages[UpdateReservationStatus.UPDATE_RESERVATION_CONFIRM.name + "_NAME_PHONE"]
+            elif 'new_phone_number' in reserve_datas:
+                message_template = self.messages[UpdateReservationStatus.UPDATE_RESERVATION_CONFIRM.name + "_PHONE"]
             else:
                 message_template = self.messages[UpdateReservationStatus.UPDATE_RESERVATION_CONFIRM.name]
             message = message_template.format(**reserve_datas)
@@ -481,21 +484,72 @@ class ReservationUpdateHandler:
             return self.messages[UpdateReservationStatus.UPDATE_RESERVATION_CONFIRM.name + "_ERROR"], ReservationStatus.RESERVATION_MENU.name
 
 
-    def _handle_update_reservation_execute(self, user_message, next_status, user_id ,unique_code):
+    def _handle_update_reservation_execute(self, user_message, next_status, user_id, unique_code):
         if user_message == '変更':
+            # 1. データの取得
             table_datas = self.table.get_item(
-                Key={
-                    'unique_code': unique_code
-                }
+                Key={'unique_code': unique_code}
             )
             datas = table_datas['Item']
             current_date = datetime.now().strftime('%Y-%m-%d')
             current_datetime = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+            # 2. データの更新処理
             user_datas = self.set_line_users_data_update(user_id, datas, current_datetime)
             reserve_datas = self.set_line_reserves_data_update(user_id, datas, None, current_date, current_datetime)
             reservation_message, reservation_id = self.send_reservation_data_update(reserve_datas, user_datas)
             message = textwrap.dedent(f'{reservation_message}\n{reservation_id}').strip()
+
+            # 3. 更新対象の値を取得
+            name = datas.get('name')
+            phone_number = datas.get('phone_number')
+            new_name = datas.get('new_name')  # new_name の値を取得
+            new_phone_number = datas.get('new_phone_number')  # new_phone_number の値を取得
+
+            # 4. SET 用の `ExpressionAttributeNames` と `ExpressionAttributeValues` の設定
+            update_expressions = []
+            expression_attribute_values = {}
+            expression_attribute_names = {}
+
+            if new_name:
+                update_expressions.append("#n = :name")
+                expression_attribute_values[':name'] = new_name
+                expression_attribute_names['#n'] = 'name'
+            if new_phone_number:
+                update_expressions.append("#p = :phone")
+                expression_attribute_values[':phone'] = new_phone_number
+                expression_attribute_names['#p'] = 'phone_number'
+
+            # 5. SET 操作の実行
+            if update_expressions:
+                self.table.update_item(
+                    Key={'unique_code': unique_code},
+                    UpdateExpression=f"SET {', '.join(update_expressions)}",
+                    ExpressionAttributeNames=expression_attribute_names,
+                    ExpressionAttributeValues=expression_attribute_values
+                )
+
+            # 6. REMOVE 用の `ExpressionAttributeNames` の設定（別の辞書を使用）
+            remove_expressions = []
+            remove_expression_attribute_names = {}
+
+            if 'new_name' in datas:
+                remove_expressions.append("#new_name")
+                remove_expression_attribute_names['#new_name'] = 'new_name'
+            if 'new_phone_number' in datas:
+                remove_expressions.append("#new_phone")
+                remove_expression_attribute_names['#new_phone'] = 'new_phone_number'
+
+            # 7. REMOVE 操作の実行
+            if remove_expressions:
+                self.table.update_item(
+                    Key={'unique_code': unique_code},
+                    UpdateExpression=f"REMOVE {', '.join(remove_expressions)}",
+                    ExpressionAttributeNames=remove_expression_attribute_names
+                )
+
             return message, next_status.name
+
         else:
             return self.messages['NEW_RESERVATION_RESERVE_CONFIRM_ERROR'], ReservationStatus.RESERVATION_MENU.name
 

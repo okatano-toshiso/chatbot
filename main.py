@@ -473,7 +473,7 @@ def generate_response(
         return reservation_update_handler.handle_reservation_step(
             UpdateReservationStatus.UPDATE_RESERVATION_EXECUTE,
             user_message,
-            ReservationStatus.RESERVATION_MENU,
+            UpdateReservationStatus.UPDATE_RESERVATION_START,
             user_id,
             unique_code
         )
