@@ -38,7 +38,6 @@ def generate_index():
 
 
 def generate_start_date():
-
     current_time = datetime.now()
     tomorrow = (current_time + timedelta(days=1)).strftime("%Y-%m-%d")
     day_after_tomorrow = (current_time + timedelta(days=2)).strftime("%Y-%m-%d")
@@ -133,7 +132,6 @@ def generate_start_date():
 
 
 def generate_stay() -> int:
-
     stay = """
         日本語で応答してください。
         あなたはホテルの予約受付担当です。
@@ -367,7 +365,6 @@ def generate_smoker():
     return smoker
 
 
-
 def generate_room_type_smoker():
     room_type_smoker = """
         日本語で応答してください。
@@ -520,14 +517,14 @@ def generate_select():
     """
     return select
 
-def generate_name():
 
+def generate_name():
     name = """
     """
     return name
 
-def generate_judge_adult():
 
+def generate_judge_adult():
     name = """
         あなたはユーザーが未成年かどうかを判断するシステムです。
         このメッセージの内容に基づいて、ユーザーが成人している、または未成年ではないかどうかを判断してください。
@@ -746,7 +743,6 @@ def generate_reserve_confirm() -> bool:
 
 
 def generate_reserve_number():
-
     reserve_number = """
         日本語で応答してください。あなたはホテルの予約受付担当です。
         お客様に予約番号を確認してください。予約番号は必ず半角数字で入力してください。
@@ -799,8 +795,9 @@ def generate_reserve_number():
     """
     return reserve_number
 
+
 def generate_judge_reset() -> bool:
-    judge_reset = f"""
+    judge_reset = """
     あなたはユーザーの意図を判断するシステムです。
     このメッセージの内容に基づいて、ユーザーがメニューに戻りたい、または会話をリセットしたいと思っているかどうかを判断してください。
     ユーザーがメニューに戻りたい、またはリセットしたいと考えている場合は「True」と答えてください。そうでない場合は「False」と答えてください。
@@ -929,7 +926,6 @@ def generate_judge_reset() -> bool:
 
 
 def generate_name_kana():
-
     name_kana = """
         あなたは日本語の名前をカタカナに変換するシステムです。
         ユーザーが提供した名前を正確にカタカナに変換してください。
@@ -1005,7 +1001,7 @@ def generate_name_kana():
 
 
 def generate_update_menu() -> int:
-    update_menu = f"""
+    update_menu = """
 systemはuserの意図を判断し、予約変更の対象項目を判定するシステムです。
 userは宿泊予約の内容を変更したいと考えています。
 
@@ -1017,7 +1013,7 @@ userは宿泊予約の内容を変更したいと考えています。
 3. 部屋タイプ
 4. 代表者氏名
 5. 連絡先電話番号
-6. 連絡先電話番号
+6. キャンセル
 
 あなたは、ユーザーのメッセージを読んで、どの項目に該当するかを判断し、該当する項目番号（INTの数値）を返してください。
 該当する項目がない場合は、「0」を返してください。
@@ -1627,25 +1623,26 @@ userは宿泊予約の内容を変更したいと考えています。
 応答：5
 ---
 お客様：予約をキャンセルしたいです
-応答：0
+応答：6
 ---
 お客様：キャンセルをお願いできますか？
-応答：0
+応答：6
 ---
 お客様：予約を取り消してください
-応答：0
+応答：6
 ---
 お客様：キャンセルの手続きをお願いします
-応答：0
+応答：6
 ---
 お客様：予約をキャンセルすることはできますか？
-応答：0
+応答：6
 ---
 お客様：予約のキャンセルをしたいです
-応答：0
+応答：6
 ---
     """
     return update_menu
+
 
 def generate_cancel_confirm() -> bool:
     reserve_confirm = """

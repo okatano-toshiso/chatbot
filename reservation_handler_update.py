@@ -1,7 +1,7 @@
-import os, textwrap
+import os
+import textwrap
 from datetime import datetime, timedelta
-from reservation_status import ReservationStatus, CheckReservationStatus, UpdateReservationStatus, ErrorReservationStatus
-# from google.cloud import firestore, storage
+from reservation_status import ReservationStatus, UpdateReservationStatus
 from chatgpt_api import get_chatgpt_response
 from generate import (
     generate_update_menu,
@@ -12,7 +12,7 @@ from generate import (
     generate_cancel_confirm,
     generate_reserve_confirm,
     generate_room_type_smoker,
-    generate_room_type_no_smoker
+    generate_room_type_no_smoker,
 )
 from validation import (
     is_valid_japaneses_character,
@@ -21,22 +21,23 @@ from validation import (
     is_single_digit_number,
     is_valid_smoker,
     is_valid_room_type_smoker,
-    is_valid_room_type_no_smoker
+    is_valid_room_type_no_smoker,
 )
-import requests
+import requests  # type: ignore
 import json
-import boto3
+import boto3  # type: ignore
 from decimal import Decimal
 
 reserves = {}
 users = {}
 
+
 class ReservationUpdateHandler:
-
-
     def _convert_decimal_to_int(self, data):
         if isinstance(data, dict):
-            return {key: self._convert_decimal_to_int(value) for key, value in data.items()}
+            return {
+                key: self._convert_decimal_to_int(value) for key, value in data.items()
+            }
         elif isinstance(data, list):
             return [self._convert_decimal_to_int(element) for element in data]
         elif isinstance(data, Decimal):
@@ -44,36 +45,27 @@ class ReservationUpdateHandler:
         else:
             return data
 
-
     def _fetch_reservation_data(self, unique_code, user_id):
         self.table.update_item(
-            Key={'unique_code': unique_code},
+            Key={"unique_code": unique_code},
             UpdateExpression="SET #co = :cd",
-            ExpressionAttributeNames={
-                '#co': 'line_id'
-            },
-            ExpressionAttributeValues={
-                ':cd': user_id
-            }
+            ExpressionAttributeNames={"#co": "line_id"},
+            ExpressionAttributeValues={":cd": user_id},
         )
-        table_datas = self.table.get_item(
-            Key={
-                'unique_code': unique_code
-            }
-        )
-        reserve_datas = table_datas.get('Item', {})
-        keys_to_remove = ['ExpirationTime', 'unique_code']
+        table_datas = self.table.get_item(Key={"unique_code": unique_code})
+        reserve_datas = table_datas.get("Item", {})
+        keys_to_remove = ["ExpirationTime", "unique_code"]
         for key in keys_to_remove:
             if key in reserve_datas:
                 del reserve_datas[key]
         reserve_datas = self._convert_decimal_to_int(reserve_datas)
         if reserve_datas:
             data = reserve_datas
-            url = os.environ['API_SAVE_RESERVE_DATA']
-            access_token = os.environ.get('ACCESS_TOKEN')
+            url = os.environ["API_SAVE_RESERVE_DATA"]
+            access_token = os.environ.get("ACCESS_TOKEN")
             headers = {
-                'Authorization': f'Bearer {access_token}',
-                'Content-Type': 'application/json'
+                "Authorization": f"Bearer {access_token}",
+                "Content-Type": "application/json",
             }
         try:
             json_data = json.dumps(data)
@@ -85,145 +77,147 @@ class ReservationUpdateHandler:
             except requests.exceptions.RequestException as e:
                 print(f"error message: {e}")
         except requests.exceptions.HTTPError as http_err:
-            print(f'HTTP error occurred: {http_err}')
+            print(f"HTTP error occurred: {http_err}")
             return None
         except Exception as err:
-            print(f'An error occurred: {err}')
+            print(f"An error occurred: {err}")
             return None
         if response.status_code == 200:
-            if response.text is None or response.text == '' or response.text == 'null':
+            if response.text is None or response.text == "" or response.text == "null":
                 return None
-            return json.loads(response.json().get('body', []))
+            return json.loads(response.json().get("body", []))
         else:
-            print(f'Error: Received unexpected status code {response.status_code}')
+            print(f"Error: Received unexpected status code {response.status_code}")
             return None
 
-
     def set_line_users_data_update(self, user_id, datas, current_datetime):
-        # 必須項目をセット
         line_users = {
-            'line_id': datas['line_id'],
-            'name': datas['name'],
-            'phone_number': datas['phone_number'],
-            'created_at': current_datetime,
-            'updated_at': current_datetime
+            "line_id": datas["line_id"],
+            "name": datas["name"],
+            "phone_number": datas["phone_number"],
+            "created_at": current_datetime,
+            "updated_at": current_datetime,
         }
 
-        if 'new_name' in datas and datas['new_name']:
-            line_users['new_name'] = datas['new_name']
+        if "new_name" in datas and datas["new_name"]:
+            line_users["new_name"] = datas["new_name"]
 
-        if 'new_phone_number' in datas and datas['new_phone_number']:
-            line_users['new_phone_number'] = datas['new_phone_number']
+        if "new_phone_number" in datas and datas["new_phone_number"]:
+            line_users["new_phone_number"] = datas["new_phone_number"]
 
         return line_users
 
-
-    def set_line_reserves_data_update(self, user_id, datas, new_reserve_id, current_date, current_datetime):
+    def set_line_reserves_data_update(
+        self, user_id, datas, new_reserve_id, current_date, current_datetime
+    ):
         line_reserves = {
-            'id': datas['id'],
-            'reservation_id': datas['reservation_id'],
-            'reservation_date': current_date,
-            'line_id': datas['line_id'],
-            'name': datas['name'],
-            'phone_number': datas['phone_number'],
-            'check_in': datas['check_in'],
-            'check_out': datas['check_out'],
-            'room_type': datas['room_type'],
-            'count_of_person': datas['count_of_person'],
-            'status': 'UPDATED',
-            'created_at': datas['created_at'],
-            'updated_at': current_datetime
+            "id": datas["id"],
+            "reservation_id": datas["reservation_id"],
+            "reservation_date": current_date,
+            "line_id": datas["line_id"],
+            "name": datas["name"],
+            "phone_number": datas["phone_number"],
+            "check_in": datas["check_in"],
+            "check_out": datas["check_out"],
+            "room_type": datas["room_type"],
+            "count_of_person": datas["count_of_person"],
+            "status": "UPDATED",
+            "created_at": datas["created_at"],
+            "updated_at": current_datetime,
         }
 
-        if 'new_name' in datas and datas['new_name']:
-            line_reserves['name'] = datas['new_name']
+        if "new_name" in datas and datas["new_name"]:
+            line_reserves["name"] = datas["new_name"]
 
-        if 'new_phone_number' in datas and datas['new_phone_number']:
-            line_reserves['phone_number'] = datas['new_phone_number']
+        if "new_phone_number" in datas and datas["new_phone_number"]:
+            line_reserves["phone_number"] = datas["new_phone_number"]
 
-        return  line_reserves
+        return line_reserves
 
-
-    def set_line_reserves_data_cancel(self, user_id, datas, new_reserve_id, current_date, current_datetime):
+    def set_line_reserves_data_cancel(
+        self, user_id, datas, new_reserve_id, current_date, current_datetime
+    ):
         line_reserves = {
-            'id': datas['id'],
-            'reservation_id': datas['reservation_id'],
-            'reservation_date': current_date,
-            'line_id': datas['line_id'],
-            'name': datas['name'],
-            'phone_number': datas['phone_number'],
-            'check_in': datas['check_in'],
-            'check_out': datas['check_out'],
-            'room_type': datas['room_type'],
-            'count_of_person': datas['count_of_person'],
-            'status': 'CANCEL',
-            'created_at': datas['created_at'],
-            'updated_at': current_datetime
+            "id": datas["id"],
+            "reservation_id": datas["reservation_id"],
+            "reservation_date": current_date,
+            "line_id": datas["line_id"],
+            "name": datas["name"],
+            "phone_number": datas["phone_number"],
+            "check_in": datas["check_in"],
+            "check_out": datas["check_out"],
+            "room_type": datas["room_type"],
+            "count_of_person": datas["count_of_person"],
+            "status": "CANCEL",
+            "created_at": datas["created_at"],
+            "updated_at": current_datetime,
         }
 
-        return  line_reserves
-
+        return line_reserves
 
     def send_reservation_data_update(self, reserve_datas, user_datas):
-        data = {
-            'line_reserves': [reserve_datas],
-            'line_users': [user_datas]
-        }
-        url = os.environ['API_SAVE_RESERVE_DATA']
-        access_token = os.environ.get('ACCESS_TOKEN')
+        data = {"line_reserves": [reserve_datas], "line_users": [user_datas]}
+        url = os.environ["API_SAVE_RESERVE_DATA"]
+        access_token = os.environ.get("ACCESS_TOKEN")
         headers = {
-            'Authorization': f'Bearer {access_token}',
-            'Content-Type': 'application/json'
+            "Authorization": f"Bearer {access_token}",
+            "Content-Type": "application/json",
         }
         try:
             response = requests.put(url, json=data, headers=headers)
             if response.status_code == 200:
-                # response.raise_for_status()
-                # return self.messages["NEW_RESERVATION_RESERVE_COMPLETE"], reservation_id
-                reservation_id = reserve_datas.get('reservation_id')
-                return self.messages[UpdateReservationStatus.UPDATE_RESERVATION_EXECUTE.name], reservation_id
+                reservation_id = reserve_datas.get("reservation_id")
+                return self.messages[
+                    UpdateReservationStatus.UPDATE_RESERVATION_EXECUTE.name
+                ], reservation_id
             else:
-                print(f"Unexpected status code: {response.status_code}, Response: {response.text}")
-                return self.messages[UpdateReservationStatus.UPDATE_RESERVATION_EXECUTE.name + "_ERROR"], ReservationStatus.RESERVATION_MENU.name
+                print(
+                    f"Unexpected status code: {response.status_code}, Response: {response.text}"
+                )
+                return self.messages[
+                    UpdateReservationStatus.UPDATE_RESERVATION_EXECUTE.name + "_ERROR"
+                ], ReservationStatus.RESERVATION_MENU.name
         except requests.exceptions.HTTPError as http_err:
-            print(f'HTTP error occurred: {http_err}')
-            return f'Failed to submit reservation: {http_err}', 'ERROR_STATUS'
+            print(f"HTTP error occurred: {http_err}")
+            return f"Failed to submit reservation: {http_err}", "ERROR_STATUS"
         except Exception as err:
-            print(f'An error occurred: {err}')
-            return f'An unexpected error has occurred.: {err}', 'ERROR_STATUS'
-
+            print(f"An error occurred: {err}")
+            return f"An unexpected error has occurred.: {err}", "ERROR_STATUS"
 
     def send_reservation_data_cancel(self, reserve_datas):
-        data = {
-            'line_reserves': [reserve_datas]
-        }
-        url = os.environ['API_SAVE_RESERVE_DATA']
-        access_token = os.environ.get('ACCESS_TOKEN')
+        data = {"line_reserves": [reserve_datas]}
+        url = os.environ["API_SAVE_RESERVE_DATA"]
+        access_token = os.environ.get("ACCESS_TOKEN")
         headers = {
-            'Authorization': f'Bearer {access_token}',
-            'Content-Type': 'application/json'
+            "Authorization": f"Bearer {access_token}",
+            "Content-Type": "application/json",
         }
         try:
             response = requests.delete(url, json=data, headers=headers)
             if response.status_code == 200:
-                reservation_id = reserve_datas.get('reservation_id')
-                return self.messages[UpdateReservationStatus.UPDATE_RESERVATION_EXECUTE.name], reservation_id
+                reservation_id = reserve_datas.get("reservation_id")
+                return self.messages[
+                    UpdateReservationStatus.UPDATE_RESERVATION_EXECUTE.name
+                ], reservation_id
             else:
-                print(f"Unexpected status code: {response.status_code}, Response: {response.text}")
-                return self.messages[UpdateReservationStatus.UPDATE_RESERVATION_EXECUTE.name + "_ERROR"], ReservationStatus.RESERVATION_MENU.name
+                print(
+                    f"Unexpected status code: {response.status_code}, Response: {response.text}"
+                )
+                return self.messages[
+                    UpdateReservationStatus.UPDATE_RESERVATION_EXECUTE.name + "_ERROR"
+                ], ReservationStatus.RESERVATION_MENU.name
         except requests.exceptions.HTTPError as http_err:
-            print(f'HTTP error occurred: {http_err}')
-            return f'Failed to submit reservation: {http_err}', 'ERROR_STATUS'
+            print(f"HTTP error occurred: {http_err}")
+            return f"Failed to submit reservation: {http_err}", "ERROR_STATUS"
         except Exception as err:
-            print(f'An error occurred: {err}')
-            return f'An unexpected error has occurred.: {err}', 'ERROR_STATUS'
-
+            print(f"An error occurred: {err}")
+            return f"An unexpected error has occurred.: {err}", "ERROR_STATUS"
 
     def __init__(self, table_name, api_key, messages):
-        self.dynamodb = boto3.resource('dynamodb')
+        self.dynamodb = boto3.resource("dynamodb")
         self.table = self.dynamodb.Table(table_name)
-        self.api_key = os.environ['OPENAI_API_KEY']
-        self.access_token = os.environ['ACCESS_TOKEN']
+        self.api_key = os.environ["OPENAI_API_KEY"]
+        self.access_token = os.environ["ACCESS_TOKEN"]
         self.messages = messages
         self.check_reserves = {}
         self.temp_data = {}
@@ -243,20 +237,24 @@ class ReservationUpdateHandler:
             UpdateReservationStatus.UPDATE_RESERVATION_EXECUTE: self._handle_update_reservation_execute,
             UpdateReservationStatus.UPDATE_RESERVATION_CANCEL_CONFIRM: self._handle_update_reservation_cancel_confirm,
             UpdateReservationStatus.UPDATE_RESERVATION_CANCEL_EXECUTE: self._handle_update_reservation_cancel_execute,
-            # UpdateReservationStatus.UPDATE_RESERVATION_COMPLETE: self._handle_update_reservation_complete
         }
 
-    def handle_reservation_step(self, status, user_message, next_status, user_id=None ,unique_code=None):
+    def handle_reservation_step(
+        self, status, user_message, next_status, user_id=None, unique_code=None
+    ):
         if status in self.handlers:
-            return self.handlers[status](user_message, next_status, user_id=user_id ,unique_code=unique_code)
+            return self.handlers[status](
+                user_message, next_status, user_id=user_id, unique_code=unique_code
+            )
         else:
-            raise ValueError(f'Unsupported reservation status: {status}')
+            raise ValueError(f"Unsupported reservation status: {status}")
 
-
-    def _handle_update_reservation_start(self, user_message, next_status, user_id ,unique_code):
+    def _handle_update_reservation_start(
+        self, user_message, next_status, user_id, unique_code
+    ):
         system_content = generate_update_menu()
         update_menu = self.get_chatgpt_response(system_content, user_message)
-        print('update_menu', update_menu)
+        print("update_menu", update_menu)
         current_time = datetime.now()
         expiry_time = current_time + timedelta(minutes=5)
         expiry_timestamp = int(expiry_time.timestamp())
@@ -265,8 +263,8 @@ class ReservationUpdateHandler:
 
         if isinstance(reserve_datas, list):
             for data in reserve_datas:
-                data['unique_code'] = unique_code
-                data['ExpirationTime'] = expiry_timestamp
+                data["unique_code"] = unique_code
+                data["ExpirationTime"] = expiry_timestamp
                 try:
                     response = self.table.put_item(Item=data)
                     print("Data inserted successfully:", response)
@@ -279,271 +277,357 @@ class ReservationUpdateHandler:
         except Exception as e:
             print("An error occurred:", e)
 
-        # 1. チェックイン日と宿泊数
-        # 2. 利用者人数
-        # 3. 部屋タイプ
-        # 4. 代表者氏名
-        # 5. 連絡先電話番号
-        # 6. キャンセル
-
         if isinstance(update_menu, str) and update_menu.isdigit():
             update_menu = int(update_menu)
 
         pre_datas = {}
         if reserve_datas:
             pre_datas = {str(index): value for index, value in enumerate(reserve_datas)}
-            pre_datas = pre_datas['0']
+            pre_datas = pre_datas["0"]
 
-        if isinstance(update_menu, int) and 0 <= update_menu <= 5:
-            print("int check ok between 0-5")
+        if isinstance(update_menu, int) and 0 <= update_menu <= 6:
             if update_menu == 1:
-                extra_datas = {
-                    'title': 'チェックインと宿泊数'
-                }
+                extra_datas = {"title": "チェックインと宿泊数"}
                 message_template = f'{self.messages[UpdateReservationStatus.UPDATE_RESERVATION_START.name + "_CHECKIN"]}'
+                pre_datas['check_in'] = datetime.strptime(pre_datas['check_in'], "%Y-%m-%d").strftime(
+                    "%Y年%m月%d日"
+                )
+                pre_datas['check_out'] = datetime.strptime(pre_datas['check_out'], "%Y-%m-%d").strftime(
+                    "%Y年%m月%d日"
+                )
                 message = message_template.format(**{**pre_datas, **extra_datas})
                 return message, UpdateReservationStatus.UPDATE_RESERVATION_CHECKIN.name
             if update_menu == 2:
-                extra_datas = {
-                    'title': '利用者人数'
-                }
+                extra_datas = {"title": "利用者人数"}
                 message_template = f'{self.messages[UpdateReservationStatus.UPDATE_RESERVATION_START.name + "_COUNT_OF_PERSON"]}'
                 message = message_template.format(**{**pre_datas, **extra_datas})
-                return message, UpdateReservationStatus.UPDATE_RESERVATION_COUNT_OF_PERSON.name
+                return (
+                    message,
+                    UpdateReservationStatus.UPDATE_RESERVATION_COUNT_OF_PERSON.name,
+                )
             if update_menu == 3:
-                extra_datas = {
-                    'title': '部屋タイプ'
-                }
+                extra_datas = {"title": "部屋タイプ"}
                 message_template = f'{self.messages[UpdateReservationStatus.UPDATE_RESERVATION_START.name + "_SMOKER"]}'
                 message = message_template.format(**{**pre_datas, **extra_datas})
                 return message, UpdateReservationStatus.UPDATE_RESERVATION_SMOKER.name
             if update_menu == 4:
-                extra_datas = {
-                    'title': '代表者'
-                }
+                extra_datas = {"title": "代表者"}
                 message_template = f'{self.messages[UpdateReservationStatus.UPDATE_RESERVATION_START.name + "_NAME"]}'
                 message = message_template.format(**{**pre_datas, **extra_datas})
                 return message, UpdateReservationStatus.UPDATE_RESERVATION_NAME.name
             if update_menu == 5:
-                extra_datas = {
-                    'title': '連絡先'
-                }
+                extra_datas = {"title": "連絡先"}
                 message_template = f'{self.messages[UpdateReservationStatus.UPDATE_RESERVATION_START.name + "_PHONE_NUMBER"]}'
                 message = message_template.format(**{**pre_datas, **extra_datas})
-                return message, UpdateReservationStatus.UPDATE_RESERVATION_PHONE_NUMBER.name
-            if update_menu == 0:
-                extra_datas = {
-                    'title': 'キャンセル'
-                }
+                return (
+                    message,
+                    UpdateReservationStatus.UPDATE_RESERVATION_PHONE_NUMBER.name,
+                )
+            if update_menu == 6:
+                extra_datas = {"title": "キャンセル"}
                 message_template = f'{self.messages[UpdateReservationStatus.UPDATE_RESERVATION_START.name + "_CANCEL"]}'
                 message = message_template.format(**{**pre_datas, **extra_datas})
-                return message, UpdateReservationStatus.UPDATE_RESERVATION_CANCEL_CONFIRM.name
+                return (
+                    message,
+                    UpdateReservationStatus.UPDATE_RESERVATION_CANCEL_CONFIRM.name,
+                )
             if update_menu == 0:
-                return self.messages[UpdateReservationStatus.UPDATE_RESERVATION_START.name + '_SELECT_ERROR'], UpdateReservationStatus.UPDATE_RESERVATION_START.name
+                return self.messages[
+                    UpdateReservationStatus.UPDATE_RESERVATION_START.name
+                    + "_SELECT_ERROR"
+                ], UpdateReservationStatus.UPDATE_RESERVATION_START.name
         else:
-            return self.messages[UpdateReservationStatus.UPDATE_RESERVATION_START.name + '_SELECT_ERROR'], UpdateReservationStatus.UPDATE_RESERVATION_START.name
+            return self.messages[
+                UpdateReservationStatus.UPDATE_RESERVATION_START.name + "_SELECT_ERROR"
+            ], UpdateReservationStatus.UPDATE_RESERVATION_START.name
 
-
-    def _handle_update_reservation_checkin(self, user_message, next_status, user_id ,unique_code):
+    def _handle_update_reservation_checkin(
+        self, user_message, next_status, user_id, unique_code
+    ):
         system_content = generate_start_date()
         check_in_date = self.get_chatgpt_response(system_content, user_message)
         if is_valid_date(check_in_date):
-            formatted_date = datetime.strptime(check_in_date, '%Y-%m-%d').strftime('%Y-%m-%d')
-            ymd_format = datetime.strptime(check_in_date, '%Y-%m-%d').strftime('%Y年%m月%d日')
-            self.check_reserves[UpdateReservationStatus.UPDATE_RESERVATION_CHECKIN.key] = formatted_date
-            self.table.update_item(
-                Key={'unique_code': unique_code},
-                UpdateExpression="SET #co = :cd",
-                ExpressionAttributeNames={'#co': UpdateReservationStatus.UPDATE_RESERVATION_CHECKIN.key},
-                ExpressionAttributeValues={':cd': formatted_date}
+            formatted_date = datetime.strptime(check_in_date, "%Y-%m-%d").strftime(
+                "%Y-%m-%d"
             )
-            message = f'{ymd_format} {self.messages[UpdateReservationStatus.UPDATE_RESERVATION_CHECKIN.name]}'
+            ymd_format = datetime.strptime(check_in_date, "%Y-%m-%d").strftime(
+                "%Y年%m月%d日"
+            )
+            self.check_reserves[
+                UpdateReservationStatus.UPDATE_RESERVATION_CHECKIN.key
+            ] = formatted_date
+            self.table.update_item(
+                Key={"unique_code": unique_code},
+                UpdateExpression="SET #co = :cd",
+                ExpressionAttributeNames={
+                    "#co": UpdateReservationStatus.UPDATE_RESERVATION_CHECKIN.key
+                },
+                ExpressionAttributeValues={":cd": formatted_date},
+            )
+            message = f"{ymd_format} {self.messages[UpdateReservationStatus.UPDATE_RESERVATION_CHECKIN.name]}"
             return message, next_status.name
         else:
-            return self.messages[UpdateReservationStatus.UPDATE_RESERVATION_CHECKIN.name + '_ERROR'], UpdateReservationStatus.UPDATE_RESERVATION_CHECKIN.name
+            return self.messages[
+                UpdateReservationStatus.UPDATE_RESERVATION_CHECKIN.name + "_ERROR"
+            ], UpdateReservationStatus.UPDATE_RESERVATION_CHECKIN.name
 
-
-    def _handle_update_reservation_checkout(self, user_message, next_status, user_id ,unique_code):
+    def _handle_update_reservation_checkout(
+        self, user_message, next_status, user_id, unique_code
+    ):
         system_content = generate_stay()
         stay_length = self.get_chatgpt_response(system_content, user_message)
-        table_datas = self.table.get_item(
-            Key={
-                'unique_code': unique_code
-            }
-        )
-        checkin_date = table_datas['Item']['check_in']
+        table_datas = self.table.get_item(Key={"unique_code": unique_code})
+        checkin_date = table_datas["Item"]["check_in"]
 
         if checkin_date and is_single_digit_number(stay_length):
             checkout_date = self._calculate_checkout_date(checkin_date, stay_length)
-            formatted_checkout_date = datetime.strptime(checkout_date, '%Y-%m-%d').strftime('%Y-%m-%d')
-            ymd_format_checkout = datetime.strptime(checkout_date, '%Y-%m-%d').strftime('%Y年%m月%d日')
-            ymd_format_checkin = datetime.strptime(checkin_date, '%Y-%m-%d').strftime('%Y年%m月%d日')
-
-            self.check_reserves[UpdateReservationStatus.UPDATE_RESERVATION_CHECKOUT.key] = formatted_checkout_date
-            self.table.update_item(
-                Key={'unique_code': unique_code},
-                UpdateExpression="SET #co = :cd",
-                ExpressionAttributeNames={'#co': UpdateReservationStatus.UPDATE_RESERVATION_CHECKOUT.key},
-                ExpressionAttributeValues={':cd': formatted_checkout_date}
+            formatted_checkout_date = datetime.strptime(
+                checkout_date, "%Y-%m-%d"
+            ).strftime("%Y-%m-%d")
+            ymd_format_checkout = datetime.strptime(checkout_date, "%Y-%m-%d").strftime(
+                "%Y年%m月%d日"
             )
-            message = textwrap.dedent(f'チェックイン日は{ymd_format_checkin}、宿泊数は {stay_length}泊、チェックアウト日は {ymd_format_checkout}になります。 {self.messages[UpdateReservationStatus.UPDATE_RESERVATION_CHECKOUT.name]}').strip()
+            ymd_format_checkin = datetime.strptime(checkin_date, "%Y-%m-%d").strftime(
+                "%Y年%m月%d日"
+            )
+
+            self.check_reserves[
+                UpdateReservationStatus.UPDATE_RESERVATION_CHECKOUT.key
+            ] = formatted_checkout_date
+            self.table.update_item(
+                Key={"unique_code": unique_code},
+                UpdateExpression="SET #co = :cd",
+                ExpressionAttributeNames={
+                    "#co": UpdateReservationStatus.UPDATE_RESERVATION_CHECKOUT.key
+                },
+                ExpressionAttributeValues={":cd": formatted_checkout_date},
+            )
+            message = textwrap.dedent(
+                f"チェックイン日は{ymd_format_checkin}、宿泊数は {stay_length}泊、チェックアウト日は {ymd_format_checkout}になります。 {self.messages[UpdateReservationStatus.UPDATE_RESERVATION_CHECKOUT.name]}"
+            ).strip()
             return message, next_status.name
         else:
-            return self.messages[UpdateReservationStatus.UPDATE_RESERVATION_CHECKOUT.name + '_ERROR'], UpdateReservationStatus.UPDATE_RESERVATION_CHECKOUT.name
+            return self.messages[
+                UpdateReservationStatus.UPDATE_RESERVATION_CHECKOUT.name + "_ERROR"
+            ], UpdateReservationStatus.UPDATE_RESERVATION_CHECKOUT.name
 
-
-    def _handle_update_reservation_count_of_person(self, user_message, next_status, user_id ,unique_code):
+    def _handle_update_reservation_count_of_person(
+        self, user_message, next_status, user_id, unique_code
+    ):
         system_content = generate_count_of_person()
         count_of_person = self.get_chatgpt_response(system_content, user_message)
 
         if is_single_digit_number(count_of_person):
             count_of_person = int(count_of_person)
-            self.check_reserves[UpdateReservationStatus.UPDATE_RESERVATION_COUNT_OF_PERSON.key] = count_of_person
+            self.check_reserves[
+                UpdateReservationStatus.UPDATE_RESERVATION_COUNT_OF_PERSON.key
+            ] = count_of_person
             self.table.update_item(
-                Key={'unique_code': unique_code},
+                Key={"unique_code": unique_code},
                 UpdateExpression="SET #co = :cd",
-                ExpressionAttributeNames={'#co': UpdateReservationStatus.UPDATE_RESERVATION_COUNT_OF_PERSON.key},
-                ExpressionAttributeValues={':cd': count_of_person}
+                ExpressionAttributeNames={
+                    "#co": UpdateReservationStatus.UPDATE_RESERVATION_COUNT_OF_PERSON.key
+                },
+                ExpressionAttributeValues={":cd": count_of_person},
             )
-            message = textwrap.dedent(f'利用者人数を {count_of_person} 人に変更いたします。{self.messages[UpdateReservationStatus.UPDATE_RESERVATION_COUNT_OF_PERSON.name]}').strip()
+            message = textwrap.dedent(
+                f"利用者人数を {count_of_person} 人に変更いたします。{self.messages[UpdateReservationStatus.UPDATE_RESERVATION_COUNT_OF_PERSON.name]}"
+            ).strip()
             return message, next_status.name
         else:
-            return self.messages[UpdateReservationStatus.UPDATE_RESERVATION_COUNT_OF_PERSON + '_ERROR'], UpdateReservationStatus.UPDATE_RESERVATION_COUNT_OF_PERSON.name
+            return self.messages[
+                UpdateReservationStatus.UPDATE_RESERVATION_COUNT_OF_PERSON + "_ERROR"
+            ], UpdateReservationStatus.UPDATE_RESERVATION_COUNT_OF_PERSON.name
 
-
-    def _handle_update_smoker(self, user_message, next_status, user_id ,unique_code):
+    def _handle_update_smoker(self, user_message, next_status, user_id, unique_code):
         system_content = generate_smoker()
         smoker = self.get_chatgpt_response(system_content, user_message)
         if is_valid_smoker(smoker):
-            if smoker == '喫煙':
-                message = textwrap.dedent(f'禁煙か喫煙かは {smoker}ですね。{self.messages[ReservationStatus.NEW_RESERVATION_SMOKER.name]}').strip()
-                next_status = UpdateReservationStatus.UPDATE_RESERVATION_ROOM_TYPE_SMOKER
+            if smoker == "喫煙":
+                message = textwrap.dedent(
+                    f"禁煙か喫煙かは {smoker}ですね。{self.messages[ReservationStatus.NEW_RESERVATION_SMOKER.name]}"
+                ).strip()
+                next_status = (
+                    UpdateReservationStatus.UPDATE_RESERVATION_ROOM_TYPE_SMOKER
+                )
                 return message, next_status.name
-            elif smoker == '禁煙':
-                message = textwrap.dedent(f'禁煙か喫煙かは {smoker}ですね。{self.messages[ReservationStatus.NEW_RESERVATION_NO_SMOKER.name]}').strip()
-                next_status = UpdateReservationStatus.UPDATE_RESERVATION_ROOM_TYPE_NO_SMOKER
+            elif smoker == "禁煙":
+                message = textwrap.dedent(
+                    f"禁煙か喫煙かは {smoker}ですね。{self.messages[ReservationStatus.NEW_RESERVATION_NO_SMOKER.name]}"
+                ).strip()
+                next_status = (
+                    UpdateReservationStatus.UPDATE_RESERVATION_ROOM_TYPE_NO_SMOKER
+                )
                 return message, next_status.name
         else:
-            return self.messages[ReservationStatus.NEW_RESERVATION_SMOKER.name + '_ERROR'], UpdateReservationStatus.UPDATE_RESERVATION_START.name
+            return self.messages[
+                ReservationStatus.NEW_RESERVATION_SMOKER.name + "_ERROR"
+            ], UpdateReservationStatus.UPDATE_RESERVATION_START.name
 
-
-    def _handle_update_room_type_smoker(self, user_message, next_status, user_id ,unique_code):
+    def _handle_update_room_type_smoker(
+        self, user_message, next_status, user_id, unique_code
+    ):
         system_content = generate_room_type_smoker()
         room_type_smoker = self.get_chatgpt_response(system_content, user_message)
         print("room_type_smoker", room_type_smoker)
 
         if is_valid_room_type_smoker(room_type_smoker):
-            self.check_reserves[UpdateReservationStatus.UPDATE_RESERVATION_ROOM_TYPE.key] = room_type_smoker
+            self.check_reserves[
+                UpdateReservationStatus.UPDATE_RESERVATION_ROOM_TYPE.key
+            ] = room_type_smoker
             self.table.update_item(
-                Key={'unique_code': unique_code},
+                Key={"unique_code": unique_code},
                 UpdateExpression="SET #co = :cd",
-                ExpressionAttributeNames={'#co': UpdateReservationStatus.UPDATE_RESERVATION_ROOM_TYPE.key},
-                ExpressionAttributeValues={':cd': room_type_smoker}
+                ExpressionAttributeNames={
+                    "#co": UpdateReservationStatus.UPDATE_RESERVATION_ROOM_TYPE.key
+                },
+                ExpressionAttributeValues={":cd": room_type_smoker},
             )
-            message = textwrap.dedent(f'部屋タイプは {room_type_smoker} ですね。 {self.messages[UpdateReservationStatus.UPDATE_RESERVATION_ROOM_TYPE.name]}').strip()
+            message = textwrap.dedent(
+                f"部屋タイプは {room_type_smoker} ですね。 {self.messages[UpdateReservationStatus.UPDATE_RESERVATION_ROOM_TYPE.name]}"
+            ).strip()
             return message, next_status.name
         else:
-            return self.messages[UpdateReservationStatus.UPDATE_RESERVATION_ROOM_TYPE.name + '_ERROR'],UpdateReservationStatus.UPDATE_RESERVATION_ROOM_TYPE_SMOKER.name
+            return self.messages[
+                UpdateReservationStatus.UPDATE_RESERVATION_ROOM_TYPE.name + "_ERROR"
+            ], UpdateReservationStatus.UPDATE_RESERVATION_ROOM_TYPE_SMOKER.name
 
-
-    def _handle_update_room_type_no_smoker(self, user_message, next_status, user_id ,unique_code):
+    def _handle_update_room_type_no_smoker(
+        self, user_message, next_status, user_id, unique_code
+    ):
         system_content = generate_room_type_no_smoker()
         room_type_no_smoker = self.get_chatgpt_response(system_content, user_message)
 
         if is_valid_room_type_no_smoker(room_type_no_smoker):
-            self.check_reserves[UpdateReservationStatus.UPDATE_RESERVATION_ROOM_TYPE.key] = room_type_no_smoker
+            self.check_reserves[
+                UpdateReservationStatus.UPDATE_RESERVATION_ROOM_TYPE.key
+            ] = room_type_no_smoker
             self.table.update_item(
-                Key={'unique_code': unique_code},
+                Key={"unique_code": unique_code},
                 UpdateExpression="SET #co = :cd",
-                ExpressionAttributeNames={'#co': UpdateReservationStatus.UPDATE_RESERVATION_ROOM_TYPE.key},
-                ExpressionAttributeValues={':cd': room_type_no_smoker}
+                ExpressionAttributeNames={
+                    "#co": UpdateReservationStatus.UPDATE_RESERVATION_ROOM_TYPE.key
+                },
+                ExpressionAttributeValues={":cd": room_type_no_smoker},
             )
-            message = textwrap.dedent(f'部屋タイプは {room_type_no_smoker} ですね。 {self.messages[UpdateReservationStatus.UPDATE_RESERVATION_ROOM_TYPE.name]}').strip()
+            message = textwrap.dedent(
+                f"部屋タイプは {room_type_no_smoker} ですね。 {self.messages[UpdateReservationStatus.UPDATE_RESERVATION_ROOM_TYPE.name]}"
+            ).strip()
             return message, next_status.name
         else:
-            return self.messages[UpdateReservationStatus.UPDATE_RESERVATION_ROOM_TYPE.name + '_ERROR'],UpdateReservationStatus.UPDATE_RESERVATION_ROOM_TYPE_SMOKER.name
+            return self.messages[
+                UpdateReservationStatus.UPDATE_RESERVATION_ROOM_TYPE.name + "_ERROR"
+            ], UpdateReservationStatus.UPDATE_RESERVATION_ROOM_TYPE_SMOKER.name
 
-
-    def _handle_update_name(self, user_message, next_status, user_id ,unique_code):
+    def _handle_update_name(self, user_message, next_status, user_id, unique_code):
         name = user_message
         if is_valid_japaneses_character(name):
-            self.check_reserves[UpdateReservationStatus.UPDATE_RESERVATION_NAME.key] = name
-            self.table.update_item(
-                Key={'unique_code': unique_code},
-                UpdateExpression="SET #co = :cd",
-                ExpressionAttributeNames={'#co': UpdateReservationStatus.UPDATE_RESERVATION_NAME.key},
-                ExpressionAttributeValues={':cd': name}
+            self.check_reserves[UpdateReservationStatus.UPDATE_RESERVATION_NAME.key] = (
+                name
             )
-            message = textwrap.dedent(f'変更する代表者氏名は {name} でよろしいでしょうか。 {self.messages[UpdateReservationStatus.UPDATE_RESERVATION_NAME.name]}').strip()
+            self.table.update_item(
+                Key={"unique_code": unique_code},
+                UpdateExpression="SET #co = :cd",
+                ExpressionAttributeNames={
+                    "#co": UpdateReservationStatus.UPDATE_RESERVATION_NAME.key
+                },
+                ExpressionAttributeValues={":cd": name},
+            )
+            message = textwrap.dedent(
+                f"変更する代表者氏名は {name} でよろしいでしょうか。 {self.messages[UpdateReservationStatus.UPDATE_RESERVATION_NAME.name]}"
+            ).strip()
             return message, next_status.name
         else:
-            return self.messages[UpdateReservationStatus.UPDATE_RESERVATION_NAME.name + '_ERROR'], UpdateReservationStatus.UPDATE_RESERVATION_NAME.name
+            return self.messages[
+                UpdateReservationStatus.UPDATE_RESERVATION_NAME.name + "_ERROR"
+            ], UpdateReservationStatus.UPDATE_RESERVATION_NAME.name
 
-
-    def _handle_update_phone_number(self, user_message, next_status, user_id ,unique_code):
+    def _handle_update_phone_number(
+        self, user_message, next_status, user_id, unique_code
+    ):
         phone_number = user_message
         if is_valid_phone_number(phone_number):
-            self.check_reserves[UpdateReservationStatus.UPDATE_RESERVATION_PHONE_NUMBER.key] = phone_number
+            self.check_reserves[
+                UpdateReservationStatus.UPDATE_RESERVATION_PHONE_NUMBER.key
+            ] = phone_number
             self.table.update_item(
-                Key={'unique_code': unique_code},
+                Key={"unique_code": unique_code},
                 UpdateExpression="SET #co = :cd",
-                ExpressionAttributeNames={'#co': UpdateReservationStatus.UPDATE_RESERVATION_PHONE_NUMBER.key},
-                ExpressionAttributeValues={':cd': phone_number}
+                ExpressionAttributeNames={
+                    "#co": UpdateReservationStatus.UPDATE_RESERVATION_PHONE_NUMBER.key
+                },
+                ExpressionAttributeValues={":cd": phone_number},
             )
-            message = textwrap.dedent(f'変更する電話番号は {phone_number} でよろしいでしょうか。 {self.messages[UpdateReservationStatus.UPDATE_RESERVATION_PHONE_NUMBER.name]}').strip()
+            message = textwrap.dedent(
+                f"変更する電話番号は {phone_number} でよろしいでしょうか。 {self.messages[UpdateReservationStatus.UPDATE_RESERVATION_PHONE_NUMBER.name]}"
+            ).strip()
             return message, next_status.name
         else:
-            return self.messages[UpdateReservationStatus.UPDATE_RESERVATION_NAME.name + '_ERROR'], UpdateReservationStatus.UPDATE_RESERVATION_PHONE_NUMBER.name
+            return self.messages[
+                UpdateReservationStatus.UPDATE_RESERVATION_PHONE_NUMBER.name + "_ERROR"
+            ], UpdateReservationStatus.UPDATE_RESERVATION_PHONE_NUMBER.name
 
-
-    def _handle_update_reservation_confirm(self, user_message, next_status, user_id ,unique_code):
+    def _handle_update_reservation_confirm(
+        self, user_message, next_status, user_id, unique_code
+    ):
         reserve_confirm = user_message
         system_content = generate_reserve_confirm()
         reserve_confirm = self.get_chatgpt_response(system_content, user_message)
 
-        if reserve_confirm == "True" or reserve_confirm == "はい" or  reserve_confirm == True or  reserve_confirm == 1:
-            table_datas = self.table.get_item(
-                Key={
-                    'unique_code': unique_code
-                }
-            )
-            reserve_datas = table_datas['Item']
+        if (
+            reserve_confirm == "True"
+            or reserve_confirm == "はい"
+            or reserve_confirm is True
+            or reserve_confirm == 1
+        ):
+            table_datas = self.table.get_item(Key={"unique_code": unique_code})
+            reserve_datas = table_datas["Item"]
 
-            if 'new_name' in reserve_datas and 'new_phone_number' in reserve_datas:
-                message_template = self.messages[UpdateReservationStatus.UPDATE_RESERVATION_CONFIRM.name + "_NAME_PHONE"]
-            elif 'new_phone_number' in reserve_datas:
-                message_template = self.messages[UpdateReservationStatus.UPDATE_RESERVATION_CONFIRM.name + "_PHONE"]
+            if "new_name" in reserve_datas and "new_phone_number" in reserve_datas:
+                message_template = self.messages[
+                    UpdateReservationStatus.UPDATE_RESERVATION_CONFIRM.name
+                    + "_NAME_PHONE"
+                ]
+            elif "new_phone_number" in reserve_datas:
+                message_template = self.messages[
+                    UpdateReservationStatus.UPDATE_RESERVATION_CONFIRM.name + "_PHONE"
+                ]
             else:
-                message_template = self.messages[UpdateReservationStatus.UPDATE_RESERVATION_CONFIRM.name]
+                message_template = self.messages[
+                    UpdateReservationStatus.UPDATE_RESERVATION_CONFIRM.name
+                ]
             message = message_template.format(**reserve_datas)
             return message, next_status.name
         else:
-            self.table.delete_item(
-                Key={
-                    'unique_code': unique_code
-                }
+            self.table.delete_item(Key={"unique_code": unique_code})
+            return self.messages[
+                UpdateReservationStatus.UPDATE_RESERVATION_CONFIRM.name + "_ERROR"
+            ], ReservationStatus.RESERVATION_MENU.name
+
+    def _handle_update_reservation_execute(
+        self, user_message, next_status, user_id, unique_code
+    ):
+        if user_message == "変更":
+            table_datas = self.table.get_item(Key={"unique_code": unique_code})
+            datas = table_datas["Item"]
+            current_date = datetime.now().strftime("%Y-%m-%d")
+            current_datetime = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+            user_datas = self.set_line_users_data_update(
+                user_id, datas, current_datetime
             )
-            return self.messages[UpdateReservationStatus.UPDATE_RESERVATION_CONFIRM.name + "_ERROR"], ReservationStatus.RESERVATION_MENU.name
-
-
-    def _handle_update_reservation_execute(self, user_message, next_status, user_id, unique_code):
-        if user_message == '変更':
-            table_datas = self.table.get_item(
-                Key={'unique_code': unique_code}
+            reserve_datas = self.set_line_reserves_data_update(
+                user_id, datas, None, current_date, current_datetime
             )
-            datas = table_datas['Item']
-            current_date = datetime.now().strftime('%Y-%m-%d')
-            current_datetime = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            reservation_message, reservation_id = self.send_reservation_data_update(
+                reserve_datas, user_datas
+            )
+            message = textwrap.dedent(
+                f"{reservation_message}\n{reservation_id}"
+            ).strip()
 
-            user_datas = self.set_line_users_data_update(user_id, datas, current_datetime)
-            reserve_datas = self.set_line_reserves_data_update(user_id, datas, None, current_date, current_datetime)
-            reservation_message, reservation_id = self.send_reservation_data_update(reserve_datas, user_datas)
-            message = textwrap.dedent(f'{reservation_message}\n{reservation_id}').strip()
-
-            name = datas.get('name')
-            phone_number = datas.get('phone_number')
-            new_name = datas.get('new_name')
-            new_phone_number = datas.get('new_phone_number')
+            new_name = datas.get("new_name")
+            new_phone_number = datas.get("new_phone_number")
 
             update_expressions = []
             expression_attribute_values = {}
@@ -551,96 +635,105 @@ class ReservationUpdateHandler:
 
             if new_name:
                 update_expressions.append("#n = :name")
-                expression_attribute_values[':name'] = new_name
-                expression_attribute_names['#n'] = 'name'
+                expression_attribute_values[":name"] = new_name
+                expression_attribute_names["#n"] = "name"
             if new_phone_number:
                 update_expressions.append("#p = :phone")
-                expression_attribute_values[':phone'] = new_phone_number
-                expression_attribute_names['#p'] = 'phone_number'
+                expression_attribute_values[":phone"] = new_phone_number
+                expression_attribute_names["#p"] = "phone_number"
 
             if update_expressions:
                 self.table.update_item(
-                    Key={'unique_code': unique_code},
+                    Key={"unique_code": unique_code},
                     UpdateExpression=f"SET {', '.join(update_expressions)}",
                     ExpressionAttributeNames=expression_attribute_names,
-                    ExpressionAttributeValues=expression_attribute_values
+                    ExpressionAttributeValues=expression_attribute_values,
                 )
 
             remove_expressions = []
             remove_expression_attribute_names = {}
 
-            if 'new_name' in datas:
+            if "new_name" in datas:
                 remove_expressions.append("#new_name")
-                remove_expression_attribute_names['#new_name'] = 'new_name'
-            if 'new_phone_number' in datas:
+                remove_expression_attribute_names["#new_name"] = "new_name"
+            if "new_phone_number" in datas:
                 remove_expressions.append("#new_phone")
-                remove_expression_attribute_names['#new_phone'] = 'new_phone_number'
+                remove_expression_attribute_names["#new_phone"] = "new_phone_number"
 
             if remove_expressions:
                 self.table.update_item(
-                    Key={'unique_code': unique_code},
+                    Key={"unique_code": unique_code},
                     UpdateExpression=f"REMOVE {', '.join(remove_expressions)}",
-                    ExpressionAttributeNames=remove_expression_attribute_names
+                    ExpressionAttributeNames=remove_expression_attribute_names,
                 )
             return message, next_status.name
         else:
-            return self.messages['NEW_RESERVATION_RESERVE_CONFIRM_ERROR'], ReservationStatus.RESERVATION_MENU.name
+            return self.messages[
+                "NEW_RESERVATION_RESERVE_CONFIRM_ERROR"
+            ], ReservationStatus.RESERVATION_MENU.name
 
-
-    def _handle_update_reservation_cancel_confirm(self, user_message, next_status, user_id ,unique_code):
-        print('user_message', user_message)
+    def _handle_update_reservation_cancel_confirm(
+        self, user_message, next_status, user_id, unique_code
+    ):
+        print("user_message", user_message)
         cancel_confirm = user_message
         system_content = generate_cancel_confirm()
         cancel_confirm = self.get_chatgpt_response(system_content, user_message)
-        print('cancel_confirm', cancel_confirm)
-        if cancel_confirm == "True" or cancel_confirm == "はい" or  cancel_confirm == True or cancel_confirm == 1:
-            table_datas = self.table.get_item(
-                Key={
-                    'unique_code': unique_code
-                }
-            )
-            message = self.messages[UpdateReservationStatus.UPDATE_RESERVATION_CANCEL_CONFIRM.name]
+        print("cancel_confirm", cancel_confirm)
+        if (
+            cancel_confirm == "True"
+            or cancel_confirm == "はい"
+            or cancel_confirm is True
+            or cancel_confirm == 1
+        ):
+            message = self.messages[
+                UpdateReservationStatus.UPDATE_RESERVATION_CANCEL_CONFIRM.name
+            ]
             return message, next_status.name
         else:
-            self.table.delete_item(
-                Key={
-                    'unique_code': unique_code
-                }
-            )
-            return self.messages[UpdateReservationStatus.UPDATE_RESERVATION_CANCEL_CONFIRM.name + "_ERROR"], ReservationStatus.RESERVATION_MENU.name
+            self.table.delete_item(Key={"unique_code": unique_code})
+            return self.messages[
+                UpdateReservationStatus.UPDATE_RESERVATION_CANCEL_CONFIRM.name
+                + "_ERROR"
+            ], ReservationStatus.RESERVATION_MENU.name
 
-
-    def _handle_update_reservation_cancel_execute(self, user_message, next_status, user_id, unique_code):
-        print('user_message', user_message)
-        if user_message == 'キャンセル':
+    def _handle_update_reservation_cancel_execute(
+        self, user_message, next_status, user_id, unique_code
+    ):
+        print("user_message", user_message)
+        if user_message == "キャンセル":
             self.table.update_item(
-                Key={'unique_code': unique_code},
+                Key={"unique_code": unique_code},
                 UpdateExpression="SET #co = :cd",
-                ExpressionAttributeNames={
-                    '#co': 'status'
-                },
-                ExpressionAttributeValues={
-                    ':cd': 'CANCEL'
-                }
+                ExpressionAttributeNames={"#co": "status"},
+                ExpressionAttributeValues={":cd": "CANCEL"},
             )
-            table_datas = self.table.get_item(
-                Key={'unique_code': unique_code}
+            table_datas = self.table.get_item(Key={"unique_code": unique_code})
+            datas = table_datas["Item"]
+            current_date = datetime.now().strftime("%Y-%m-%d")
+            current_datetime = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            reserve_datas = self.set_line_reserves_data_cancel(
+                user_id, datas, None, current_date, current_datetime
             )
-            datas = table_datas['Item']
-            current_date = datetime.now().strftime('%Y-%m-%d')
-            current_datetime = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-            reserve_datas = self.set_line_reserves_data_cancel(user_id, datas, None, current_date, current_datetime)
-            reservation_message, reservation_id = self.send_reservation_data_cancel(reserve_datas)
-            message = textwrap.dedent(f'{reservation_message}\n{reservation_id}').strip()
+            reservation_message, reservation_id = self.send_reservation_data_cancel(
+                reserve_datas
+            )
+            message = textwrap.dedent(
+                f"{reservation_message}\n{reservation_id}"
+            ).strip()
             return message, next_status.name
         else:
-            return self.messages['NEW_RESERVATION_RESERVE_CONFIRM_ERROR'], ReservationStatus.RESERVATION_MENU.name
-
+            return self.messages[
+                "NEW_RESERVATION_RESERVE_CONFIRM_ERROR"
+            ], ReservationStatus.RESERVATION_MENU.name
 
     def _calculate_checkout_date(self, checkin_date, stay_length):
-        return (datetime.strptime(checkin_date, '%Y-%m-%d') + timedelta(days=int(stay_length))).strftime('%Y-%m-%d')
-
+        return (
+            datetime.strptime(checkin_date, "%Y-%m-%d")
+            + timedelta(days=int(stay_length))
+        ).strftime("%Y-%m-%d")
 
     def get_chatgpt_response(self, system_content, user_message):
-        return get_chatgpt_response(self.api_key, 'gpt-4o', 0, system_content, user_message)
-
+        return get_chatgpt_response(
+            self.api_key, "gpt-4o", 0, system_content, user_message
+        )

@@ -1,1 +1,4 @@
 *.drawio
+.ruff_cache
+menv
+.python-version
