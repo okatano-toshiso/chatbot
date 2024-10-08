@@ -181,7 +181,8 @@ MESSAGES = {
         3.部屋タイプ
         4.代表者
         5.連絡先
-""").strip(),
+        6.キャンセル
+    """).strip(),
     UpdateReservationStatus.UPDATE_RESERVATION_START.name + "_SELECT_ERROR":textwrap.dedent("""
         予約変更したい項目がわかりませんでした。再度、変更したい項目を選びなおしてください。
         ----------------------------------------
@@ -190,9 +191,10 @@ MESSAGES = {
         3.部屋タイプ
         4.代表者
         5.連絡先
+        6.キャンセル
     """).strip(),
     UpdateReservationStatus.UPDATE_RESERVATION_START.name + "_ERROR":textwrap.dedent("""
-        予約変更をしないと承りました。
+        予約変更およびキャンセルをしないと承りました。
         メニュー画面に戻ります。
     """).strip(),
     UpdateReservationStatus.UPDATE_RESERVATION_START.name + "_RESERVATION_ID_ERROR":textwrap.dedent("""
@@ -223,6 +225,22 @@ MESSAGES = {
         {title} の変更になりますね。
         予約されている{title} は {phone_number} になります。
         変更したい{title} の電話番号をおっしゃってください。
+    """).strip(),
+    UpdateReservationStatus.UPDATE_RESERVATION_START.name + "_CANCEL":textwrap.dedent("""
+        {title} ですね。
+        予約されている情報は下記になります。
+        --------------------------------------
+        ID : {id}
+        予約番号：{reservation_id}
+        予約日時：{reservation_date}
+        お名前：{name}
+        チェックイン：{check_in}
+        チェックアウト：{check_out}
+        電話番号：{phone_number}
+        ルームタイプ：{room_type}
+        ご利用者人数：{count_of_person}
+        --------------------------------------
+        間違いなければ、{title} とおっしゃってください。
     """).strip(),
     UpdateReservationStatus.UPDATE_RESERVATION_CHECKIN.name:textwrap.dedent("""
         に変更ですね。
@@ -328,6 +346,22 @@ MESSAGES = {
     """).strip(),
     UpdateReservationStatus.UPDATE_RESERVATION_EXECUTE.name + "_ERROR":textwrap.dedent("""
         申し訳ございません。ただいまご予約内容の変更がうまく反映されませんでした。恐れ入りますが、もう一度お試しいただけますでしょうか。
+    """).strip(),
+    UpdateReservationStatus.UPDATE_RESERVATION_CANCEL_CONFIRM.name:textwrap.dedent("""
+        キャンセルということでよろしいでしょうか。
+        お手数ですが、改めて「キャンセル」とおっしゃってください。
+        なお、キャンセルの取り消しは本サービス上ではできませんのでご注意ください。
+    """).strip(),
+    UpdateReservationStatus.UPDATE_RESERVATION_CANCEL_CONFIRM.name + "_ERROR":textwrap.dedent("""
+        キャンセルをとりやめたということでよろしいでしょうか。
+        変更確認画面に戻ります。
+    """).strip(),
+    UpdateReservationStatus.UPDATE_RESERVATION_CANCEL_EXECUTE.name:textwrap.dedent("""
+        ご予約内容のキャンセルが完了しました。キャンセルされた予約番号をご案内いたします。
+        初期メニュー画面に戻ります。
+    """).strip(),
+    UpdateReservationStatus.UPDATE_RESERVATION_CANCEL_EXECUTE.name + "_ERROR":textwrap.dedent("""
+        申し訳ございません。ただいまご予約内容のキャンセルがうまく反映されませんでした。恐れ入りますが、もう一度お試しいただけますでしょうか。
     """).strip(),
     ErrorReservationStatus.ERROR_RESERVATION_MENU.name:textwrap.dedent("""
         正しい用件を再度、ご記入してメッセージを送付してください。

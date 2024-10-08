@@ -472,7 +472,6 @@ def generate_response(
         )
 
     if user_status_code == UpdateReservationStatus.UPDATE_RESERVATION_CONFIRM.name:
-
         return reservation_update_handler.handle_reservation_step(
             UpdateReservationStatus.UPDATE_RESERVATION_CONFIRM,
             user_message,
@@ -486,6 +485,24 @@ def generate_response(
             UpdateReservationStatus.UPDATE_RESERVATION_EXECUTE,
             user_message,
             UpdateReservationStatus.UPDATE_RESERVATION_START,
+            user_id,
+            unique_code
+        )
+
+    if user_status_code == UpdateReservationStatus.UPDATE_RESERVATION_CANCEL_CONFIRM.name:
+        return reservation_update_handler.handle_reservation_step(
+            UpdateReservationStatus.UPDATE_RESERVATION_CANCEL_CONFIRM,
+            user_message,
+            UpdateReservationStatus.UPDATE_RESERVATION_CANCEL_EXECUTE,
+            user_id,
+            unique_code
+        )
+
+    if user_status_code == UpdateReservationStatus.UPDATE_RESERVATION_CANCEL_EXECUTE.name:
+        return reservation_update_handler.handle_reservation_step(
+            UpdateReservationStatus.UPDATE_RESERVATION_CANCEL_EXECUTE,
+            user_message,
+            ReservationStatus.RESERVATION_MENU,
             user_id,
             unique_code
         )
