@@ -60,6 +60,11 @@ def generate_response(
 
     if user_status_code == ReservationStatus.RESERVATION_MENU.name:
         USER_DEFAULT_PROMPT = MESSAGES[ReservationStatus.RESERVATION_MENU.name]
+
+
+
+
+
         user_status_code = "USER__RESERVATION_INDEX"
         return str(USER_DEFAULT_PROMPT), user_status_code
 
@@ -441,7 +446,7 @@ def handle_message(event: MessageEvent) -> None:
         user_states[user_id] = str(ReservationStatus.RESERVATION_MENU.name)
         delete_session_user(unique_code, table_name, "dynamodb")
         chatgpt_response = textwrap.dedent(f"""
-        最初のメニューに戻りました。\n{MESSAGES[ReservationStatus.RESERVATION_MENU.name]}
+        {MESSAGES[ReservationStatus.RESERVATION_MENU.name]}
         """).strip()
         reply_to_user(event.reply_token, chatgpt_response)
 

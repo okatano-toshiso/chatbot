@@ -157,7 +157,7 @@ class ReservationCheckHandler:
             or check_confirm is True
             or check_confirm == 1
         ):
-            message = "予約内容を出力します。\n"
+            message = "ご予約内容を確認いたします。\n"
             for index, reserve_data in enumerate(reserve_datas):
                 if index >= 5:
                     break
@@ -166,9 +166,9 @@ class ReservationCheckHandler:
                 ]
                 message += message_template.format(**reserve_data) + "\n"
             if len(reserve_datas) > 5:
-                message += """----------------------------------------\n予約内容を変更したいときは変更したい予約番号を入力してください。\n続きの予約を見たい場合は「もっと見る」と応答してください。"""
+                message += """----------------------------------------\n予約内容の変更をご希望の場合、変更したいご予約の予約番号を教えてください。\n続きの予約を見たい場合は「もっと見る」と応答してください。"""
             else:
-                message += """----------------------------------------\n予約内容を変更したいときは変更したい予約番号を入力してください。
+                message += """----------------------------------------\n予約内容の変更をご希望の場合、変更したいご予約の予約番号を教えてください。
                 """
             message = message.strip()
             return message, next_status.name
@@ -196,7 +196,7 @@ class ReservationCheckHandler:
                     CheckReservationStatus.CHECK_RESERVATION_GET_NUMBER.name
                 ]
                 message += message_template.format(**reserve_data) + "\n"
-            message += """----------------------------------------予約内容を変更したいときは変更したい予約番号を入力してください。"""
+            message += """----------------------------------------予約内容の変更をご希望の場合、変更したいご予約の予約番号を教えてください。"""
             message = message.strip()
             return message, next_status.name
         elif user_message != "もっと見る":

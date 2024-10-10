@@ -404,9 +404,14 @@ class ReservationHandler:
         reserve_confirm = self.get_chatgpt_response(system_content, user_message)
         print("positive?", reserve_confirm)
         if reserve_confirm == "True":
-            print("OK")
             table_datas = self.table.get_item(Key={"unique_code": unique_code})
             reserve_datas = table_datas["Item"]
+            reserve_datas['check_in'] =  datetime.strptime(reserve_datas['check_in'], "%Y-%m-%d").strftime(
+                "%Y年%m月%d日"
+            )
+            reserve_datas['check_out'] =  datetime.strptime(reserve_datas['check_out'], "%Y-%m-%d").strftime(
+                "%Y年%m月%d日"
+            )
             message_template = self.messages[
                 ReservationStatus.NEW_RESERVATION_RESERVE_CONFIRM.name
             ]
@@ -440,9 +445,11 @@ class ReservationHandler:
                 reserve_datas, user_datas
             )
             self.table.delete_item(Key={"unique_code": unique_code})
-            message = textwrap.dedent(
-                f"{reservation_message}\n{reservation_id}"
-            ).strip()
+            message_template = self.messages[ReservationStatus.NEW_RESERVATION_RESERVE_COMPLETE.name]
+            message = message_template.format(reservation_id)
+            # message = textwrap.dedent(
+            #     f"{reservation_message}\n{reservation_id}"
+            # ).strip()
             return message, next_status.name
         else:
             self.table.delete_item(Key={"unique_code": unique_code})
