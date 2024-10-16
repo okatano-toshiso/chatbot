@@ -419,6 +419,11 @@ class ReservationUpdateHandler:
 
         if is_single_digit_number(count_of_person):
             count_of_person = int(count_of_person)
+            if count_of_person > 2:
+                return self.messages[
+                    ReservationStatus.NEW_RESERVATION_COUNT_OF_PERSON.name + "_OVER"
+                ], UpdateReservationStatus.UPDATE_RESERVATION_COUNT_OF_PERSON.name
+            count_of_person = int(count_of_person)
             self.check_reserves[
                 UpdateReservationStatus.UPDATE_RESERVATION_COUNT_OF_PERSON.key
             ] = count_of_person

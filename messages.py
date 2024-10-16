@@ -35,18 +35,20 @@ MESSAGES = {
         宿泊者数をおしえていただきありがとうございます。
         続きましては、お泊りになりたいお部屋を選んでください。まずは禁煙のお部屋と喫煙のお部屋がございますが、どちらをご希望いたしますか？
     """).strip(),
-    ReservationStatus.NEW_RESERVATION_COUNT_OF_PERSON.name
-    + "_ERROR": textwrap.dedent("""
+    ReservationStatus.NEW_RESERVATION_COUNT_OF_PERSON.name + "_OVER": textwrap.dedent("""
+        申し訳ございません。ご利用者人数の上限は1部屋につき2名様までとなっております。
+    """).strip(),
+    ReservationStatus.NEW_RESERVATION_COUNT_OF_PERSON.name + "_ERROR": textwrap.dedent("""
         ご利用者人数を聞き取れませんでした。人数または夫婦で、夫婦と子供一人、両親となど一緒に行く人の続柄をおっしゃってください。
     """).strip(),
     ReservationStatus.NEW_RESERVATION_SMOKER.name: textwrap.dedent("""
         喫煙のお部屋ですね。つづいて部屋タイプを選んでください。
-        ダブルサイズのベッドを用意したシングル、ベッド幅が140cm未満のスモールシングル、ダブルサイズのベッドを用意したエコノミーダブル、キングサイズのベッドを用意したキングダブル、標準より幅が少し狭いベッドを二つご用意したエコノミーツインのご用意があります。
+        幅140～150cmのベッドを用意したシングル(S)、ダブルサイズのベッドを用意したエコノミーダブル(WA),クイーンサイズのベッドを用意したダブル(W)のご用意があります。
         ご希望の部屋タイプをお申し付けください。
     """).strip(),
     ReservationStatus.NEW_RESERVATION_NO_SMOKER.name: textwrap.dedent("""
         禁煙のお部屋ですね。つづいて部屋タイプを選んでください。
-        ダブルサイズのベッドを用意したシングル、ベッド幅が140cm未満のスモールシングル、ダブルサイズのベッドを用意したエコノミーダブル、キングサイズのベッドを用意したキングダブル、標準より幅が少し狭いベッドを二つご用意したエコノミーツイン、どなたでも便利で快適にホテルを利用していただくために開発されたのがハートフルルームのハートフルシングル、ハートフルツインのご用意がございます。
+        幅140～150cmのベッドを用意したシングル(SK)、ダブルサイズのベッドを用意したエコノミーダブル(WAK),クイーンサイズのベッドを用意したダブル(WK)のご用意があります。
         ご希望の部屋タイプをお申し付けください。
     """).strip(),
     ReservationStatus.NEW_RESERVATION_SMOKER.name + "_ERROR": textwrap.dedent("""

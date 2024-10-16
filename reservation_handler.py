@@ -45,7 +45,7 @@ class ReservationHandler:
             if latest_reserve_id is not None:
                 return int(latest_reserve_id) + 1
             else:
-                return int(1)
+                return int(9100001)
         else:
             print("Cannot get the latest reserve ID")
             return None
@@ -214,10 +214,13 @@ class ReservationHandler:
     def _handle_count_of_person(self, user_message, next_status, user_id, unique_code):
         system_content = generate_count_of_person()
         count_of_person = self.get_chatgpt_response(system_content, user_message)
-        print(count_of_person)
-
         if is_single_digit_number(count_of_person):
             count_of_person = int(count_of_person)
+            if count_of_person > 2:
+                return self.messages[
+                    ReservationStatus.NEW_RESERVATION_COUNT_OF_PERSON.name + "_OVER"
+                ], ReservationStatus.NEW_RESERVATION_COUNT_OF_PERSON.name
+
             self.reserves[ReservationStatus.NEW_RESERVATION_COUNT_OF_PERSON.key] = (
                 count_of_person
             )
@@ -235,7 +238,7 @@ class ReservationHandler:
             return message, next_status.name
         else:
             return self.messages[
-                "NEW_RESERVATION_COUNT_OF_PERSON_ERROR"
+                ReservationStatus.NEW_RESERVATION_COUNT_OF_PERSON.name + "_ERROR"
             ], ReservationStatus.NEW_RESERVATION_COUNT_OF_PERSON.name
 
     def _handle_smoker(self, user_message, next_status, user_id, unique_code):
