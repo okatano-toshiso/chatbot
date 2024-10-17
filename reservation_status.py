@@ -64,6 +64,7 @@ class UpdateReservationStatus(Enum):
         "room_type",
     )
     UPDATE_RESERVATION_NAME = ("UPDATE_RESERVATION_NAME", "new_name")
+    UPDATE_RESERVATION_NAME_KANA = ("UPDATE_RESERVATION_NAME", "new_name_kana")
     UPDATE_RESERVATION_PHONE_NUMBER = (
         "UPDATE_RESERVATION_PHONE_NUMBER",
         "new_phone_number",

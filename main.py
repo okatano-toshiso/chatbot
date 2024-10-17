@@ -60,11 +60,6 @@ def generate_response(
 
     if user_status_code == ReservationStatus.RESERVATION_MENU.name:
         USER_DEFAULT_PROMPT = MESSAGES[ReservationStatus.RESERVATION_MENU.name]
-
-
-
-
-
         user_status_code = "USER__RESERVATION_INDEX"
         return str(USER_DEFAULT_PROMPT), user_status_code
 

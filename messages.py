@@ -251,6 +251,12 @@ MESSAGES = {
         申し訳ございません。ただいまご指定のご予約のキャンセルが正常に反映されませんでした。お手数ですが、もう一度お試しいただけますでしょうか。
     """).strip(),
     ErrorReservationStatus.ERROR_RESERVATION_MENU.name: textwrap.dedent("""
-        正しい用件を再度、おっちゃってください。
+        正しい用件を再度、お申し付けください。
+    """).strip(),
+    "SEND_RESERVATION_DATA_ERROR": textwrap.dedent("""
+        予約登録に失敗いたしました。恐れ入りますが再度、予約の登録をお願いいたします。
     """).strip(),
 }
+
+
+

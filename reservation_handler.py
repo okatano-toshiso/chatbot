@@ -103,7 +103,7 @@ class ReservationHandler:
                     f"Unexpected status code: {response.status_code}, Response: {response.text}"
                 )
                 return self.messages[
-                    "NEW_RESERVATION_RESERVE_COMPLETE_ERROR"
+                    "SEND_RESERVATION_DATA_ERROR"
                 ], ReservationStatus.RESERVATION_MENU.name
 
         except requests.exceptions.HTTPError as http_err:
@@ -174,7 +174,7 @@ class ReservationHandler:
             return message, next_status.name
         else:
             return self.messages[
-                "NEW_RESERVATION_CHECKIN_ERROR"
+                ReservationStatus.NEW_RESERVATION_CHECKIN.name + "_ERROR"
             ], ReservationStatus.NEW_RESERVATION_CHECKIN.name
 
     def _handle_checkout(self, user_message, next_status, user_id, unique_code):
@@ -208,7 +208,7 @@ class ReservationHandler:
             return message, next_status.name
         else:
             return self.messages[
-                "NEW_RESERVATION_CHECKOUT_ERROR"
+                ReservationStatus.NEW_RESERVATION_CHECKOUT.name + "_ERROR"
             ], ReservationStatus.NEW_RESERVATION_CHECKOUT.name
 
     def _handle_count_of_person(self, user_message, next_status, user_id, unique_code):
@@ -259,7 +259,7 @@ class ReservationHandler:
                 return message, next_status.name
         else:
             return self.messages[
-                "NEW_RESERVATION_SMOKER_ERROR"
+                ReservationStatus.NEW_RESERVATION_NO_SMOKER.name + "_ERROR"
             ], ReservationStatus.NEW_RESERVATION_SMOKER.name
 
     def _handle_room_type_smoker(self, user_message, next_status, user_id, unique_code):
@@ -284,7 +284,7 @@ class ReservationHandler:
             return message, next_status.name
         else:
             return self.messages[
-                "NEW_RESERVATION_ROOM_TYPE_ERROR"
+                ReservationStatus.NEW_RESERVATION_ROOM_TYPE.name + "_ERROR"
             ], ReservationStatus.NEW_RESERVATION_ROOM_TYPE_SMOKER.name
 
     def _handle_room_type_no_smoker(
@@ -311,7 +311,7 @@ class ReservationHandler:
             return message, next_status.name
         else:
             return self.messages[
-                "NEW_RESERVATION_ROOM_TYPE_ERROR"
+                ReservationStatus.NEW_RESERVATION_ROOM_TYPE.name + "_ERROR"
             ], ReservationStatus.NEW_RESERVATION_ROOM_TYPE_NO_SMOKER.name
 
     def _handle_name(self, user_message, next_status, user_id, unique_code):
@@ -342,7 +342,7 @@ class ReservationHandler:
                 )
             else:
                 return self.messages[
-                    "NEW_RESERVATION_NAME_KANA_ERROR"
+                    ReservationStatus.NEW_RESERVATION_NAME.name + "_ERROR"
                 ], ReservationStatus.NEW_RESERVATION_NAME.name
             message = textwrap.dedent(
                 f"代表者氏名は {name} 、読みは{name_kana}でよろしいでしょうか。 {self.messages[ReservationStatus.NEW_RESERVATION_NAME.name]}"
@@ -350,7 +350,7 @@ class ReservationHandler:
             return message, next_status.name
         else:
             return self.messages[
-                "NEW_RESERVATION_NAME_ERROR"
+                ReservationStatus.NEW_RESERVATION_NAME.name + "_ERROR"
             ], ReservationStatus.NEW_RESERVATION_NAME.name
 
     def _handle_adult(self, user_message, next_status, user_id, unique_code):
@@ -375,7 +375,7 @@ class ReservationHandler:
         else:
             self.table.delete_item(Key={"unique_code": unique_code})
             return self.messages[
-                "NEW_RESERVATION_ADULT_ERROR"
+                ReservationStatus.NEW_RESERVATION_ADULT.name + "_ERROR"
             ], ReservationStatus.RESERVATION_MENU.name
 
     def _handle_phone_number(self, user_message, next_status, user_id, unique_code):
@@ -398,7 +398,7 @@ class ReservationHandler:
             return message, next_status.name
         else:
             return self.messages[
-                "NEW_RESERVATION_PHONE_NUMBER_ERROR"
+                ReservationStatus.NEW_RESERVATION_PHONE_NUMBER.name + "_ERROR"
             ], ReservationStatus.NEW_RESERVATION_PHONE_NUMBER.name
 
     def _handle_reserve_confirm(self, user_message, next_status, user_id, unique_code):
@@ -424,7 +424,7 @@ class ReservationHandler:
             print("NG")
             self.table.delete_item(Key={"unique_code": unique_code})
             return self.messages[
-                "NEW_RESERVATION_RESERVE_CONFIRM_ERROR"
+                ReservationStatus.NEW_RESERVATION_RESERVE_CONFIRM.name + "M_ERROR"
             ], ReservationStatus.RESERVATION_MENU.name
 
     def _handle_reserve_execute(self, user_message, next_status, user_id, unique_code):
@@ -457,7 +457,7 @@ class ReservationHandler:
         else:
             self.table.delete_item(Key={"unique_code": unique_code})
             return self.messages[
-                "NEW_RESERVATION_RESERVE_CONFIRM_ERROR"
+                ReservationStatus.NEW_RESERVATION_RESERVE_COMPLETE.name + "_ERROR"
             ], ReservationStatus.RESERVATION_MENU.name
 
     def _calculate_checkout_date(self, checkin_date, stay_length):

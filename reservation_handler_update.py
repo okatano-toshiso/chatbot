@@ -13,6 +13,7 @@ from generate import (
     generate_reserve_confirm,
     generate_room_type_smoker,
     generate_room_type_no_smoker,
+    generate_name_kana
 )
 from validation import (
     is_valid_japaneses_character,
@@ -22,6 +23,7 @@ from validation import (
     is_valid_smoker,
     is_valid_room_type_smoker,
     is_valid_room_type_no_smoker,
+    is_valid_japanese_katakana
 )
 import requests  # type: ignore
 import json
@@ -94,7 +96,7 @@ class ReservationUpdateHandler:
         line_users = {
             "line_id": datas["line_id"],
             "name": datas["name"],
-            "name_kana": datas["name_kana"],
+            "name_kana": datas["name_kana"] if datas["name_kana"] is not None else "フリガナ",
             "phone_number": datas["phone_number"],
             "created_at": current_datetime,
             "updated_at": current_datetime,
@@ -102,6 +104,9 @@ class ReservationUpdateHandler:
 
         if "new_name" in datas and datas["new_name"]:
             line_users["new_name"] = datas["new_name"]
+
+        if "new_name_kana" in datas and datas["new_name_kana"]:
+            line_users["new_name_kana"] = datas["new_name_kana"]
 
         if "new_phone_number" in datas and datas["new_phone_number"]:
             line_users["new_phone_number"] = datas["new_phone_number"]
@@ -223,8 +228,6 @@ class ReservationUpdateHandler:
         self.check_reserves = {}
         self.temp_data = {}
         self.handlers = {
-            UpdateReservationStatus.UPDATE_RESERVATION_START: self._handle_update_reservation_start,
-            UpdateReservationStatus.UPDATE_RESERVATION_START: self._handle_update_reservation_start,
             UpdateReservationStatus.UPDATE_RESERVATION_START: self._handle_update_reservation_start,
             UpdateReservationStatus.UPDATE_RESERVATION_CHECKIN: self._handle_update_reservation_checkin,
             UpdateReservationStatus.UPDATE_RESERVATION_CHECKOUT: self._handle_update_reservation_checkout,
@@ -441,7 +444,7 @@ class ReservationUpdateHandler:
             return message, next_status.name
         else:
             return self.messages[
-                UpdateReservationStatus.UPDATE_RESERVATION_COUNT_OF_PERSON + "_ERROR"
+                UpdateReservationStatus.UPDATE_RESERVATION_COUNT_OF_PERSON.name + "_ERROR"
             ], UpdateReservationStatus.UPDATE_RESERVATION_COUNT_OF_PERSON.name
 
     def _handle_update_smoker(self, user_message, next_status, user_id, unique_code):
@@ -467,7 +470,7 @@ class ReservationUpdateHandler:
         else:
             return self.messages[
                 ReservationStatus.NEW_RESERVATION_SMOKER.name + "_ERROR"
-            ], UpdateReservationStatus.UPDATE_RESERVATION_START.name
+            ], UpdateReservationStatus.UPDATE_RESERVATION_SMOKER.name
 
     def _handle_update_room_type_smoker(
         self, user_message, next_status, user_id, unique_code
@@ -538,8 +541,27 @@ class ReservationUpdateHandler:
                 },
                 ExpressionAttributeValues={":cd": name},
             )
+
+            system_content = generate_name_kana()
+            name_kana = self.get_chatgpt_response(system_content, name)
+            if is_valid_japanese_katakana(name_kana):
+                self.check_reserves[UpdateReservationStatus.UPDATE_RESERVATION_NAME_KANA.key] = (
+                    name_kana
+                )
+                self.table.update_item(
+                    Key={"unique_code": unique_code},
+                    UpdateExpression="SET #co = :cd",
+                    ExpressionAttributeNames={
+                        "#co": UpdateReservationStatus.UPDATE_RESERVATION_NAME_KANA.key
+                    },
+                    ExpressionAttributeValues={":cd": name_kana},
+                )
+            else:
+                return self.messages[
+                UpdateReservationStatus.UPDATE_RESERVATION_NAME.name + "_ERROR"
+            ], UpdateReservationStatus.UPDATE_RESERVATION_NAME.name
             message = textwrap.dedent(
-                f"変更する代表者氏名は {name} でよろしいでしょうか。 {self.messages[UpdateReservationStatus.UPDATE_RESERVATION_NAME.name]}"
+                f"変更する代表者氏名は {name} ({name_kana})でよろしいでしょうか。 {self.messages[UpdateReservationStatus.UPDATE_RESERVATION_NAME.name]}"
             ).strip()
             return message, next_status.name
         else:
@@ -601,13 +623,16 @@ class ReservationUpdateHandler:
                 message_template = self.messages[
                     UpdateReservationStatus.UPDATE_RESERVATION_CONFIRM.name
                 ]
+            reserve_datas["check_in"] = datetime.strptime(reserve_datas["check_in"], '%Y-%m-%d').strftime('%m月%d日')
+            reserve_datas["check_out"] = datetime.strptime(reserve_datas["check_out"], '%Y-%m-%d').strftime('%m月%d日')
+
             message = message_template.format(**reserve_datas)
             return message, next_status.name
         else:
-            self.table.delete_item(Key={"unique_code": unique_code})
+            # self.table.delete_item(Key={"unique_code": unique_code})
             return self.messages[
                 UpdateReservationStatus.UPDATE_RESERVATION_CONFIRM.name + "_ERROR"
-            ], ReservationStatus.RESERVATION_MENU.name
+            ], UpdateReservationStatus.UPDATE_RESERVATION_START.name
 
     def _handle_update_reservation_execute(
         self, user_message, next_status, user_id, unique_code
@@ -632,6 +657,7 @@ class ReservationUpdateHandler:
             ).strip()
 
             new_name = datas.get("new_name")
+            new_name_kana = datas.get("new_name_kana")
             new_phone_number = datas.get("new_phone_number")
 
             update_expressions = []
@@ -642,6 +668,10 @@ class ReservationUpdateHandler:
                 update_expressions.append("#n = :name")
                 expression_attribute_values[":name"] = new_name
                 expression_attribute_names["#n"] = "name"
+            if new_name_kana:
+                update_expressions.append("#k = :name_kana")
+                expression_attribute_values[":name_kana"] = new_name_kana
+                expression_attribute_names["#k"] = "name_kana"
             if new_phone_number:
                 update_expressions.append("#p = :phone")
                 expression_attribute_values[":phone"] = new_phone_number
@@ -661,6 +691,9 @@ class ReservationUpdateHandler:
             if "new_name" in datas:
                 remove_expressions.append("#new_name")
                 remove_expression_attribute_names["#new_name"] = "new_name"
+            if "new_name_kana" in datas:
+                remove_expressions.append("#new_name_kana")
+                remove_expression_attribute_names["#new_name_kana"] = "new_name_kana"
             if "new_phone_number" in datas:
                 remove_expressions.append("#new_phone")
                 remove_expression_attribute_names["#new_phone"] = "new_phone_number"
@@ -673,9 +706,10 @@ class ReservationUpdateHandler:
                 )
             return message, next_status.name
         else:
+            # self.table.delete_item(Key={"unique_code": unique_code})
             return self.messages[
-                "NEW_RESERVATION_RESERVE_CONFIRM_ERROR"
-            ], ReservationStatus.RESERVATION_MENU.name
+                UpdateReservationStatus.UPDATE_RESERVATION_CONFIRM.name + "_ERROR"
+            ], UpdateReservationStatus.UPDATE_RESERVATION_START.name
 
     def _handle_update_reservation_cancel_confirm(
         self, user_message, next_status, user_id, unique_code
@@ -696,11 +730,9 @@ class ReservationUpdateHandler:
             ]
             return message, next_status.name
         else:
-            self.table.delete_item(Key={"unique_code": unique_code})
             return self.messages[
-                UpdateReservationStatus.UPDATE_RESERVATION_CANCEL_CONFIRM.name
-                + "_ERROR"
-            ], ReservationStatus.RESERVATION_MENU.name
+                UpdateReservationStatus.UPDATE_RESERVATION_CONFIRM.name + "_ERROR"
+            ], UpdateReservationStatus.UPDATE_RESERVATION_START.name
 
     def _handle_update_reservation_cancel_execute(
         self, user_message, next_status, user_id, unique_code
@@ -729,8 +761,8 @@ class ReservationUpdateHandler:
             return message, next_status.name
         else:
             return self.messages[
-                "NEW_RESERVATION_RESERVE_CONFIRM_ERROR"
-            ], ReservationStatus.RESERVATION_MENU.name
+                UpdateReservationStatus.UPDATE_RESERVATION_CONFIRM.name + "_ERROR"
+            ], UpdateReservationStatus.UPDATE_RESERVATION_START.name
 
     def _calculate_checkout_date(self, checkin_date, stay_length):
         return (

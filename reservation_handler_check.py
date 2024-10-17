@@ -219,12 +219,12 @@ class ReservationCheckHandler:
                     return self.messages[
                         str(UpdateReservationStatus.UPDATE_RESERVATION_START.name)
                         + "_RESERVATION_ID_ERROR"
-                    ], ReservationStatus.RESERVATION_MENU.name
+                    ], CheckReservationStatus.CHECK_RESERVATION_GET_NUMBER_MORE.name
             else:
                 return self.messages[
                     str(UpdateReservationStatus.UPDATE_RESERVATION_START.name)
-                    + "_ERROR"
-                ], ReservationStatus.RESERVATION_MENU.name
+                    + "_RESERVATION_ID_ERROR"
+                ], CheckReservationStatus.CHECK_RESERVATION_GET_NUMBER_MORE.name
         else:
             return self.messages[
                 str(UpdateReservationStatus.UPDATE_RESERVATION_START.name) + "_ERROR"
