@@ -94,6 +94,7 @@ class ReservationUpdateHandler:
         line_users = {
             "line_id": datas["line_id"],
             "name": datas["name"],
+            "name_kana": datas["name_kana"],
             "phone_number": datas["phone_number"],
             "created_at": current_datetime,
             "updated_at": current_datetime,
@@ -254,7 +255,6 @@ class ReservationUpdateHandler:
     ):
         system_content = generate_update_menu()
         update_menu = self.get_chatgpt_response(system_content, user_message)
-        print("update_menu", update_menu)
         current_time = datetime.now()
         expiry_time = current_time + timedelta(minutes=5)
         expiry_timestamp = int(expiry_time.timestamp())
