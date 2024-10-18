@@ -5,7 +5,7 @@ import uuid
 import boto3
 from linebot import LineBotApi, WebhookHandler
 from linebot.exceptions import InvalidSignatureError
-from linebot.models import MessageEvent, TextMessage, TextSendMessage
+from linebot.models import MessageEvent, TextMessage, AudioMessage, TextSendMessage, AudioSendMessage
 from openai import OpenAI
 from chatgpt_api import get_chatgpt_response
 from generate import generate_index, generate_judge_reset
@@ -20,7 +20,6 @@ from reservation_status import (
 from reservation_handler import ReservationHandler, ReservationStatus  # noqa: F811
 from reservation_handler_check import ReservationCheckHandler
 from reservation_handler_update import ReservationUpdateHandler
-
 
 line_bot_api = LineBotApi(os.environ["LINE_CHANNEL_ACCESS_TOKEN"])
 handler = WebhookHandler(os.environ["LINE_CHANNEL_SECRET"])
@@ -38,6 +37,11 @@ reserve = {}
 reserves = {}
 users = {}
 unique_code = str(uuid.uuid4())
+
+polly_client = boto3.client('polly')
+s3_client = boto3.client('s3')
+bucket_name = os.environ["BUCKET_NAME"]
+s3_key = 'speech.mp3'
 
 
 def generate_response(
@@ -426,13 +430,36 @@ def delete_session_user(unique_code, table_name, db_name):
 user_states = {}
 
 
-@handler.add(MessageEvent, message=TextMessage)
+@handler.add(MessageEvent, message=(TextMessage, AudioMessage))
 def handle_message(event: MessageEvent) -> None:
     global user_states
     global USER_STATUS_CODE
     user_id = event.source.user_id
-    user_message = event.message.text
-
+    print("message_type", event.message.type)
+    if event.message.type == 'audio':
+        audio_id = event.message.id
+        audio_content = line_bot_api.get_message_content(audio_id)
+        with open('/tmp/input_audio.m4a', 'wb') as file:
+            for chunk in audio_content.iter_content():
+                file.write(chunk)
+        print(os.listdir('/tmp'))
+        client = OpenAI(
+            api_key=OPENAI_API_KEY,
+        )
+        audio_file = open("/tmp/input_audio.m4a", "rb")
+        transcription = client.audio.transcriptions.create(
+            model="whisper-1",
+            file=audio_file,
+            prompt="音声ファイルの言語は日本語になります",
+            language="ja"
+        )
+        user_message = transcription.text
+        text_message = TextSendMessage(text=user_message)
+        line_bot_api.push_message(
+            user_id, [text_message]
+        )
+    else:
+        user_message = event.message.text
     system_content = generate_judge_reset()
     judge_reset = get_chatgpt_response(
         OPENAI_API_KEY, "gpt-3.5-turbo", 0, system_content, user_message
@@ -443,19 +470,57 @@ def handle_message(event: MessageEvent) -> None:
         chatgpt_response = textwrap.dedent(f"""
         {MESSAGES[ReservationStatus.RESERVATION_MENU.name]}
         """).strip()
-        reply_to_user(event.reply_token, chatgpt_response)
-
+        # reply_to_user(event.reply_token, chatgpt_response)
+        voice_data = polly_client.synthesize_speech(
+            Text=chatgpt_response,
+            OutputFormat='mp3',
+            VoiceId='Mizuki'
+            )
+        with open('/tmp/speech.mp3', 'wb') as file:
+            file.write(voice_data['AudioStream'].read())
+        print(os.listdir('/tmp'))
+        s3_client.upload_file('/tmp/speech.mp3', bucket_name, s3_key)
+        audio_message = AudioSendMessage(
+            type = "audio",
+            original_content_url='https://' + bucket_name + '.s3.ap-northeast-1.amazonaws.com/speech.mp3',  # S3のURL
+            duration=120000
+        )
+        text_message = TextSendMessage(text=chatgpt_response)
+        line_bot_api.reply_message(
+            event.reply_token, [text_message]
+        )
+        line_bot_api.push_message(
+            user_id, [audio_message]
+        )
     history = None
-
     if user_id in user_states:
         user_status_code = str(user_states[user_id])
     else:
         user_status_code = str(USER_STATUS_CODE)
-
     chatgpt_response, user_status_code = generate_response(
         user_message, history, user_status_code, user_id
     )
-
+    print("chatgpt_response", chatgpt_response)
     user_states[user_id] = str(user_status_code)
+    voice_data = polly_client.synthesize_speech(
+        Text=chatgpt_response,
+        OutputFormat='mp3',
+        VoiceId='Mizuki'
+    )
+    with open('/tmp/speech.mp3', 'wb') as file:
+        file.write(voice_data['AudioStream'].read())
+    print(os.listdir('/tmp'))
+    s3_client.upload_file('/tmp/speech.mp3', bucket_name, s3_key)
+    audio_message = AudioSendMessage(
+        type = "audio",
+        original_content_url='https://' + bucket_name + '.s3.ap-northeast-1.amazonaws.com/speech.mp3',  # S3のURL
+        duration=120000
+    )
+    text_message = TextSendMessage(text=chatgpt_response)
+    line_bot_api.reply_message(
+        event.reply_token, [text_message]
+    )
+    line_bot_api.push_message(
+        user_id, [audio_message]
+    )
 
-    reply_to_user(event.reply_token, chatgpt_response)

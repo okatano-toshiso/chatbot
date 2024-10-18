@@ -10,7 +10,7 @@ from reservation_status import (
 
 MESSAGES = {
     ReservationStatus.RESERVATION_MENU.name: textwrap.dedent(f"""
-        ご連絡ありがとうございます。こちら〇〇ホテルAI予約応答サービスです。
+        ご連絡ありがとうございます。こちら〇〇ホテルAI予約応答サービスになります。
         {MenuItem.NEW_RESERVATION.value}、{MenuItem.CONFIRM_RESERVATION.value}、{MenuItem.MODIFY_RESERVATION.value}、{MenuItem.CANCEL_RESERVATION.value}といったご用件を受けたまっております。
         ご用件をおっしゃってください。
     """).strip(),
