@@ -74,13 +74,14 @@ def generate_response(
         bot_response = get_chatgpt_response(
             OPENAI_API_KEY, "gpt-4o", 0, system_content, user_message
         )
-        if MenuItem.NEW_RESERVATION.value in bot_response:
+        print("bot_response", bot_response)
+        if MenuItem.NEW_RESERVATION.code in bot_response:
             RESERVATION_RECEPTION_START = MESSAGES[
                 ReservationStatus.NEW_RESERVATION_START.name
             ]
             user_status_code = ReservationStatus.NEW_RESERVATION_CHECKIN.name
             return str(RESERVATION_RECEPTION_START), user_status_code
-        elif MenuItem.CONFIRM_RESERVATION.value in bot_response:
+        elif MenuItem.CONFIRM_RESERVATION.code in bot_response:
             extra_datas = {"title": "予約情報の確認"}
             message_template = (
                 f"{MESSAGES[CheckReservationStatus.CHECK_RESERVATION_START.name]}"
@@ -88,7 +89,7 @@ def generate_response(
             CHECK_RESERVATION_START = message_template.format(**extra_datas)
             user_status_code = CheckReservationStatus.CHECK_RESERVATION_NAME.name
             return str(CHECK_RESERVATION_START), user_status_code
-        elif MenuItem.MODIFY_RESERVATION.value in bot_response:
+        elif MenuItem.MODIFY_RESERVATION.code in bot_response:
             extra_datas = {"title": "予約情報の変更"}
             message_template = (
                 f"{MESSAGES[CheckReservationStatus.CHECK_RESERVATION_START.name]}"
@@ -96,7 +97,7 @@ def generate_response(
             CHECK_RESERVATION_START = message_template.format(**extra_datas)
             user_status_code = CheckReservationStatus.CHECK_RESERVATION_NAME.name
             return str(CHECK_RESERVATION_START), user_status_code
-        elif MenuItem.CANCEL_RESERVATION.value in bot_response:
+        elif MenuItem.CANCEL_RESERVATION.code in bot_response:
             extra_datas = {"title": "予約のキャンセル"}
             message_template = (
                 f"{MESSAGES[CheckReservationStatus.CHECK_RESERVATION_START.name]}"
