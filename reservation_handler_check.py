@@ -92,22 +92,17 @@ class ReservationCheckHandler:
         self, user_message, next_status, user_id, unique_code
     ):
         reservation_name = user_message
-
-        current_time = datetime.now()
-        expiry_time = current_time + timedelta(minutes=5)
-        expiry_timestamp = int(expiry_time.timestamp())
-
         if reservation_name:
             self.check_reserves[CheckReservationStatus.CHECK_RESERVATION_NAME.key] = (
                 reservation_name
             )
-            self.table.put_item(
-                Item={
-                    "unique_code": unique_code,
-                    "line_id": user_id,
-                    "ExpirationTime": expiry_timestamp,
-                    "name": reservation_name,
-                }
+            self.table.update_item(
+                Key={"unique_code": unique_code},
+                UpdateExpression="SET #co = :cd",
+                ExpressionAttributeNames={
+                    "#co": CheckReservationStatus.CHECK_RESERVATION_NAME.key
+                },
+                ExpressionAttributeValues={":cd": reservation_name},
             )
             message = f"{reservation_name}\n{self.messages[CheckReservationStatus.CHECK_RESERVATION_NAME.name]}"
             return message, next_status.name

@@ -56,6 +56,7 @@ class ReservationHandler:
             # 'token': self.access_token,
             "name": datas["name"],
             "name_kana": datas["name_kana"],
+            "display_name": datas["display_name"],
             "adult": datas["adult"],
             "phone_number": datas["phone_number"],
             "created_at": current_datetime,
@@ -150,9 +151,6 @@ class ReservationHandler:
         check_in_date = self.get_chatgpt_response(system_content, user_message)
 
         if is_valid_date(check_in_date):
-            current_time = datetime.now()
-            expiry_time = current_time + timedelta(minutes=5)
-            expiry_timestamp = int(expiry_time.timestamp())
             formatted_date = datetime.strptime(check_in_date, "%Y-%m-%d").strftime(
                 "%Y-%m-%d"
             )
@@ -162,13 +160,13 @@ class ReservationHandler:
             self.reserves[ReservationStatus.NEW_RESERVATION_CHECKIN.key] = (
                 formatted_date
             )
-            self.table.put_item(
-                Item={
-                    "unique_code": unique_code,
-                    "line_id": user_id,
-                    "ExpirationTime": expiry_timestamp,
-                    ReservationStatus.NEW_RESERVATION_CHECKIN.key: formatted_date,
-                }
+            self.table.update_item(
+                Key={"unique_code": unique_code},
+                UpdateExpression="SET #co = :cd",
+                ExpressionAttributeNames={
+                    "#co": ReservationStatus.NEW_RESERVATION_CHECKIN.key
+                },
+                ExpressionAttributeValues={":cd": formatted_date},
             )
             message = f"{ymd_format} {self.messages[ReservationStatus.NEW_RESERVATION_CHECKIN.name]}"
             return message, next_status.name
@@ -181,6 +179,8 @@ class ReservationHandler:
         system_content = generate_stay()
         stay_length = self.get_chatgpt_response(system_content, user_message)
         table_datas = self.table.get_item(Key={"unique_code": unique_code})
+        print("table_datas", table_datas)
+        print("unique_code", unique_code)
         checkin_date = table_datas["Item"]["check_in"]
 
         if checkin_date and is_single_digit_number(stay_length):
@@ -259,7 +259,7 @@ class ReservationHandler:
                 return message, next_status.name
         else:
             return self.messages[
-                ReservationStatus.NEW_RESERVATION_NO_SMOKER.name + "_ERROR"
+                ReservationStatus.NEW_RESERVATION_SMOKER.name + "_ERROR"
             ], ReservationStatus.NEW_RESERVATION_SMOKER.name
 
     def _handle_room_type_smoker(self, user_message, next_status, user_id, unique_code):

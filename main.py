@@ -20,6 +20,7 @@ from reservation_status import (
 from reservation_handler import ReservationHandler, ReservationStatus  # noqa: F811
 from reservation_handler_check import ReservationCheckHandler
 from reservation_handler_update import ReservationUpdateHandler
+from datetime import datetime, timedelta
 
 line_bot_api = LineBotApi(os.environ["LINE_CHANNEL_ACCESS_TOKEN"])
 handler = WebhookHandler(os.environ["LINE_CHANNEL_SECRET"])
@@ -49,6 +50,7 @@ def generate_response(
     history: str = None,
     user_status_code: str = None,
     user_id: str = None,
+    display_name: str = None
 ) -> str:
     db_reserves_ref = table_name
     db_check_reserves_ref = table_name
@@ -435,7 +437,26 @@ def handle_message(event: MessageEvent) -> None:
     global user_states
     global USER_STATUS_CODE
     user_id = event.source.user_id
-    print("message_type", event.message.type)
+    profile = line_bot_api.get_profile(user_id)
+    display_name = profile.display_name
+    current_time = datetime.now()
+    expiry_time = current_time + timedelta(minutes=60)
+    expiry_timestamp = int(expiry_time.timestamp())
+
+    response_datas = dynamodb.Table(table_name).get_item(
+        Key={'unique_code': unique_code}
+    )
+
+    if 'Item' not in response_datas or response_datas['Item']['unique_code'] != unique_code:
+        dynamodb.Table(table_name).put_item(
+            Item={
+                "unique_code": unique_code,
+                "line_id": user_id,
+                "ExpirationTime": expiry_timestamp,
+                "display_name": display_name
+            }
+        )
+
     if event.message.type == 'audio':
         audio_id = event.message.id
         audio_content = line_bot_api.get_message_content(audio_id)
@@ -462,7 +483,7 @@ def handle_message(event: MessageEvent) -> None:
         user_message = event.message.text
     system_content = generate_judge_reset()
     judge_reset = get_chatgpt_response(
-        OPENAI_API_KEY, "gpt-3.5-turbo", 0, system_content, user_message
+        OPENAI_API_KEY, "gpt-4o", 0, system_content, user_message
     )
     if judge_reset == "True":
         user_states[user_id] = str(ReservationStatus.RESERVATION_MENU.name)
@@ -498,7 +519,7 @@ def handle_message(event: MessageEvent) -> None:
     else:
         user_status_code = str(USER_STATUS_CODE)
     chatgpt_response, user_status_code = generate_response(
-        user_message, history, user_status_code, user_id
+        user_message, history, user_status_code, user_id, display_name
     )
     print("chatgpt_response", chatgpt_response)
     user_states[user_id] = str(user_status_code)
