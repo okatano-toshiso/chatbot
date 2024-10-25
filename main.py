@@ -496,11 +496,10 @@ def handle_message(event: MessageEvent) -> None:
             user_message = process_audio_transcription(event, line_bot_api, user_id, api_transcribe_type, audio_file_path, bucket_name=None, s3_key="_audio.m4a")
         else:
             raise ValueError(f"Unsupported API Transcribe type: {api_transcribe_type}")
-
+        text_message = TextSendMessage(text=user_message)
+        line_bot_api.push_message(user_id, [text_message])
     else:
         user_message = event.message.text
-    text_message = TextSendMessage(text=user_message)
-    line_bot_api.push_message(user_id, [text_message])
 
     system_content = generate_judge_reset()
     judge_reset_result = get_chatgpt_response(

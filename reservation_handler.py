@@ -1,4 +1,6 @@
 import os
+import re
+
 import textwrap
 from datetime import datetime, timedelta
 from reservation_status import ReservationStatus
@@ -314,12 +316,16 @@ class ReservationHandler:
             ], ReservationStatus.NEW_RESERVATION_ROOM_TYPE_NO_SMOKER.name
 
     def _handle_name(self, user_message, next_status, user_id, unique_code, message_type):
-
+        name_pattern = r'[、。0-9!-/:-@≠[-`{-~]'
+        user_message = re.sub(name_pattern, '', user_message)
         if message_type == "audio":
             system_content = generate_name_yomi()
             name = self.get_chatgpt_response(system_content, user_message)
         else:
             name = user_message
+        name = re.sub(name_pattern, '', name)
+        name = name[:20]
+        print("代表者氏名", name)
         if is_valid_japaneses_character(name):
             self.reserves[ReservationStatus.NEW_RESERVATION_NAME.key] = name
             self.table.update_item(
@@ -361,8 +367,8 @@ class ReservationHandler:
         adult = user_message
         system_content = generate_judge_adult()
         adult = self.get_chatgpt_response(system_content, user_message)
-        if adult == "True":
-            is_adult = adult == "True"
+        if adult == "ADULT":
+            is_adult = "True"
             self.reserves[ReservationStatus.NEW_RESERVATION_ADULT.key] = is_adult
             self.table.update_item(
                 Key={"unique_code": unique_code},
@@ -376,11 +382,15 @@ class ReservationHandler:
                 f"{self.messages[ReservationStatus.NEW_RESERVATION_ADULT.name]}"
             ).strip()
             return message, next_status.name
-        else:
+        if adult == "CHILD":
             self.table.delete_item(Key={"unique_code": unique_code})
             return self.messages[
-                ReservationStatus.NEW_RESERVATION_ADULT.name + "_ERROR"
+                ReservationStatus.NEW_RESERVATION_ADULT.name + "_ERROR_CHILD"
             ], ReservationStatus.RESERVATION_MENU.name
+        else:
+            return self.messages[
+                ReservationStatus.NEW_RESERVATION_ADULT.name + "_ERROR"
+            ], ReservationStatus.NEW_RESERVATION_ADULT.name
 
     def _handle_phone_number(self, user_message, next_status, user_id, unique_code, message_type):
         phone_number = user_message

@@ -75,6 +75,9 @@ MESSAGES = {
         ありがとうございます。続きまして、宿泊代表者様の、宿泊当日に連絡可能な電話番号を教えていただけますか？
     """).strip(),
     ReservationStatus.NEW_RESERVATION_ADULT.name + "_ERROR": textwrap.dedent("""
+        代表者様が未成年かどうか判断できませんでした。恐れ入りますが、未成年かどうか教えていただけますでしょうか？
+    """).strip(),
+    ReservationStatus.NEW_RESERVATION_ADULT.name + "_ERROR_CHILD": textwrap.dedent("""
         申し訳ございませんが、未成年の方はご宿泊の代表者としてのご予約をお受けできかねます。成人の方が代表者としてご予約いただくようお願い申し上げます。ご理解のほどよろしくお願いいたします。
     """).strip(),
     ReservationStatus.NEW_RESERVATION_PHONE_NUMBER.name: textwrap.dedent("""
@@ -96,7 +99,7 @@ MESSAGES = {
     """).strip(),
     ReservationStatus.NEW_RESERVATION_RESERVE_COMPLETE.name
     + "_ERROR": textwrap.dedent("""
-        申し訳ございません。システムの不具合により、予約の登録ができませんでした。お手数ですが、もう一度ご予約のお申し込みをお願いいたします。ご迷惑をおかけして大変申し訳ございませんが、何かご不明点やご質問がございましたら、どうぞお気軽にお知らせくださいませ。
+        承知いたしました。ご予約の手続きは中断させていただきました。もしまた機会がございましたら、いつでもご連絡をお待ちしております。ありがとうございました。
     """).strip(),
     CheckReservationStatus.CHECK_RESERVATION_START.name: textwrap.dedent("""
         {title}ですね。予約時にご登録いただいた代表者様のお名前をお教えください。
