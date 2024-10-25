@@ -20,13 +20,13 @@ MESSAGES = {
         チェックインする日はいつのご予定でしょうか。
     """).strip(),
     ReservationStatus.NEW_RESERVATION_CHECKIN.name: textwrap.dedent("""
-        がチェックインする日ですね。教えていただきありがとうございます。何泊ほどお泊りになる予定でしょうか？
+        がチェックインする日ですね。教えていただきありがとうございます。ご利用泊数を教えてください。
     """).strip(),
     ReservationStatus.NEW_RESERVATION_CHECKIN.name + "_ERROR": textwrap.dedent("""
         チェックインする日がうまく聞き取れませんでした。恐れ入りますが、もう一度、何月何日など具体的な日付で教えてください。
     """).strip(),
     ReservationStatus.NEW_RESERVATION_CHECKOUT.name: textwrap.dedent("""
-        宿泊日数をおしえていただきありがとうございます。一緒にお泊りをする人がいらっしゃいましたら、人数を教えてください。
+        宿泊日数をおしえていただきありがとうございます。利用者人数を教えてください。
     """).strip(),
     ReservationStatus.NEW_RESERVATION_CHECKOUT.name + "_ERROR": textwrap.dedent("""
         宿泊日数がうまく聞き取れませんでした。一泊や三日など、または数値のみでよろしいので、もう一度、教えていただいてもよろしいでしょうか？
@@ -72,20 +72,20 @@ MESSAGES = {
         申し訳ございません。お名前の読みがわかりませんでした。再度、ご入力をお願いいたします。
     """).strip(),
     ReservationStatus.NEW_RESERVATION_ADULT.name: textwrap.dedent("""
-        ありがとうございます。続きまして、宿泊代表者様のご連絡先電話番号を教えていただけますか？当日にご連絡する可能性がございますので、確認のためよろしくお願いいたします。
+        ありがとうございます。続きまして、宿泊代表者様の、宿泊当日に連絡可能な電話番号を教えていただけますか？
     """).strip(),
     ReservationStatus.NEW_RESERVATION_ADULT.name + "_ERROR": textwrap.dedent("""
         申し訳ございませんが、未成年の方はご宿泊の代表者としてのご予約をお受けできかねます。成人の方が代表者としてご予約いただくようお願い申し上げます。ご理解のほどよろしくお願いいたします。
     """).strip(),
     ReservationStatus.NEW_RESERVATION_PHONE_NUMBER.name: textwrap.dedent("""
-        当日ご連絡が可能な電話番号をお伺いしました。これでご予約に必要な情報はすべて揃いましたので、最後に予約内容の確認をさせていただいてもよろしいでしょうか？『はい』または『YES』とお答えいただければと思います。
+        当日ご連絡が可能な電話番号をお伺いしました。これでご予約に必要な情報はすべて揃いましたので、予約内容の確認をさせていただいてもよろしいでしょうか？
     """).strip(),
     ReservationStatus.NEW_RESERVATION_PHONE_NUMBER.name + "_ERROR": textwrap.dedent("""
         お伝えいただいた電話番号が有効ではないようです。恐れ入りますが、ハイフンなしの10桁または11桁の数字のみで、当日ご連絡が可能な電話番号をお教えいただけますか？
     """).strip(),
     # このタイミングで空き室検索APIを実施(return bool)。 空き室がある場合は下記メッセージを表示する。
     ReservationStatus.NEW_RESERVATION_RESERVE_CONFIRM.name: textwrap.dedent("""
-        それでは、予約内容を確認させていただきますね。代表者様のお名前は{name}様、チェックインが{check_in}、チェックアウトが{check_out}、ご宿泊人数は{count_of_person}名様、部屋タイプは{room_type}、ご連絡先は{phone_number}でお間違いないでしょうか。この内容で空室をお調べいたしますので、少々お待ちくださいませ。問題がなければ『予約』とご返事いただけますと、ご予約を進めさせていただきます。
+        それでは、予約内容を確認させていただきますね。代表者様のお名前は{name}様、チェックインが{check_in}、チェックアウトが{check_out}、ご宿泊人数は{count_of_person}名様、部屋タイプは{room_type}、ご連絡先は{phone_number}でお間違いないでしょうか。予約内容に問題がなければ、このまま予約を進めてもよろしいでしょうか。
     """).strip(),
     ReservationStatus.NEW_RESERVATION_RESERVE_CONFIRM.name
     + "_ERROR": textwrap.dedent("""

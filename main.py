@@ -8,7 +8,8 @@ from linebot.exceptions import InvalidSignatureError
 from linebot.models import MessageEvent, TextMessage, AudioMessage, TextSendMessage, AudioSendMessage
 from openai import OpenAI
 from chatgpt_api import get_chatgpt_response
-from generate import generate_index, generate_judge_reset
+from prompts.judge_start_inquiry import generate_judge_start_inquiry
+from prompts.judge_reset import generate_judge_reset
 from menu_items import MenuItem
 from messages import MESSAGES
 from reservation_status import (
@@ -21,6 +22,10 @@ from reservation_handler import ReservationHandler, ReservationStatus  # noqa: F
 from reservation_handler_check import ReservationCheckHandler
 from reservation_handler_update import ReservationUpdateHandler
 from datetime import datetime, timedelta
+from utils.line_audio_save import AudioSaver, S3Storage, TmpStorage
+from utils.line_speech_save import LineSpeechSave
+
+from utils.transcriber import TranscriberFactory
 
 line_bot_api = LineBotApi(os.environ["LINE_CHANNEL_ACCESS_TOKEN"])
 handler = WebhookHandler(os.environ["LINE_CHANNEL_SECRET"])
@@ -39,10 +44,32 @@ reserves = {}
 users = {}
 unique_code = str(uuid.uuid4())
 
+# CHATGPT_WHISPER or AWS_TRANSCRIBE
+api_transcribe_type = os.environ["API_TRANSCRIBE_TYPE"]
 polly_client = boto3.client('polly')
 s3_client = boto3.client('s3')
 bucket_name = os.environ["BUCKET_NAME"]
-s3_key = 'speech.mp3'
+
+
+def process_audio(event, line_bot_api, user_id, storage_method="tmp"):
+    audio_id = event.message.id
+    audio_content = line_bot_api.get_message_content(audio_id)
+
+    if storage_method == "s3":
+        s3_key = user_id + '_audio.m4a'
+        storage_strategy = S3Storage(bucket_name, s3_key)
+    else:
+        storage_strategy = TmpStorage()
+
+    audio_saver = AudioSaver(storage_strategy)
+    file_location = audio_saver.save_audio(audio_content, user_id)
+
+    return file_location
+
+
+def process_audio_transcription(event, line_bot_api, user_id, api_transcribe_type, audio_file_path, api_key=None, bucket_name=None, s3_key=None):
+    transcriber = TranscriberFactory.get_transcriber(api_transcribe_type, api_key, bucket_name, s3_key)
+    return transcriber.transcribe(audio_file_path, user_id)
 
 
 def generate_response(
@@ -50,7 +77,8 @@ def generate_response(
     history: str = None,
     user_status_code: str = None,
     user_id: str = None,
-    display_name: str = None
+    display_name: str = None,
+    message_type: str = None
 ) -> str:
     db_reserves_ref = table_name
     db_check_reserves_ref = table_name
@@ -70,11 +98,10 @@ def generate_response(
         return str(USER_DEFAULT_PROMPT), user_status_code
 
     if user_status_code == "USER__RESERVATION_INDEX":
-        system_content = generate_index()
+        system_content = generate_judge_start_inquiry()
         bot_response = get_chatgpt_response(
             OPENAI_API_KEY, "gpt-4o", 0, system_content, user_message
         )
-        print("bot_response", bot_response)
         if MenuItem.NEW_RESERVATION.code in bot_response:
             RESERVATION_RECEPTION_START = MESSAGES[
                 ReservationStatus.NEW_RESERVATION_START.name
@@ -185,6 +212,7 @@ def generate_response(
             ReservationStatus.NEW_RESERVATION_ADULT,
             user_id,
             unique_code,
+            message_type
         )
 
     if user_status_code == ReservationStatus.NEW_RESERVATION_ADULT.name:
@@ -443,6 +471,7 @@ def handle_message(event: MessageEvent) -> None:
     current_time = datetime.now()
     expiry_time = current_time + timedelta(minutes=60)
     expiry_timestamp = int(expiry_time.timestamp())
+    message_type = event.message.type
 
     response_datas = dynamodb.Table(table_name).get_item(
         Key={'unique_code': unique_code}
@@ -458,91 +487,72 @@ def handle_message(event: MessageEvent) -> None:
             }
         )
 
-    if event.message.type == 'audio':
-        audio_id = event.message.id
-        audio_content = line_bot_api.get_message_content(audio_id)
-        with open('/tmp/input_audio.m4a', 'wb') as file:
-            for chunk in audio_content.iter_content():
-                file.write(chunk)
-        print(os.listdir('/tmp'))
-        client = OpenAI(
-            api_key=OPENAI_API_KEY,
-        )
-        audio_file = open("/tmp/input_audio.m4a", "rb")
-        transcription = client.audio.transcriptions.create(
-            model="whisper-1",
-            file=audio_file,
-            prompt="音声ファイルの言語は日本語になります",
-            language="ja"
-        )
-        user_message = transcription.text
-        text_message = TextSendMessage(text=user_message)
-        line_bot_api.push_message(
-            user_id, [text_message]
-        )
+    if message_type == 'audio':
+        if api_transcribe_type == "CHATGPT_WHISPER":
+            audio_file_path = process_audio(event, line_bot_api, user_id, storage_method="tmp")
+            user_message = process_audio_transcription(event, line_bot_api, user_id, api_transcribe_type, audio_file_path, api_key=OPENAI_API_KEY)
+        elif api_transcribe_type == "AWS_TRANSCRIBE":
+            audio_file_path = process_audio(event, line_bot_api, user_id, storage_method="s3")
+            user_message = process_audio_transcription(event, line_bot_api, user_id, api_transcribe_type, audio_file_path, bucket_name=None, s3_key="_audio.m4a")
+        else:
+            raise ValueError(f"Unsupported API Transcribe type: {api_transcribe_type}")
+
     else:
         user_message = event.message.text
+    text_message = TextSendMessage(text=user_message)
+    line_bot_api.push_message(user_id, [text_message])
+
     system_content = generate_judge_reset()
-    judge_reset = get_chatgpt_response(
+    judge_reset_result = get_chatgpt_response(
         OPENAI_API_KEY, "gpt-4o", 0, system_content, user_message
     )
-    if judge_reset == "True":
+    if judge_reset_result== "True":
         user_states[user_id] = str(ReservationStatus.RESERVATION_MENU.name)
         delete_session_user(unique_code, table_name, "dynamodb")
         chatgpt_response = textwrap.dedent(f"""
         {MESSAGES[ReservationStatus.RESERVATION_MENU.name]}
         """).strip()
-        # reply_to_user(event.reply_token, chatgpt_response)
-        voice_data = polly_client.synthesize_speech(
-            Text=chatgpt_response,
-            OutputFormat='mp3',
-            VoiceId='Mizuki'
-            )
-        with open('/tmp/speech.mp3', 'wb') as file:
-            file.write(voice_data['AudioStream'].read())
-        print(os.listdir('/tmp'))
-        s3_client.upload_file('/tmp/speech.mp3', bucket_name, s3_key)
-        audio_message = AudioSendMessage(
-            type = "audio",
-            original_content_url='https://' + bucket_name + '.s3.ap-northeast-1.amazonaws.com/speech.mp3',  # S3のURL
-            duration=120000
-        )
+
         text_message = TextSendMessage(text=chatgpt_response)
+
         line_bot_api.reply_message(
             event.reply_token, [text_message]
         )
-        line_bot_api.push_message(
-            user_id, [audio_message]
-        )
+        env_mode = os.getenv('ENV_MODE')
+        if env_mode and env_mode != 'TEST':
+            s3_audio_url = LineSpeechSave(chatgpt_response, user_id, polly_client, s3_client, bucket_name)
+            audio_message = AudioSendMessage(
+                type="audio",
+                original_content_url=s3_audio_url,
+                duration=120000
+            )
+            line_bot_api.push_message(
+                user_id, [audio_message]
+            )
+
     history = None
     if user_id in user_states:
         user_status_code = str(user_states[user_id])
     else:
         user_status_code = str(USER_STATUS_CODE)
     chatgpt_response, user_status_code = generate_response(
-        user_message, history, user_status_code, user_id, display_name
+        user_message, history, user_status_code, user_id, display_name, message_type
     )
-    print("chatgpt_response", chatgpt_response)
     user_states[user_id] = str(user_status_code)
-    voice_data = polly_client.synthesize_speech(
-        Text=chatgpt_response,
-        OutputFormat='mp3',
-        VoiceId='Mizuki'
-    )
-    with open('/tmp/speech.mp3', 'wb') as file:
-        file.write(voice_data['AudioStream'].read())
-    print(os.listdir('/tmp'))
-    s3_client.upload_file('/tmp/speech.mp3', bucket_name, s3_key)
-    audio_message = AudioSendMessage(
-        type = "audio",
-        original_content_url='https://' + bucket_name + '.s3.ap-northeast-1.amazonaws.com/speech.mp3',  # S3のURL
-        duration=120000
-    )
+
     text_message = TextSendMessage(text=chatgpt_response)
     line_bot_api.reply_message(
         event.reply_token, [text_message]
     )
-    line_bot_api.push_message(
-        user_id, [audio_message]
-    )
+    env_mode = os.getenv('ENV_MODE')
+    if env_mode and env_mode != 'TEST':
+        s3_audio_url = LineSpeechSave(chatgpt_response, user_id, polly_client, s3_client, bucket_name)
+        audio_message = AudioSendMessage(
+            type="audio",
+            original_content_url=s3_audio_url,
+            duration=120000
+        )
+        line_bot_api.push_message(
+            user_id, [audio_message]
+        )
 

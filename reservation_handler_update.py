@@ -3,18 +3,16 @@ import textwrap
 from datetime import datetime, timedelta
 from reservation_status import ReservationStatus, UpdateReservationStatus
 from chatgpt_api import get_chatgpt_response
-from generate import (
-    generate_update_menu,
-    generate_start_date,
-    generate_stay,
-    generate_count_of_person,
-    generate_smoker,
-    generate_cancel_confirm,
-    generate_reserve_confirm,
-    generate_room_type_smoker,
-    generate_room_type_no_smoker,
-    generate_name_kana
-)
+from prompts.judge_update_inquiry import generate_judge_update_inquiry
+from prompts.checkin_date import generate_checkin_date
+from prompts.count_of_stay import generate_count_of_stay
+from prompts.count_of_person import generate_count_of_person
+from prompts.judge_smoker import generate_judge_smoker
+from prompts.confirm_cancel import generate_confirm_cancel
+from prompts.confirm_reserve import generate_confirm_reserve
+from prompts.room_type_smoker import generate_room_type_smoker
+from prompts.room_type_no_smoker import generate_room_type_no_smoker
+from prompts.name_kana import generate_name_kana
 from validation import (
     is_valid_japaneses_character,
     is_valid_phone_number,
@@ -29,6 +27,7 @@ import requests  # type: ignore
 import json
 import boto3  # type: ignore
 from decimal import Decimal
+from utils.clean_phone_number import clean_phone_number
 
 reserves = {}
 users = {}
@@ -256,7 +255,7 @@ class ReservationUpdateHandler:
     def _handle_update_reservation_start(
         self, user_message, next_status, user_id, unique_code
     ):
-        system_content = generate_update_menu()
+        system_content = generate_judge_update_inquiry()
         update_menu = self.get_chatgpt_response(system_content, user_message)
         current_time = datetime.now()
         expiry_time = current_time + timedelta(minutes=5)
@@ -347,7 +346,7 @@ class ReservationUpdateHandler:
     def _handle_update_reservation_checkin(
         self, user_message, next_status, user_id, unique_code
     ):
-        system_content = generate_start_date()
+        system_content = generate_checkin_date()
         check_in_date = self.get_chatgpt_response(system_content, user_message)
         if is_valid_date(check_in_date):
             formatted_date = datetime.strptime(check_in_date, "%Y-%m-%d").strftime(
@@ -377,7 +376,7 @@ class ReservationUpdateHandler:
     def _handle_update_reservation_checkout(
         self, user_message, next_status, user_id, unique_code
     ):
-        system_content = generate_stay()
+        system_content = generate_count_of_stay()
         stay_length = self.get_chatgpt_response(system_content, user_message)
         table_datas = self.table.get_item(Key={"unique_code": unique_code})
         checkin_date = table_datas["Item"]["check_in"]
@@ -448,7 +447,7 @@ class ReservationUpdateHandler:
             ], UpdateReservationStatus.UPDATE_RESERVATION_COUNT_OF_PERSON.name
 
     def _handle_update_smoker(self, user_message, next_status, user_id, unique_code):
-        system_content = generate_smoker()
+        system_content = generate_judge_smoker()
         smoker = self.get_chatgpt_response(system_content, user_message)
         if is_valid_smoker(smoker):
             if smoker == "喫煙":
@@ -573,6 +572,7 @@ class ReservationUpdateHandler:
         self, user_message, next_status, user_id, unique_code
     ):
         phone_number = user_message
+        phone_number = clean_phone_number(phone_number)
         if is_valid_phone_number(phone_number):
             self.check_reserves[
                 UpdateReservationStatus.UPDATE_RESERVATION_PHONE_NUMBER.key
@@ -598,7 +598,7 @@ class ReservationUpdateHandler:
         self, user_message, next_status, user_id, unique_code
     ):
         reserve_confirm = user_message
-        system_content = generate_reserve_confirm()
+        system_content = generate_confirm_reserve()
         reserve_confirm = self.get_chatgpt_response(system_content, user_message)
 
         if (
@@ -716,7 +716,7 @@ class ReservationUpdateHandler:
     ):
         print("user_message", user_message)
         cancel_confirm = user_message
-        system_content = generate_cancel_confirm()
+        system_content = generate_confirm_cancel()
         cancel_confirm = self.get_chatgpt_response(system_content, user_message)
         print("cancel_confirm", cancel_confirm)
         if (

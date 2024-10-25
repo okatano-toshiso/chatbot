@@ -7,11 +7,12 @@ from reservation_status import (
     UpdateReservationStatus,
 )
 from chatgpt_api import get_chatgpt_response
-from generate import generate_reserve_confirm
+from prompts.confirm_reserve import generate_confirm_reserve
 from validation import is_valid_phone_number
 import requests  # type: ignore
 import json
 import boto3  # type: ignore
+from utils.clean_phone_number import clean_phone_number
 
 reserves = {}
 users = {}
@@ -115,6 +116,7 @@ class ReservationCheckHandler:
         self, user_message, next_status, user_id, unique_code
     ):
         reservation_phone_number = user_message
+        reservation_phone_number = clean_phone_number(reservation_phone_number)
         if is_valid_phone_number(reservation_phone_number):
             self.check_reserves[
                 CheckReservationStatus.CHECK_RESERVATION_PHONE_NUMBER.key
@@ -138,7 +140,7 @@ class ReservationCheckHandler:
         self, user_message, next_status, user_id, unique_code
     ):
         check_confirm = user_message
-        system_content = generate_reserve_confirm()
+        system_content = generate_confirm_reserve()
         check_confirm = self.get_chatgpt_response(system_content, user_message)
         reserve_datas = self._fetch_reservation_data(unique_code, user_id)
         if reserve_datas is None or reserve_datas == [] or reserve_datas == {}:
