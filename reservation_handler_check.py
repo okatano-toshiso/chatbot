@@ -1,4 +1,5 @@
 import os
+import re
 import textwrap  # noqa: F401
 from datetime import datetime, timedelta
 from reservation_status import (
@@ -8,11 +9,16 @@ from reservation_status import (
 )
 from chatgpt_api import get_chatgpt_response
 from prompts.confirm_reserve import generate_confirm_reserve
+from prompts.name_yomi import generate_name_yomi
+from prompts.name_extractor import generate_name_extractor
+from prompts.stop_update import generate_stop_update
+
 from validation import is_valid_phone_number
 import requests  # type: ignore
 import json
 import boto3  # type: ignore
-from utils.clean_phone_number import clean_phone_number
+from utils.digit_extractor import extract_number
+
 
 reserves = {}
 users = {}
@@ -80,19 +86,28 @@ class ReservationCheckHandler:
         }
 
     def handle_reservation_step(
-        self, status, user_message, next_status, user_id=None, unique_code=None
+        self, status, user_message, next_status, user_id=None, unique_code=None, message_type=None
     ):
         if status in self.handlers:
             return self.handlers[status](
-                user_message, next_status, user_id=user_id, unique_code=unique_code
+                user_message, next_status, user_id=user_id, unique_code=unique_code, message_type=message_type
             )
         else:
             raise ValueError(f"Unsupported reservation status: {status}")
 
     def _handle_check_reservation_name(
-        self, user_message, next_status, user_id, unique_code
+        self, user_message, next_status, user_id, unique_code, message_type
     ):
-        reservation_name = user_message
+        name_pattern = r'[、。0-9!-/:-@≠[-`{-~]'
+        user_message = re.sub(name_pattern, '', user_message)
+        if message_type == "audio":
+            system_content = generate_name_yomi()
+            reservation_name = self.get_chatgpt_response(system_content, user_message)
+        else:
+            system_content = generate_name_extractor()
+            reservation_name = self.get_chatgpt_response(system_content, user_message)
+        reservation_name = reservation_name[:20]
+        print("reservation_name", reservation_name)
         if reservation_name:
             self.check_reserves[CheckReservationStatus.CHECK_RESERVATION_NAME.key] = (
                 reservation_name
@@ -113,10 +128,11 @@ class ReservationCheckHandler:
             ], CheckReservationStatus.CHECK_RESERVATION_NAME.name
 
     def _handle_check_reservation_phone_number(
-        self, user_message, next_status, user_id, unique_code
+        self, user_message, next_status, user_id, unique_code, message_type
     ):
         reservation_phone_number = user_message
-        reservation_phone_number = clean_phone_number(reservation_phone_number)
+        reservation_phone_number = extract_number(reservation_phone_number, 10, 11)
+        print("reservation_phone_number", reservation_phone_number)
         if is_valid_phone_number(reservation_phone_number):
             self.check_reserves[
                 CheckReservationStatus.CHECK_RESERVATION_PHONE_NUMBER.key
@@ -137,7 +153,7 @@ class ReservationCheckHandler:
             ], CheckReservationStatus.CHECK_RESERVATION_PHONE_NUMBER.name
 
     def _handle_check_reservation_get_number(
-        self, user_message, next_status, user_id, unique_code
+        self, user_message, next_status, user_id, unique_code, message_type
     ):
         check_confirm = user_message
         system_content = generate_confirm_reserve()
@@ -147,56 +163,48 @@ class ReservationCheckHandler:
             return self.messages[
                 CheckReservationStatus.CHECK_RESERVATION_GET_NUMBER.name + "_ERROR_API"
             ], ReservationStatus.RESERVATION_MENU.name
-
-        if (
-            check_confirm == "True"
-            or check_confirm == "はい"
-            or check_confirm is True
-            or check_confirm == 1
-        ):
+        if check_confirm in ["True", "TRUE", "1"]:
             message = "ご予約内容を確認いたします。\n"
             for index, reserve_data in enumerate(reserve_datas):
-                if index >= 5:
-                    break
+                reserve_data["reservation_id_yomi"] = str(reserve_data["reservation_id"])
+                reserve_data["reservation_id_yomi"] = ' '.join(reserve_data["reservation_id_yomi"])
                 message_template = self.messages[
                     CheckReservationStatus.CHECK_RESERVATION_GET_NUMBER.name
                 ]
                 message += message_template.format(**reserve_data) + "\n"
-            if len(reserve_datas) > 5:
-                message += """----------------------------------------\n予約内容の変更をご希望の場合、変更したいご予約の予約番号を教えてください。\n続きの予約を見たい場合は「もっと見る」と応答してください。"""
-            else:
-                message += """----------------------------------------\n予約内容の変更をご希望の場合、変更したいご予約の予約番号を教えてください。
-                """
+                message += """----------------------------------------\n予約内容の変更をご希望の場合、変更したいご予約の予約番号を教えてください。"""
             message = message.strip()
             return message, next_status.name
+        elif check_confirm in ["False", "FALSE", "0"]:
+            return self.messages[
+                str(CheckReservationStatus.CHECK_RESERVATION_GET_NUMBER.name) + "_REFUSE"
+            ], ReservationStatus.RESERVATION_MENU.name
         else:
             return self.messages[
                 str(CheckReservationStatus.CHECK_RESERVATION_GET_NUMBER.name) + "_ERROR"
-            ], ReservationStatus.RESERVATION_MENU.name
+            ], CheckReservationStatus.CHECK_RESERVATION_GET_NUMBER.name
 
     def _handle_check_reservation_get_number_more(
-        self, user_message, next_status, user_id, unique_code
+        self, user_message, next_status, user_id, unique_code, message_type
     ):
+        print("before_user_message", user_message)
         reserve_datas = self._fetch_reservation_data(unique_code, user_id)
-
         if not reserve_datas:
             return self.messages[
                 CheckReservationStatus.CHECK_RESERVATION_GET_NUMBER.name + "_ERROR_API"
             ], ReservationStatus.RESERVATION_MENU.name
-
-        if user_message == "もっと見る":
-            for index, reserve_data in enumerate(reserve_datas):
-                message = "続きの予約内容を出力します。\n"
-                if index < 5:
-                    continue
-                message_template = self.messages[
-                    CheckReservationStatus.CHECK_RESERVATION_GET_NUMBER.name
-                ]
-                message += message_template.format(**reserve_data) + "\n"
-            message += """----------------------------------------予約内容の変更をご希望の場合、変更したいご予約の予約番号を教えてください。"""
-            message = message.strip()
-            return message, next_status.name
-        elif user_message != "もっと見る":
+        system_content = generate_stop_update()
+        stop_update = self.get_chatgpt_response(system_content, user_message)
+        if stop_update == "True":
+            return self.messages[
+                str(UpdateReservationStatus.UPDATE_RESERVATION_START.name) + "_REFUSE"
+            ], ReservationStatus.RESERVATION_MENU.name
+        if user_message:
+            user_message = extract_number(user_message, 7)
+            if not user_message:
+                return self.messages[
+                    str(UpdateReservationStatus.UPDATE_RESERVATION_START.name) + "_ERROR"
+                ], CheckReservationStatus.CHECK_RESERVATION_GET_NUMBER_MORE.name
             if user_message.isdigit():
                 if any(
                     item["reservation_id"] == int(user_message)
@@ -225,9 +233,10 @@ class ReservationCheckHandler:
         else:
             return self.messages[
                 str(UpdateReservationStatus.UPDATE_RESERVATION_START.name) + "_ERROR"
-            ], ReservationStatus.RESERVATION_MENU.name
+            ], CheckReservationStatus.CHECK_RESERVATION_GET_NUMBER_MORE.name
 
     def get_chatgpt_response(self, system_content, user_message):
         return get_chatgpt_response(
             self.api_key, "gpt-4o", 0, system_content, user_message
         )
+

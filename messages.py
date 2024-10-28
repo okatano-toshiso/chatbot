@@ -126,11 +126,15 @@ MESSAGES = {
         お伝えいただいた電話番号が正しくないようです。お手数ですが、もう一度正しい電話番号を教えてください。
     """).strip(),
     CheckReservationStatus.CHECK_RESERVATION_GET_NUMBER.name: textwrap.dedent("""
-        予約日時は {reservation_date} で、予約番号は {reservation_id} のご予約です。代表者様のお名前は {name} 様、チェックインは {check_in}、チェックアウトは {check_out}、ご宿泊人数は {count_of_person} 名様、ルームタイプは {room_type}、ご連絡先の電話番号は {phone_number} でございます。
+        予約日時は {reservation_date} で、予約番号は {reservation_id_yomi} のご予約です。代表者様のお名前は {name} 様、チェックインは {check_in}、チェックアウトは {check_out}、ご宿泊人数は {count_of_person} 名様、ルームタイプは {room_type}、ご連絡先の電話番号は {phone_number} でございます。
+    """).strip(),
+    CheckReservationStatus.CHECK_RESERVATION_GET_NUMBER.name
+    + "_REFUSE": textwrap.dedent("""
+        承知いたしました。予約内容の確認は行わずに、そのままにしておきます。もし他にご希望やご質問がございましたら、いつでもお知らせください。
     """).strip(),
     CheckReservationStatus.CHECK_RESERVATION_GET_NUMBER.name
     + "_ERROR": textwrap.dedent("""
-        承知いたしました。予約内容の確認は行わずに、そのままにしておきます。もし他にご希望やご質問がございましたら、いつでもお知らせください。
+        恐れ入りますが、いただいたご回答がご予約確認とは異なるようです。予約内容の確認をさせていただいてもよろしいでしょうか？
     """).strip(),
     CheckReservationStatus.CHECK_RESERVATION_GET_NUMBER.name
     + "_ERROR_API": textwrap.dedent("""
@@ -146,6 +150,10 @@ MESSAGES = {
     """).strip(),
     UpdateReservationStatus.UPDATE_RESERVATION_START.name
     + "_ERROR": textwrap.dedent("""
+        有効な予約番号ではありませんでした。再度、予約内容を変更したいお予約番号をお知らせください。
+    """).strip(),
+    UpdateReservationStatus.UPDATE_RESERVATION_START.name
+    + "_REFUSE": textwrap.dedent("""
         かしこまりました。変更やキャンセルのご希望はないとのこと、承知いたしました。引き続き現在のご予約内容で対応させていただきますので、もし今後ご要望がございましたら、いつでもお知らせくださいませ。
     """).strip(),
     UpdateReservationStatus.UPDATE_RESERVATION_START.name

@@ -27,7 +27,7 @@ import requests  # type: ignore
 import json
 import boto3  # type: ignore
 from decimal import Decimal
-from utils.clean_phone_number import clean_phone_number
+from utils.digit_extractor import extract_number
 
 reserves = {}
 users = {}
@@ -572,7 +572,7 @@ class ReservationUpdateHandler:
         self, user_message, next_status, user_id, unique_code
     ):
         phone_number = user_message
-        phone_number = clean_phone_number(phone_number)
+        phone_number = extract_number(phone_number, 10, 11)
         if is_valid_phone_number(phone_number):
             self.check_reserves[
                 UpdateReservationStatus.UPDATE_RESERVATION_PHONE_NUMBER.key

@@ -16,6 +16,8 @@ from prompts.execute_reserve import generate_execute_reserve
 from prompts.judge_adult import generate_judge_adult
 from prompts.name_kana import generate_name_kana
 from prompts.name_yomi import generate_name_yomi
+from prompts.name_extractor import generate_name_extractor
+
 from validation import (
     is_valid_date,
     is_single_digit_number,
@@ -29,7 +31,8 @@ from validation import (
 import requests
 import boto3
 import json
-from utils.clean_phone_number import clean_phone_number
+# from utils.clean_phone_number import clean_phone_number
+from utils.digit_extractor import extract_number
 
 reserves = {}
 users = {}
@@ -322,10 +325,11 @@ class ReservationHandler:
             system_content = generate_name_yomi()
             name = self.get_chatgpt_response(system_content, user_message)
         else:
+            system_content = generate_name_extractor()
+            name = self.get_chatgpt_response(system_content, user_message)
             name = user_message
-        name = re.sub(name_pattern, '', name)
         name = name[:20]
-        print("代表者氏名", name)
+        print("name", name)
         if is_valid_japaneses_character(name):
             self.reserves[ReservationStatus.NEW_RESERVATION_NAME.key] = name
             self.table.update_item(
@@ -394,7 +398,7 @@ class ReservationHandler:
 
     def _handle_phone_number(self, user_message, next_status, user_id, unique_code, message_type):
         phone_number = user_message
-        phone_number = clean_phone_number(phone_number)
+        phone_number = extract_number(phone_number, 10, 11)
         if is_valid_phone_number(phone_number):
             self.reserves[ReservationStatus.NEW_RESERVATION_PHONE_NUMBER.key] = (
                 phone_number
