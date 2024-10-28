@@ -368,7 +368,7 @@ class ReservationHandler:
         system_content = generate_judge_adult()
         adult = self.get_chatgpt_response(system_content, user_message)
         if adult == "ADULT":
-            is_adult = "True"
+            is_adult = True
             self.reserves[ReservationStatus.NEW_RESERVATION_ADULT.key] = is_adult
             self.table.update_item(
                 Key={"unique_code": unique_code},
@@ -382,7 +382,7 @@ class ReservationHandler:
                 f"{self.messages[ReservationStatus.NEW_RESERVATION_ADULT.name]}"
             ).strip()
             return message, next_status.name
-        if adult == "CHILD":
+        elif adult == "CHILD":
             self.table.delete_item(Key={"unique_code": unique_code})
             return self.messages[
                 ReservationStatus.NEW_RESERVATION_ADULT.name + "_ERROR_CHILD"
@@ -417,10 +417,11 @@ class ReservationHandler:
             ], ReservationStatus.NEW_RESERVATION_PHONE_NUMBER.name
 
     def _handle_reserve_confirm(self, user_message, next_status, user_id, unique_code, message_type):
-        reserve_confirm = user_message
+        user_message = re.sub(r"[^\w]", "", user_message)
         system_content = generate_confirm_reserve()
         reserve_confirm = self.get_chatgpt_response(system_content, user_message)
-        if reserve_confirm == "True":
+        print(reserve_confirm)
+        if reserve_confirm in ["True", "TRUE", "1"]:
             table_datas = self.table.get_item(Key={"unique_code": unique_code})
             reserve_datas = table_datas["Item"]
             reserve_datas['check_in'] =  datetime.strptime(reserve_datas['check_in'], "%Y-%m-%d").strftime(
@@ -434,17 +435,22 @@ class ReservationHandler:
             ]
             message = message_template.format(**reserve_datas)
             return message, next_status.name
-        else:
+        elif reserve_confirm in ["False", "FALSE", "0"]:
             self.table.delete_item(Key={"unique_code": unique_code})
             return self.messages[
-                ReservationStatus.NEW_RESERVATION_RESERVE_CONFIRM.name + "_ERROR"
+                ReservationStatus.NEW_RESERVATION_RESERVE_CONFIRM.name + "_REFUSE"
             ], ReservationStatus.RESERVATION_MENU.name
+        else:
+            return self.messages[
+                ReservationStatus.NEW_RESERVATION_RESERVE_CONFIRM.name + "_ERROR"
+            ], ReservationStatus.NEW_RESERVATION_RESERVE_CONFIRM.name
 
     def _handle_reserve_execute(self, user_message, next_status, user_id, unique_code, message_type):
-        reserve_execute = user_message
+        user_message = re.sub(r"[^\w]", "", user_message)
         system_content = generate_execute_reserve()
         reserve_execute = self.get_chatgpt_response(system_content, user_message)
-        if reserve_execute == "True":
+        print("reserve_execute", reserve_execute)
+        if reserve_execute in ["True", "TRUE", "1"]:
             new_reserve_id = self.get_new_reserve_id()
             if new_reserve_id is None:
                 self.table.delete_item(Key={"unique_code": unique_code})
@@ -470,11 +476,15 @@ class ReservationHandler:
             #     f"{reservation_message}\n{reservation_id}"
             # ).strip()
             return message, next_status.name
-        else:
+        elif reserve_execute in ["False", "FALSE", "0"]:
             self.table.delete_item(Key={"unique_code": unique_code})
             return self.messages[
-                ReservationStatus.NEW_RESERVATION_RESERVE_COMPLETE.name + "_ERROR"
+                ReservationStatus.NEW_RESERVATION_RESERVE_COMPLETE.name + "_REFUSE"
             ], ReservationStatus.RESERVATION_MENU.name
+        else:
+            return self.messages[
+                ReservationStatus.NEW_RESERVATION_RESERVE_COMPLETE.name + "_ERROR"
+            ], ReservationStatus.NEW_RESERVATION_RESERVE_EXECUTE.name
 
     def _calculate_checkout_date(self, checkin_date, stay_length):
         return (

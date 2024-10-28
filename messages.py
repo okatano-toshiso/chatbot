@@ -91,15 +91,23 @@ MESSAGES = {
         それでは、予約内容を確認させていただきますね。代表者様のお名前は{name}様、チェックインが{check_in}、チェックアウトが{check_out}、ご宿泊人数は{count_of_person}名様、部屋タイプは{room_type}、ご連絡先は{phone_number}でお間違いないでしょうか。予約内容に問題がなければ、このまま予約を進めてもよろしいでしょうか。
     """).strip(),
     ReservationStatus.NEW_RESERVATION_RESERVE_CONFIRM.name
-    + "_ERROR": textwrap.dedent("""
+    + "_REFUSE": textwrap.dedent("""
         かしこまりました。ご予約の確認は不要とのこと、承知いたしました。もしご不明な点や追加のご要望がございましたら、どうぞお気軽にお知らせくださいませ。
+    """).strip(),
+    ReservationStatus.NEW_RESERVATION_RESERVE_CONFIRM.name
+    + "_ERROR": textwrap.dedent("""
+        恐れ入りますが、いただいたご回答がご予約確認とは異なるようです。予約内容の確認をさせていただいてもよろしいでしょうか？
     """).strip(),
     ReservationStatus.NEW_RESERVATION_RESERVE_COMPLETE.name: textwrap.dedent("""
         ご予約ありがとうございます。お客様のご予約が無事に完了いたしました。「 {} 」が予約番号になりますので、控えとしてメモなどにお書き留めくださいませ。今後ご不明点や変更がございましたら、いつでもお気軽にお問い合わせください。
     """).strip(),
     ReservationStatus.NEW_RESERVATION_RESERVE_COMPLETE.name
-    + "_ERROR": textwrap.dedent("""
+    + "_REFUSE": textwrap.dedent("""
         承知いたしました。ご予約の手続きは中断させていただきました。もしまた機会がございましたら、いつでもご連絡をお待ちしております。ありがとうございました。
+    """).strip(),
+    ReservationStatus.NEW_RESERVATION_RESERVE_COMPLETE.name
+    + "_ERROR": textwrap.dedent("""
+        恐れ入りますが、いただいたご回答がご予約を進めるかどうかとは異なるようです。予約をしてもよろしいでしょうか？
     """).strip(),
     CheckReservationStatus.CHECK_RESERVATION_START.name: textwrap.dedent("""
         {title}ですね。予約時にご登録いただいた代表者様のお名前をお教えください。
