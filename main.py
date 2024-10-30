@@ -7,6 +7,7 @@ from linebot import LineBotApi, WebhookHandler
 from linebot.exceptions import InvalidSignatureError
 from linebot.models import MessageEvent, TextMessage, AudioMessage, TextSendMessage, AudioSendMessage
 from openai import OpenAI
+from boto3.dynamodb.conditions import Key
 from chatgpt_api import get_chatgpt_response
 from prompts.judge_start_inquiry import generate_judge_start_inquiry
 from prompts.judge_reset import generate_judge_reset
@@ -24,7 +25,6 @@ from reservation_handler_update import ReservationUpdateHandler
 from datetime import datetime, timedelta
 from utils.line_audio_save import AudioSaver, S3Storage, TmpStorage
 from utils.line_speech_save import LineSpeechSave
-
 from utils.transcriber import TranscriberFactory
 
 line_bot_api = LineBotApi(os.environ["LINE_CHANNEL_ACCESS_TOKEN"])
@@ -39,6 +39,9 @@ access_token = os.environ["ACCESS_TOKEN"]
 dynamodb = boto3.resource("dynamodb", region_name="ap-northeast-1")
 reserves_table = dynamodb.Table("dev-commapi-dymdb-api-LineChatBot")
 table_name = "dev-commapi-dymdb-api-LineChatBot"
+history_table = dynamodb.Table("dev-commapi-dymdb-api-LineChatHistory")
+history_table_name = "dev-commapi-dymdb-api-LineChatHistory"
+
 reserve = {}
 reserves = {}
 users = {}
@@ -472,6 +475,8 @@ def handle_message(event: MessageEvent) -> None:
     current_time = datetime.now()
     expiry_time = current_time + timedelta(minutes=60)
     expiry_timestamp = int(expiry_time.timestamp())
+    history_expiry_time = current_time + timedelta(days=30)
+    history_expiry_timestamp = int(history_expiry_time.timestamp())
     message_type = event.message.type
 
     response_datas = dynamodb.Table(table_name).get_item(
@@ -544,6 +549,36 @@ def handle_message(event: MessageEvent) -> None:
     line_bot_api.reply_message(
         event.reply_token, [text_message]
     )
+
+    session_result = dynamodb.Table(history_table_name).query(
+        KeyConditionExpression=Key('line_id').eq(user_id),
+        FilterExpression=Key('session_id').eq(unique_code),
+        ProjectionExpression="message_id",
+        ScanIndexForward=False,
+        Limit=1
+)
+
+    if session_result['Items']:
+        message_id = session_result['Items'][0]['message_id'] + 1
+    else:
+        message_id = 1
+
+    current_timestamp = datetime.now().isoformat()
+    dynamodb.Table(history_table_name).put_item(
+        Item={
+            "line_id": user_id,
+            "create_time": current_timestamp,
+            "session_id": unique_code,
+            "message_id": message_id,
+            "display_name": display_name,
+            "stage": user_status_code,
+            "user_message": user_message,
+            "system_message": chatgpt_response,
+            "ExpirationTime": int(history_expiry_timestamp)
+        }
+    )
+    message_id += 1
+
     env_mode = os.getenv('ENV_MODE')
     if env_mode and env_mode != 'TEST':
         s3_audio_url = LineSpeechSave(chatgpt_response, user_id, polly_client, s3_client, bucket_name)
