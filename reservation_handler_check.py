@@ -172,7 +172,7 @@ class ReservationCheckHandler:
                     CheckReservationStatus.CHECK_RESERVATION_GET_NUMBER.name
                 ]
                 message += message_template.format(**reserve_data) + "\n"
-                message += """----------------------------------------\n予約内容の変更をご希望の場合、変更したいご予約の予約番号を教えてください。"""
+            message += """----------------------------------------\n予約内容の変更をご希望の場合、変更したいご予約の予約番号を教えてください。"""
             message = message.strip()
             return message, next_status.name
         elif check_confirm in ["False", "FALSE", "0"]:
@@ -201,6 +201,7 @@ class ReservationCheckHandler:
             ], ReservationStatus.RESERVATION_MENU.name
         if user_message:
             user_message = extract_number(user_message, 7)
+            print("after_user_message", user_message)
             if not user_message:
                 return self.messages[
                     str(UpdateReservationStatus.UPDATE_RESERVATION_START.name) + "_ERROR"

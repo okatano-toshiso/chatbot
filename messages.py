@@ -119,7 +119,7 @@ MESSAGES = {
         お伝えいただいた代表者様のお名前が登録情報と一致しないようです。お手数ですが、もう一度正しいお名前をお知らせいただけますか？
     """).strip(),
     CheckReservationStatus.CHECK_RESERVATION_PHONE_NUMBER.name: textwrap.dedent("""
-        予約時の代表者様の電話番号を確認いたしました。お伝えいただいた内容について確認をご希望の場合は、『確認したい』とお伝えください。もし確認や予約を行わない場合は、その旨をお知らせください。
+        ご予約時にいただいた電話番号が確認できました。引き続き、予約内容の確認を行ってよろしいでしょうか？
     """).strip(),
     CheckReservationStatus.CHECK_RESERVATION_PHONE_NUMBER.name
     + "_ERROR": textwrap.dedent("""
@@ -194,21 +194,21 @@ MESSAGES = {
         恐れ入りますが、ただいまお伝えいただいた日付を確認できませんでした。もう一度、具体的な日付をお知らせいただけますか？
     """).strip(),
     UpdateReservationStatus.UPDATE_RESERVATION_CHECKOUT.name: textwrap.dedent("""
-        上記の日程で変更する場合は、変更内容の確認を行いますので、『確認したい』とお伝えください。もし確認や予約の変更を行わない場合は、その旨をお知らせください。
+        上記の日程で変更する場合は、変更内容の確認を行います。よろしいでしょうか。
     """).strip(),
     UpdateReservationStatus.UPDATE_RESERVATION_CHECKOUT.name
     + "_ERROR": textwrap.dedent("""
         恐れ入りますが、お伝えいただいた宿泊日数を確認できませんでした。もう一度、具体的な日数を教えてください。
     """).strip(),
     UpdateReservationStatus.UPDATE_RESERVATION_COUNT_OF_PERSON.name: textwrap.dedent("""
-        ご利用者人数の変更を承りました。変更内容を確認したい場合は、『確認したい』とお知らせください。もし確認や予約の変更を行わない場合は、その旨をお伝えください。
+        ご利用者人数の変更を承りました。変更内容を確認いたしますか？
     """).strip(),
     UpdateReservationStatus.UPDATE_RESERVATION_COUNT_OF_PERSON.name
     + "_ERROR": textwrap.dedent("""
         恐れ入りますが、もう一度ご利用人数を教えていただけますか？
     """).strip(),
     UpdateReservationStatus.UPDATE_RESERVATION_ROOM_TYPE.name: textwrap.dedent("""
-        部屋タイプの変更を承りました。変更内容の確認をご希望でしたら、『確認したい』とお伝えください。もし確認や予約の変更を行わない場合は、その旨をお知らせください。
+        部屋タイプの変更を承りました。変更内容の確認いたしますか？
     """).strip(),
     UpdateReservationStatus.UPDATE_RESERVATION_ROOM_TYPE.name
     + "_ERROR": textwrap.dedent("""
@@ -221,7 +221,7 @@ MESSAGES = {
         恐れ入りますが、代表者様のお名前をお伺いしております。正しいお名前をもう一度おっしゃっていただけますか？
     """).strip(),
     UpdateReservationStatus.UPDATE_RESERVATION_PHONE_NUMBER.name: textwrap.dedent("""
-        当日の連絡用として登録している代表者様の電話番号の変更を承りました。変更内容の確認をご希望の場合は、『確認したい』とお伝えください。もし確認や予約の変更を行わない場合は、その旨をお知らせください。
+        当日の連絡用として登録している代表者様の電話番号の変更を承りました。変更内容の確認をいたしますか？
     """).strip(),
     UpdateReservationStatus.UPDATE_RESERVATION_PHONE_NUMBER.name
     + "_ERROR": textwrap.dedent("""
@@ -229,27 +229,35 @@ MESSAGES = {
     """).strip(),
     UpdateReservationStatus.UPDATE_RESERVATION_CONFIRM.name: textwrap.dedent("""
         それでは、予約の変更内容を確認させていただきます。お名前は {name} 様、チェックインは {check_in}、チェックアウトは {check_out}、ご連絡先は {phone_number}、部屋タイプは {room_type}、ご利用者人数は {count_of_person} 名様です。
-        この変更内容で問題がなければ、必ず『変更』とだけお知らせください。
+        この変更内容で問題ございませんでしょうか。
         """).strip(),
     UpdateReservationStatus.UPDATE_RESERVATION_CONFIRM.name
     + "_NAME_PHONE": textwrap.dedent("""
         それでは、予約の変更内容を確認させていただきます。お名前は {name} 様から{new_name}様に変更、ご連絡先は {phone_number}から{new_phone_number}に変更となります。
         チェックインは {check_in}、チェックアウトは {check_out}、部屋タイプは {room_type}、ご利用者人数は {count_of_person} 名様です。
-        この変更内容で問題がなければ、必ず『変更』とだけお知らせください。
+        この変更内容で問題ございませんでしょうか。
         """).strip(),
     UpdateReservationStatus.UPDATE_RESERVATION_CONFIRM.name
     + "_PHONE": textwrap.dedent("""
         それでは、予約の変更内容を確認させていただきます。ご連絡先は {phone_number}から{new_phone_number}に変更となります。
         お名前は {name} 様、チェックインは {check_in}、チェックアウトは {check_out}、部屋タイプは {room_type}、ご利用者人数は {count_of_person} 名様です。
-        この変更内容で問題がなければ、必ず『変更』とだけお知らせください。
+        この変更内容で問題ございませんでしょうか。
         """).strip(),
     UpdateReservationStatus.UPDATE_RESERVATION_CONFIRM.name
-    + "_ERROR": textwrap.dedent("""
+    + "_REFUSE": textwrap.dedent("""
         今回のご予約内容の変更は行わず、現状のままにしておきます。もし今後変更やキャンセルのご希望がございましたら、いつでもお気軽にお知らせくださいませ。
+    """).strip(),
+    UpdateReservationStatus.UPDATE_RESERVATION_CONFIRM.name
+    + "_ERROR": textwrap.dedent("""
+        恐れ入りますが、いただいたご回答がご予約確認とは異なるようです。予約内容の確認をさせていただいてもよろしいでしょうか？
     """).strip(),
     UpdateReservationStatus.UPDATE_RESERVATION_EXECUTE.name: textwrap.dedent("""
         ご予約内容の変更が完了いたしました。なお、予約番号に変更はございません。
         引き続き、他の変更内容や確認事項がございましたらお知らせくださいませ。特にご用件がなければ、これにて対応を終了いたします。
+    """).strip(),
+    UpdateReservationStatus.UPDATE_RESERVATION_EXECUTE.name
+    + "_AGAIN": textwrap.dedent("""
+        恐れ入りますが、いただいたご回答がご予約実行の確認とは異なるようです。予約内容の反映をさせてもよろしいでしょうか？
     """).strip(),
     UpdateReservationStatus.UPDATE_RESERVATION_EXECUTE.name
     + "_ERROR": textwrap.dedent("""
@@ -276,6 +284,3 @@ MESSAGES = {
         予約登録に失敗いたしました。恐れ入りますが再度、予約の登録をお願いいたします。
     """).strip(),
 }
-
-
-

@@ -381,6 +381,7 @@ def generate_response(
             UpdateReservationStatus.UPDATE_RESERVATION_PHONE_NUMBER,
             user_id,
             unique_code,
+            message_type
         )
 
     if user_status_code == UpdateReservationStatus.UPDATE_RESERVATION_PHONE_NUMBER.name:

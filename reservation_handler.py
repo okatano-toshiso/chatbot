@@ -327,7 +327,6 @@ class ReservationHandler:
         else:
             system_content = generate_name_extractor()
             name = self.get_chatgpt_response(system_content, user_message)
-            name = user_message
         name = name[:20]
         print("name", name)
         if is_valid_japaneses_character(name):
