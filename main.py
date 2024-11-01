@@ -18,10 +18,12 @@ from reservation_status import (
     CheckReservationStatus,
     UpdateReservationStatus,
     ErrorReservationStatus,
+    InquiryReservationStatus
 )
 from reservation_handler import ReservationHandler, ReservationStatus  # noqa: F811
 from reservation_handler_check import ReservationCheckHandler
 from reservation_handler_update import ReservationUpdateHandler
+from reservation_handler_inquiry import InquiryHandler
 from datetime import datetime, timedelta
 from utils.line_audio_save import AudioSaver, S3Storage, TmpStorage
 from utils.line_speech_save import LineSpeechSave
@@ -94,6 +96,7 @@ def generate_response(
     reservation_update_handler = ReservationUpdateHandler(
         db_update_reserves_ref, OPENAI_API_KEY, MESSAGES
     )
+    inquiry_handler = InquiryHandler(db_reserves_ref, OPENAI_API_KEY, MESSAGES)
 
     if user_status_code == ReservationStatus.RESERVATION_MENU.name:
         USER_DEFAULT_PROMPT = MESSAGES[ReservationStatus.RESERVATION_MENU.name]
@@ -135,10 +138,15 @@ def generate_response(
             CHECK_RESERVATION_START = message_template.format(**extra_datas)
             user_status_code = CheckReservationStatus.CHECK_RESERVATION_NAME.name
             return str(CHECK_RESERVATION_START), user_status_code
-        # elif MenuItem.FAQ.value in bot_response:
-        #     FAQ = "よくある質問に関してお答えいたします。"
-        #     user_status_code = "FAQ"
-        #     return str(FAQ), user_status_code
+        elif MenuItem.FAQ.code in bot_response:
+            print(InquiryReservationStatus.INQUIRY_RESERVATION_MENU.name)
+            extra_datas = {"title": "よくあるお問い合わせ"}
+            message_template = (
+                f"{MESSAGES[InquiryReservationStatus.INQUIRY_RESERVATION_MENU.name]}"
+            )
+            INQUIRY_START = message_template.format(**extra_datas)
+            user_status_code = InquiryReservationStatus.INQUIRY_RESERVATION_MENU.name
+            return str(INQUIRY_START), user_status_code
         else:
             ERROR_RESERVATION_MENU = MESSAGES[
                 ErrorReservationStatus.ERROR_RESERVATION_MENU.name
@@ -438,6 +446,17 @@ def generate_response(
             unique_code,
         )
 
+    if (
+        user_status_code
+        == InquiryReservationStatus.INQUIRY_RESERVATION_MENU.name
+    ):
+        return inquiry_handler.handle_inquiry_step(
+            InquiryReservationStatus.INQUIRY_RESERVATION_MENU,
+            user_message,
+            InquiryReservationStatus.INQUIRY_RESERVATION_MENU,
+            user_id,
+            unique_code,
+        )
 
 def reply_to_user(reply_token: str, chatgpt_response: str) -> None:
     line_bot_api.reply_message(reply_token, TextSendMessage(text=chatgpt_response))

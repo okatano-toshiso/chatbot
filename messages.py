@@ -5,13 +5,14 @@ from reservation_status import (
     ReservationStatus,
     CheckReservationStatus,
     UpdateReservationStatus,
-    ErrorReservationStatus,
+    InquiryReservationStatus,
+    ErrorReservationStatus
 )
 
 MESSAGES = {
     ReservationStatus.RESERVATION_MENU.name: textwrap.dedent(f"""
         ご連絡ありがとうございます。こちら〇〇ホテルAI予約応答サービスになります。
-        {MenuItem.NEW_RESERVATION.value}、{MenuItem.CONFIRM_RESERVATION.value}、{MenuItem.MODIFY_RESERVATION.value}、{MenuItem.CANCEL_RESERVATION.value}といったご用件を受けたまっております。
+        {MenuItem.NEW_RESERVATION.value}、{MenuItem.CONFIRM_RESERVATION.value}、{MenuItem.MODIFY_RESERVATION.value}、{MenuItem.CANCEL_RESERVATION.value}、{MenuItem.FAQ.value}といったご用件を受けたまっております。
         ご用件をおっしゃってください。
     """).strip(),
     ReservationStatus.NEW_RESERVATION_START.name: textwrap.dedent("""
@@ -276,6 +277,9 @@ MESSAGES = {
     UpdateReservationStatus.UPDATE_RESERVATION_CANCEL_EXECUTE.name
     + "_ERROR": textwrap.dedent("""
         申し訳ございません。ただいまご指定のご予約のキャンセルが正常に反映されませんでした。お手数ですが、もう一度お試しいただけますでしょうか。
+    """).strip(),
+    InquiryReservationStatus.INQUIRY_RESERVATION_MENU.name: textwrap.dedent("""
+        {title} についてのお問い合わせでよろしいでしょうか。こちらではよくある質問やホテルについてのお問い合わせを教えてください。
     """).strip(),
     ErrorReservationStatus.ERROR_RESERVATION_MENU.name: textwrap.dedent("""
         正しい用件を再度、お申し付けください。

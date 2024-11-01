@@ -1,6 +1,5 @@
 from openai import OpenAI
 
-
 def get_chatgpt_response(api_key, model, temperature, system_content, user_message):
     OPENAI_API_KEY = api_key
     client = OpenAI(
@@ -16,3 +15,4 @@ def get_chatgpt_response(api_key, model, temperature, system_content, user_messa
         ],
     )
     return response.choices[0].message.content
+
