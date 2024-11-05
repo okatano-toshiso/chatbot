@@ -20,17 +20,16 @@ def get_chatgpt_response(api_key, model, temperature, system_content, user_messa
 
 
 def get_chatgpt_response_rag(user_message,urls, model, message_template, status, data = None):
-    print(model)
     chunk_size = 400
     overlap = 50
-    if status != "guest" or data is None:
+    if data is None:
         if status == "gourmet":
             article_text = gourmet_scrape_article(urls)
         elif status == "tourism":
             article_text = tourism_scrape_article(urls)
         else:
             article_text = scrape_article(urls)
-    if status == "guest" and data is not None:
+    else:
         article_text = data
     text_chunks = chunk_text(article_text, chunk_size, overlap)
     vectors = [vectorize_text(doc) for doc in text_chunks]

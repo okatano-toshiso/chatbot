@@ -65,7 +65,6 @@ polly_client = boto3.client('polly')
 
 s3_client = boto3.client('s3')
 bucket_name = os.environ["BUCKET_NAME"]
-S3_SCIKIT_KEY = "scikit-learn-lambda.zip"
 
 def process_audio(event, line_bot_api, user_id, storage_method="tmp"):
     audio_id = event.message.id

@@ -2,6 +2,7 @@ import os
 from reservation_status import (
     TourismReservationStatus
 )
+from prompts.data_tourism import get_data_tourism
 from chatgpt_api import get_chatgpt_response
 from chatgpt_api import get_chatgpt_response_rag
 import boto3  # type: ignore
@@ -57,8 +58,8 @@ class TourismHandler:
         urls = [
             "https://www.jalan.net/kankou/sta_044314/g1_13/",
         ]
-        print(status)
-        return get_chatgpt_response_rag(user_message,urls, model, message_template, status)
+        data = get_data_tourism()
+        return get_chatgpt_response_rag(user_message,urls, model, message_template, status, data)
 
     def get_chatgpt_response(self, system_content, user_message):
         return get_chatgpt_response(

@@ -2,7 +2,7 @@ import os
 from reservation_status import (
     GourmetReservationStatus
 )
-from prompts.inn_faq import generate_inn_faq
+from prompts.data_gourmet import get_data_gourmet
 from chatgpt_api import get_chatgpt_response
 from chatgpt_api import get_chatgpt_response_rag
 import boto3  # type: ignore
@@ -58,7 +58,8 @@ class GourmetHandler:
         urls = [
             "https://tabelog.com/tokyo/A1315/A131502/R1901/rstLst/RC/?SrtT=rt&Srt=D&sort_mode=1",
         ]
-        return get_chatgpt_response_rag(user_message,urls, model, message_template, status)
+        data = get_data_gourmet()
+        return get_chatgpt_response_rag(user_message,urls, model, message_template, status, data)
 
     def get_chatgpt_response(self, system_content, user_message):
         return get_chatgpt_response(
