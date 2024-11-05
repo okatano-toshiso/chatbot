@@ -3,6 +3,8 @@ import os
 import textwrap
 import uuid
 import boto3
+import sys
+import zipfile
 from linebot import LineBotApi, WebhookHandler
 from linebot.exceptions import InvalidSignatureError
 from linebot.models import MessageEvent, TextMessage, AudioMessage, TextSendMessage, AudioSendMessage
@@ -18,12 +20,19 @@ from reservation_status import (
     CheckReservationStatus,
     UpdateReservationStatus,
     ErrorReservationStatus,
-    InquiryReservationStatus
+    InquiryReservationStatus,
+    GourmetReservationStatus,
+    TourismReservationStatus,
+    GuestReservationStatus
 )
 from reservation_handler import ReservationHandler, ReservationStatus  # noqa: F811
 from reservation_handler_check import ReservationCheckHandler
 from reservation_handler_update import ReservationUpdateHandler
 from reservation_handler_inquiry import InquiryHandler
+from reservation_handler_gourmet import GourmetHandler
+from reservation_handler_tourism import TourismHandler
+from reservation_handler_guest import GuestHandler
+
 from datetime import datetime, timedelta
 from utils.line_audio_save import AudioSaver, S3Storage, TmpStorage
 from utils.line_speech_save import LineSpeechSave
@@ -35,6 +44,7 @@ OPENAI_API_KEY = os.environ["OPENAI_API_KEY"]
 client = OpenAI(
     api_key=OPENAI_API_KEY,
 )
+
 USER_STATUS_CODE = ReservationStatus.RESERVATION_MENU.name
 USE_HISTORY = False
 access_token = os.environ["ACCESS_TOKEN"]
@@ -52,9 +62,10 @@ unique_code = str(uuid.uuid4())
 # CHATGPT_WHISPER or AWS_TRANSCRIBE
 api_transcribe_type = os.environ["API_TRANSCRIBE_TYPE"]
 polly_client = boto3.client('polly')
+
 s3_client = boto3.client('s3')
 bucket_name = os.environ["BUCKET_NAME"]
-
+S3_SCIKIT_KEY = "scikit-learn-lambda.zip"
 
 def process_audio(event, line_bot_api, user_id, storage_method="tmp"):
     audio_id = event.message.id
@@ -97,6 +108,9 @@ def generate_response(
         db_update_reserves_ref, OPENAI_API_KEY, MESSAGES
     )
     inquiry_handler = InquiryHandler(db_reserves_ref, OPENAI_API_KEY, MESSAGES)
+    gourmet_handler = GourmetHandler(db_reserves_ref, OPENAI_API_KEY, MESSAGES)
+    tourism_handler = TourismHandler(db_reserves_ref, OPENAI_API_KEY, MESSAGES)
+    guest_handler = GuestHandler(db_reserves_ref, OPENAI_API_KEY, MESSAGES)
 
     if user_status_code == ReservationStatus.RESERVATION_MENU.name:
         USER_DEFAULT_PROMPT = MESSAGES[ReservationStatus.RESERVATION_MENU.name]
@@ -108,6 +122,7 @@ def generate_response(
         bot_response = get_chatgpt_response(
             OPENAI_API_KEY, "gpt-4o", 0, system_content, user_message
         )
+        print("bot_response", bot_response)
         if MenuItem.NEW_RESERVATION.code in bot_response:
             RESERVATION_RECEPTION_START = MESSAGES[
                 ReservationStatus.NEW_RESERVATION_START.name
@@ -147,6 +162,30 @@ def generate_response(
             INQUIRY_START = message_template.format(**extra_datas)
             user_status_code = InquiryReservationStatus.INQUIRY_RESERVATION_MENU.name
             return str(INQUIRY_START), user_status_code
+        elif MenuItem.GOURMET.code in bot_response:
+            extra_datas = {"title": "レストラン情報"}
+            message_template = (
+                f"{MESSAGES[GourmetReservationStatus.GOURMET_RESERVATION_MENU.name]}"
+            )
+            GOURMET_START = message_template.format(**extra_datas)
+            user_status_code = GourmetReservationStatus.GOURMET_RESERVATION_MENU.name
+            return str(GOURMET_START), user_status_code
+        elif MenuItem.TOURISM.code in bot_response:
+            extra_datas = {"title": "観光スポット情報"}
+            message_template = (
+                f"{MESSAGES[TourismReservationStatus.TOURISM_RESERVATION_MENU.name]}"
+            )
+            TOURISM_START = message_template.format(**extra_datas)
+            user_status_code = TourismReservationStatus.TOURISM_RESERVATION_MENU.name
+            return str(TOURISM_START), user_status_code
+        elif MenuItem.GUEST.code in bot_response:
+            extra_datas = {"title": "宿泊者情報"}
+            message_template = (
+                f"{MESSAGES[GuestReservationStatus.GUEST_RESERVATION_MENU.name]}"
+            )
+            GUEST_START = message_template.format(**extra_datas)
+            user_status_code = GuestReservationStatus.GUEST_RESERVATION_MENU.name
+            return str(GUEST_START), user_status_code
         else:
             ERROR_RESERVATION_MENU = MESSAGES[
                 ErrorReservationStatus.ERROR_RESERVATION_MENU.name
@@ -457,6 +496,43 @@ def generate_response(
             user_id,
             unique_code,
         )
+
+    if (
+        user_status_code
+        == GourmetReservationStatus.GOURMET_RESERVATION_MENU.name
+    ):
+        return gourmet_handler.handle_gourmet_step(
+            GourmetReservationStatus.GOURMET_RESERVATION_MENU,
+            user_message,
+            GourmetReservationStatus.GOURMET_RESERVATION_MENU,
+            user_id,
+            unique_code,
+        )
+
+    if (
+        user_status_code
+        == TourismReservationStatus.TOURISM_RESERVATION_MENU.name
+    ):
+        return tourism_handler.handle_tourism_step(
+            TourismReservationStatus.TOURISM_RESERVATION_MENU,
+            user_message,
+            TourismReservationStatus.TOURISM_RESERVATION_MENU,
+            user_id,
+            unique_code,
+        )
+
+    if (
+        user_status_code
+        == GuestReservationStatus.GUEST_RESERVATION_MENU.name
+    ):
+        return guest_handler.handle_guest_step(
+            GuestReservationStatus.GUEST_RESERVATION_MENU,
+            user_message,
+            GuestReservationStatus.GUEST_RESERVATION_MENU,
+            user_id,
+            unique_code,
+        )
+
 
 def reply_to_user(reply_token: str, chatgpt_response: str) -> None:
     line_bot_api.reply_message(reply_token, TextSendMessage(text=chatgpt_response))
