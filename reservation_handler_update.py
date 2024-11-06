@@ -208,14 +208,14 @@ class ReservationUpdateHandler:
             if response.status_code == 200:
                 reservation_id = reserve_datas.get("reservation_id")
                 return self.messages[
-                    UpdateReservationStatus.UPDATE_RESERVATION_EXECUTE.name
+                    UpdateReservationStatus.UPDATE_RESERVATION_CANCEL_EXECUTE.name
                 ], reservation_id
             else:
                 print(
                     f"Unexpected status code: {response.status_code}, Response: {response.text}"
                 )
                 return self.messages[
-                    UpdateReservationStatus.UPDATE_RESERVATION_EXECUTE.name + "_ERROR"
+                    UpdateReservationStatus.UPDATE_RESERVATION_CANCEL_EXECUTE.name + "_ERROR"
                 ], ReservationStatus.RESERVATION_MENU.name
         except requests.exceptions.HTTPError as http_err:
             print(f"HTTP error occurred: {http_err}")
@@ -764,15 +764,32 @@ class ReservationUpdateHandler:
                 UpdateReservationStatus.UPDATE_RESERVATION_CANCEL_CONFIRM.name
             ]
             return message, next_status.name
+        elif (
+            cancel_confirm == "False"
+            or cancel_confirm == "いいえ"
+            or cancel_confirm is False
+            or cancel_confirm == 0
+        ):
+            return self.messages[
+                UpdateReservationStatus.UPDATE_RESERVATION_CANCEL_CONFIRM.name + "_ERROR"
+            ], UpdateReservationStatus.UPDATE_RESERVATION_START.name
         else:
             return self.messages[
-                UpdateReservationStatus.UPDATE_RESERVATION_CONFIRM.name + "_ERROR"
-            ], UpdateReservationStatus.UPDATE_RESERVATION_START.name
+                UpdateReservationStatus.UPDATE_RESERVATION_CANCEL_CONFIRM.name + "_ELSE"
+            ], UpdateReservationStatus.UPDATE_RESERVATION_CANCEL_CONFIRM.name
 
     def _handle_update_reservation_cancel_execute(
         self, user_message, next_status, user_id, unique_code, message_type
     ):
-        if user_message == "キャンセル":
+        system_content = generate_confirm_cancel()
+        cancel_execute = self.get_chatgpt_response(system_content, user_message)
+        if (
+            cancel_execute == "True"
+            or cancel_execute == "はい"
+            or cancel_execute is True
+            or cancel_execute == 1
+        ):
+        # if user_message == "キャンセル":
             self.table.update_item(
                 Key={"unique_code": unique_code},
                 UpdateExpression="SET #co = :cd",
@@ -793,10 +810,20 @@ class ReservationUpdateHandler:
                 f"{reservation_message}\n{reservation_id}"
             ).strip()
             return message, next_status.name
+        elif (
+            cancel_execute == "False"
+            or cancel_execute == "いいえ"
+            or cancel_execute is False
+            or cancel_execute == 0
+        ):
+            return self.messages[
+                UpdateReservationStatus.UPDATE_RESERVATION_CANCEL_CONFIRM.name + "_ERROR"
+            ], UpdateReservationStatus.UPDATE_RESERVATION_START.name
         else:
             return self.messages[
-                UpdateReservationStatus.UPDATE_RESERVATION_CONFIRM.name + "_ERROR"
-            ], UpdateReservationStatus.UPDATE_RESERVATION_START.name
+                UpdateReservationStatus.UPDATE_RESERVATION_CANCEL_CONFIRM.name + "_ELSE"
+            ], UpdateReservationStatus.UPDATE_RESERVATION_CANCEL_EXECUTE.name
+
 
     def _calculate_checkout_date(self, checkin_date, stay_length):
         return (

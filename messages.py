@@ -15,7 +15,7 @@ from reservation_status import (
 MESSAGES = {
     ReservationStatus.RESERVATION_MENU.name: textwrap.dedent(f"""
         ご連絡ありがとうございます。こちら〇〇ホテルAI予約応答サービスになります。
-        {MenuItem.NEW_RESERVATION.value}、{MenuItem.CONFIRM_RESERVATION.value}、{MenuItem.MODIFY_RESERVATION.value}、{MenuItem.CANCEL_RESERVATION.value}、{MenuItem.FAQ.value}、{MenuItem.GOURMET.value}、{MenuItem.TOURISM.value}、{MenuItem.GUEST.value}といったご用件を受けたまっております。
+        {MenuItem.NEW_RESERVATION.value}、{MenuItem.CONFIRM_RESERVATION.value}、{MenuItem.MODIFY_RESERVATION.value}(キャンセル)、{MenuItem.FAQ.value}、{MenuItem.GOURMET.value}、{MenuItem.TOURISM.value}、{MenuItem.GUEST.value}といったご用件を受けたまっております。
         ご用件をおっしゃってください。
     """).strip(),
     ReservationStatus.NEW_RESERVATION_START.name: textwrap.dedent("""
@@ -270,11 +270,15 @@ MESSAGES = {
         申し訳ございません。ただいまご予約内容の変更が正常に反映されませんでした。お手数ですが、もう一度お試しいただけますでしょうか。
     """).strip(),
     UpdateReservationStatus.UPDATE_RESERVATION_CANCEL_CONFIRM.name: textwrap.dedent("""
-        キャンセルということでお間違いないでしょうか？お手数ですが、改めて『キャンセル』とだけおっしゃってください。なお、一度キャンセルされたご予約は、本サービス上では取り消しできませんので、ご了承くださいませ。
+        キャンセルということでお間違いないでしょうか？なお、一度キャンセルされたご予約は、本サービス上では取り消しできませんので、ご了承くださいませ。
     """).strip(),
     UpdateReservationStatus.UPDATE_RESERVATION_CANCEL_CONFIRM.name
     + "_ERROR": textwrap.dedent("""
         キャンセルを取りやめるということで、承知いたしました。ご予約内容は現状のままとなりますので、引き続き何かございましたらお知らせくださいませ。
+    """).strip(),
+    UpdateReservationStatus.UPDATE_RESERVATION_CANCEL_CONFIRM.name
+    + "_ELSE": textwrap.dedent("""
+        恐れ入りますが、いただいたご回答がキャンセルの確認とは異なるようです。キャンセルをしてもよろしいでしょうか？
     """).strip(),
     UpdateReservationStatus.UPDATE_RESERVATION_CANCEL_EXECUTE.name: textwrap.dedent("""
         ご指定のご予約のキャンセルが完了いたしました。今後、何かご不明点やご要望がございましたら、いつでもお気軽にお知らせくださいませ。
