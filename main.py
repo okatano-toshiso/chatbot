@@ -3,11 +3,15 @@ import os
 import textwrap
 import uuid
 import boto3
-import sys
-import zipfile
 from linebot import LineBotApi, WebhookHandler
 from linebot.exceptions import InvalidSignatureError
-from linebot.models import MessageEvent, TextMessage, AudioMessage, TextSendMessage, AudioSendMessage
+from linebot.models import (
+    MessageEvent,
+    TextMessage,
+    AudioMessage,
+    TextSendMessage,
+    AudioSendMessage,
+)
 from openai import OpenAI
 from boto3.dynamodb.conditions import Key
 from chatgpt_api import get_chatgpt_response
@@ -23,7 +27,7 @@ from reservation_status import (
     InquiryReservationStatus,
     GourmetReservationStatus,
     TourismReservationStatus,
-    GuestReservationStatus
+    GuestReservationStatus,
 )
 from reservation_handler import ReservationHandler, ReservationStatus  # noqa: F811
 from reservation_handler_check import ReservationCheckHandler
@@ -61,17 +65,18 @@ unique_code = str(uuid.uuid4())
 
 # CHATGPT_WHISPER or AWS_TRANSCRIBE
 api_transcribe_type = os.environ["API_TRANSCRIBE_TYPE"]
-polly_client = boto3.client('polly')
+polly_client = boto3.client("polly")
 
-s3_client = boto3.client('s3')
+s3_client = boto3.client("s3")
 bucket_name = os.environ["BUCKET_NAME"]
+
 
 def process_audio(event, line_bot_api, user_id, storage_method="tmp"):
     audio_id = event.message.id
     audio_content = line_bot_api.get_message_content(audio_id)
 
     if storage_method == "s3":
-        s3_key = user_id + '_audio.m4a'
+        s3_key = user_id + "_audio.m4a"
         storage_strategy = S3Storage(bucket_name, s3_key)
     else:
         storage_strategy = TmpStorage()
@@ -82,8 +87,19 @@ def process_audio(event, line_bot_api, user_id, storage_method="tmp"):
     return file_location
 
 
-def process_audio_transcription(event, line_bot_api, user_id, api_transcribe_type, audio_file_path, api_key=None, bucket_name=None, s3_key=None):
-    transcriber = TranscriberFactory.get_transcriber(api_transcribe_type, api_key, bucket_name, s3_key)
+def process_audio_transcription(
+    event,
+    line_bot_api,
+    user_id,
+    api_transcribe_type,
+    audio_file_path,
+    api_key=None,
+    bucket_name=None,
+    s3_key=None,
+):
+    transcriber = TranscriberFactory.get_transcriber(
+        api_transcribe_type, api_key, bucket_name, s3_key
+    )
     return transcriber.transcribe(audio_file_path, user_id)
 
 
@@ -93,7 +109,7 @@ def generate_response(
     user_status_code: str = None,
     user_id: str = None,
     display_name: str = None,
-    message_type: str = None
+    message_type: str = None,
 ) -> str:
     db_reserves_ref = table_name
     db_check_reserves_ref = table_name
@@ -121,7 +137,6 @@ def generate_response(
         bot_response = get_chatgpt_response(
             OPENAI_API_KEY, "gpt-4o", 0, system_content, user_message
         )
-        print("bot_response", bot_response)
         if MenuItem.NEW_RESERVATION.code in bot_response:
             RESERVATION_RECEPTION_START = MESSAGES[
                 ReservationStatus.NEW_RESERVATION_START.name
@@ -153,7 +168,6 @@ def generate_response(
             user_status_code = CheckReservationStatus.CHECK_RESERVATION_NAME.name
             return str(CHECK_RESERVATION_START), user_status_code
         elif MenuItem.FAQ.code in bot_response:
-            print(InquiryReservationStatus.INQUIRY_RESERVATION_MENU.name)
             extra_datas = {"title": "よくあるお問い合わせ"}
             message_template = (
                 f"{MESSAGES[InquiryReservationStatus.INQUIRY_RESERVATION_MENU.name]}"
@@ -261,7 +275,7 @@ def generate_response(
             ReservationStatus.NEW_RESERVATION_ADULT,
             user_id,
             unique_code,
-            message_type
+            message_type,
         )
 
     if user_status_code == ReservationStatus.NEW_RESERVATION_ADULT.name:
@@ -430,7 +444,7 @@ def generate_response(
             UpdateReservationStatus.UPDATE_RESERVATION_PHONE_NUMBER,
             user_id,
             unique_code,
-            message_type
+            message_type,
         )
 
     if user_status_code == UpdateReservationStatus.UPDATE_RESERVATION_PHONE_NUMBER.name:
@@ -484,10 +498,7 @@ def generate_response(
             unique_code,
         )
 
-    if (
-        user_status_code
-        == InquiryReservationStatus.INQUIRY_RESERVATION_MENU.name
-    ):
+    if user_status_code == InquiryReservationStatus.INQUIRY_RESERVATION_MENU.name:
         return inquiry_handler.handle_inquiry_step(
             InquiryReservationStatus.INQUIRY_RESERVATION_MENU,
             user_message,
@@ -496,10 +507,7 @@ def generate_response(
             unique_code,
         )
 
-    if (
-        user_status_code
-        == GourmetReservationStatus.GOURMET_RESERVATION_MENU.name
-    ):
+    if user_status_code == GourmetReservationStatus.GOURMET_RESERVATION_MENU.name:
         return gourmet_handler.handle_gourmet_step(
             GourmetReservationStatus.GOURMET_RESERVATION_MENU,
             user_message,
@@ -508,10 +516,7 @@ def generate_response(
             unique_code,
         )
 
-    if (
-        user_status_code
-        == TourismReservationStatus.TOURISM_RESERVATION_MENU.name
-    ):
+    if user_status_code == TourismReservationStatus.TOURISM_RESERVATION_MENU.name:
         return tourism_handler.handle_tourism_step(
             TourismReservationStatus.TOURISM_RESERVATION_MENU,
             user_message,
@@ -520,10 +525,7 @@ def generate_response(
             unique_code,
         )
 
-    if (
-        user_status_code
-        == GuestReservationStatus.GUEST_RESERVATION_MENU.name
-    ):
+    if user_status_code == GuestReservationStatus.GUEST_RESERVATION_MENU.name:
         return guest_handler.handle_guest_step(
             GuestReservationStatus.GUEST_RESERVATION_MENU,
             user_message,
@@ -574,26 +576,48 @@ def handle_message(event: MessageEvent) -> None:
     message_type = event.message.type
 
     response_datas = dynamodb.Table(table_name).get_item(
-        Key={'unique_code': unique_code}
+        Key={"unique_code": unique_code}
     )
 
-    if 'Item' not in response_datas or response_datas['Item']['unique_code'] != unique_code:
+    if (
+        "Item" not in response_datas
+        or response_datas["Item"]["unique_code"] != unique_code
+    ):
         dynamodb.Table(table_name).put_item(
             Item={
                 "unique_code": unique_code,
                 "line_id": user_id,
                 "ExpirationTime": expiry_timestamp,
-                "display_name": display_name
+                "display_name": display_name,
             }
         )
 
-    if message_type == 'audio':
+    if message_type == "audio":
         if api_transcribe_type == "CHATGPT_WHISPER":
-            audio_file_path = process_audio(event, line_bot_api, user_id, storage_method="tmp")
-            user_message = process_audio_transcription(event, line_bot_api, user_id, api_transcribe_type, audio_file_path, api_key=OPENAI_API_KEY)
+            audio_file_path = process_audio(
+                event, line_bot_api, user_id, storage_method="tmp"
+            )
+            user_message = process_audio_transcription(
+                event,
+                line_bot_api,
+                user_id,
+                api_transcribe_type,
+                audio_file_path,
+                api_key=OPENAI_API_KEY,
+            )
         elif api_transcribe_type == "AWS_TRANSCRIBE":
-            audio_file_path = process_audio(event, line_bot_api, user_id, storage_method="s3")
-            user_message = process_audio_transcription(event, line_bot_api, user_id, api_transcribe_type, audio_file_path, bucket_name=None, s3_key="_audio.m4a")
+            audio_file_path = process_audio(
+                event, line_bot_api, user_id, storage_method="s3"
+            )
+            user_message = process_audio_transcription(
+                event,
+                line_bot_api,
+                user_id,
+                api_transcribe_type,
+                audio_file_path,
+                bucket_name=None,
+                s3_key="_audio.m4a",
+            )
         else:
             raise ValueError(f"Unsupported API Transcribe type: {api_transcribe_type}")
         text_message = TextSendMessage(text=user_message)
@@ -605,7 +629,7 @@ def handle_message(event: MessageEvent) -> None:
     judge_reset_result = get_chatgpt_response(
         OPENAI_API_KEY, "gpt-4o", 0, system_content, user_message
     )
-    if judge_reset_result== "True":
+    if judge_reset_result == "True":
         user_states[user_id] = str(ReservationStatus.RESERVATION_MENU.name)
         delete_session_user(unique_code, table_name, "dynamodb")
         chatgpt_response = textwrap.dedent(f"""
@@ -614,20 +638,16 @@ def handle_message(event: MessageEvent) -> None:
 
         text_message = TextSendMessage(text=chatgpt_response)
 
-        line_bot_api.reply_message(
-            event.reply_token, [text_message]
-        )
-        env_mode = os.getenv('ENV_MODE')
-        if env_mode and env_mode != 'TEST':
-            s3_audio_url = LineSpeechSave(chatgpt_response, user_id, polly_client, s3_client, bucket_name)
+        line_bot_api.reply_message(event.reply_token, [text_message])
+        env_mode = os.getenv("ENV_MODE")
+        if env_mode and env_mode != "TEST":
+            s3_audio_url = LineSpeechSave(
+                chatgpt_response, user_id, polly_client, s3_client, bucket_name
+            )
             audio_message = AudioSendMessage(
-                type="audio",
-                original_content_url=s3_audio_url,
-                duration=120000
+                type="audio", original_content_url=s3_audio_url, duration=120000
             )
-            line_bot_api.push_message(
-                user_id, [audio_message]
-            )
+            line_bot_api.push_message(user_id, [audio_message])
 
     history = None
     if user_id in user_states:
@@ -640,20 +660,18 @@ def handle_message(event: MessageEvent) -> None:
     user_states[user_id] = str(user_status_code)
 
     text_message = TextSendMessage(text=chatgpt_response)
-    line_bot_api.reply_message(
-        event.reply_token, [text_message]
-    )
+    line_bot_api.reply_message(event.reply_token, [text_message])
 
     session_result = dynamodb.Table(history_table_name).query(
-        KeyConditionExpression=Key('line_id').eq(user_id),
-        FilterExpression=Key('session_id').eq(unique_code),
+        KeyConditionExpression=Key("line_id").eq(user_id),
+        FilterExpression=Key("session_id").eq(unique_code),
         ProjectionExpression="message_id",
         ScanIndexForward=False,
-        Limit=1
-)
+        Limit=1,
+    )
 
-    if session_result['Items']:
-        message_id = session_result['Items'][0]['message_id'] + 1
+    if session_result["Items"]:
+        message_id = session_result["Items"][0]["message_id"] + 1
     else:
         message_id = 1
 
@@ -668,20 +686,17 @@ def handle_message(event: MessageEvent) -> None:
             "stage": user_status_code,
             "user_message": user_message,
             "system_message": chatgpt_response,
-            "ExpirationTime": int(history_expiry_timestamp)
+            "ExpirationTime": int(history_expiry_timestamp),
         }
     )
     message_id += 1
 
-    env_mode = os.getenv('ENV_MODE')
-    if env_mode and env_mode != 'TEST':
-        s3_audio_url = LineSpeechSave(chatgpt_response, user_id, polly_client, s3_client, bucket_name)
+    env_mode = os.getenv("ENV_MODE")
+    if env_mode and env_mode != "TEST":
+        s3_audio_url = LineSpeechSave(
+            chatgpt_response, user_id, polly_client, s3_client, bucket_name
+        )
         audio_message = AudioSendMessage(
-            type="audio",
-            original_content_url=s3_audio_url,
-            duration=120000
+            type="audio", original_content_url=s3_audio_url, duration=120000
         )
-        line_bot_api.push_message(
-            user_id, [audio_message]
-        )
-
+        line_bot_api.push_message(user_id, [audio_message])

@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 
+
 def generate_checkin_date():
     current_time = datetime.now()
     tomorrow = (current_time + timedelta(days=1)).strftime("%Y-%m-%d")

@@ -96,4 +96,3 @@ def generate_count_of_stay() -> int:
         応答：null  # 9泊以上の数字は無効
     """
     return stay
-

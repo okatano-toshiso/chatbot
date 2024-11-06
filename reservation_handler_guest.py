@@ -1,7 +1,5 @@
 import os
-from reservation_status import (
-    GuestReservationStatus
-)
+from reservation_status import GuestReservationStatus
 from chatgpt_api import get_chatgpt_response
 from chatgpt_api import get_chatgpt_response_rag
 import boto3  # type: ignore
@@ -13,7 +11,6 @@ users = {}
 
 
 class GuestHandler:
-
     def __init__(self, table_name, api_key, messages):
         self.dynamodb = boto3.resource("dynamodb")
         self.table = self.dynamodb.Table(table_name)
@@ -23,15 +20,25 @@ class GuestHandler:
         self.check_reserves = {}
         self.temp_data = {}
         self.handlers = {
-            GuestReservationStatus.GUEST_RESERVATION_MENU : self._handle_guest_faq
+            GuestReservationStatus.GUEST_RESERVATION_MENU: self._handle_guest_faq
         }
 
     def handle_guest_step(
-        self, status, user_message, next_status, user_id=None, unique_code=None, message_type=None
+        self,
+        status,
+        user_message,
+        next_status,
+        user_id=None,
+        unique_code=None,
+        message_type=None,
     ):
         if status in self.handlers:
             return self.handlers[status](
-                user_message, next_status, user_id=user_id, unique_code=unique_code, message_type=message_type
+                user_message,
+                next_status,
+                user_id=user_id,
+                unique_code=unique_code,
+                message_type=message_type,
             )
         else:
             raise ValueError(f"Unsupported reservation status: {status}")
@@ -45,7 +52,9 @@ class GuestHandler:
         message_template = (
             f"{MESSAGES[GuestReservationStatus.GUEST_RESERVATION_MENU.name + '_RAG']}"
         )
-        system_message = self.get_chatgpt_response_rag(user_message, model, message_template)
+        system_message = self.get_chatgpt_response_rag(
+            user_message, model, message_template
+        )
 
         if system_message:
             return system_message, next_status.name
@@ -57,9 +66,15 @@ class GuestHandler:
         status = "guest"
         urls = []
         data = get_data_guest()
-        return get_chatgpt_response_rag(user_message,urls, model, message_template, status, data)
+        return get_chatgpt_response_rag(
+            user_message, urls, model, message_template, status, data
+        )
 
     def get_chatgpt_response(self, system_content, user_message):
         return get_chatgpt_response(
-            self.api_key, "ft:gpt-3.5-turbo-0125:personal:inn-faq-v1:AOL3qfFi", 0, system_content, user_message
+            self.api_key,
+            "ft:gpt-3.5-turbo-0125:personal:inn-faq-v1:AOL3qfFi",
+            0,
+            system_content,
+            user_message,
         )

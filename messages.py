@@ -9,7 +9,7 @@ from reservation_status import (
     GourmetReservationStatus,
     TourismReservationStatus,
     GuestReservationStatus,
-    ErrorReservationStatus
+    ErrorReservationStatus,
 )
 
 MESSAGES = {
@@ -39,10 +39,12 @@ MESSAGES = {
         宿泊者数をおしえていただきありがとうございます。
         続きましては、お泊りになりたいお部屋を選んでください。まずは禁煙のお部屋と喫煙のお部屋がございますが、どちらをご希望いたしますか？
     """).strip(),
-    ReservationStatus.NEW_RESERVATION_COUNT_OF_PERSON.name + "_OVER": textwrap.dedent("""
+    ReservationStatus.NEW_RESERVATION_COUNT_OF_PERSON.name
+    + "_OVER": textwrap.dedent("""
         申し訳ございません。ご利用者人数の上限は1部屋につき2名様までとなっております。
     """).strip(),
-    ReservationStatus.NEW_RESERVATION_COUNT_OF_PERSON.name + "_ERROR": textwrap.dedent("""
+    ReservationStatus.NEW_RESERVATION_COUNT_OF_PERSON.name
+    + "_ERROR": textwrap.dedent("""
         ご利用者人数を聞き取れませんでした。人数または夫婦で、夫婦と子供一人、両親となど一緒に行く人の続柄をおっしゃってください。
     """).strip(),
     ReservationStatus.NEW_RESERVATION_SMOKER.name: textwrap.dedent("""
@@ -383,8 +385,6 @@ MESSAGES = {
         - ユーザーが「Wi-Fiのパスワードを教えてください」と質問し、宿泊者情報に無関係な場合:
             - 「申し訳ございません。該当する宿泊者情報を見つけることができませんでした。」
     """).strip(),
-
-
     ErrorReservationStatus.ERROR_RESERVATION_MENU.name: textwrap.dedent("""
         正しい用件を再度、お申し付けください。
     """).strip(),

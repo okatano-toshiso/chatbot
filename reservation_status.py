@@ -79,14 +79,18 @@ class UpdateReservationStatus(Enum):
     def key(self):
         return self.value[1]
 
+
 class InquiryReservationStatus(Enum):
     INQUIRY_RESERVATION_MENU = ("INQUIRY_RESERVATION_MENU", None)
+
 
 class GourmetReservationStatus(Enum):
     GOURMET_RESERVATION_MENU = ("GOURMET_RESERVATION_MENU", None)
 
+
 class TourismReservationStatus(Enum):
     TOURISM_RESERVATION_MENU = ("TOURISM_RESERVATION_MENU", None)
+
 
 class GuestReservationStatus(Enum):
     GUEST_RESERVATION_MENU = ("GUEST_RESERVATION_MENU", None)

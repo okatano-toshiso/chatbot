@@ -31,6 +31,7 @@ from validation import (
 import requests
 import boto3
 import json
+
 # from utils.clean_phone_number import clean_phone_number
 from utils.digit_extractor import extract_number
 
@@ -143,16 +144,28 @@ class ReservationHandler:
         }
 
     def handle_reservation_step(
-        self, status, user_message, next_status, user_id=None, unique_code=None, message_type=None
+        self,
+        status,
+        user_message,
+        next_status,
+        user_id=None,
+        unique_code=None,
+        message_type=None,
     ):
         if status in self.handlers:
             return self.handlers[status](
-                user_message, next_status, user_id=user_id, unique_code=unique_code, message_type=message_type
+                user_message,
+                next_status,
+                user_id=user_id,
+                unique_code=unique_code,
+                message_type=message_type,
             )
         else:
             raise ValueError(f"Unsupported reservation status: {status}")
 
-    def _handle_checkin(self, user_message, next_status, user_id, unique_code, message_type):
+    def _handle_checkin(
+        self, user_message, next_status, user_id, unique_code, message_type
+    ):
         system_content = generate_checkin_date()
         check_in_date = self.get_chatgpt_response(system_content, user_message)
 
@@ -181,12 +194,12 @@ class ReservationHandler:
                 ReservationStatus.NEW_RESERVATION_CHECKIN.name + "_ERROR"
             ], ReservationStatus.NEW_RESERVATION_CHECKIN.name
 
-    def _handle_checkout(self, user_message, next_status, user_id, unique_code, message_type):
+    def _handle_checkout(
+        self, user_message, next_status, user_id, unique_code, message_type
+    ):
         system_content = generate_count_of_stay()
         stay_length = self.get_chatgpt_response(system_content, user_message)
         table_datas = self.table.get_item(Key={"unique_code": unique_code})
-        print("table_datas", table_datas)
-        print("unique_code", unique_code)
         checkin_date = table_datas["Item"]["check_in"]
 
         if checkin_date and is_single_digit_number(stay_length):
@@ -217,7 +230,9 @@ class ReservationHandler:
                 ReservationStatus.NEW_RESERVATION_CHECKOUT.name + "_ERROR"
             ], ReservationStatus.NEW_RESERVATION_CHECKOUT.name
 
-    def _handle_count_of_person(self, user_message, next_status, user_id, unique_code, message_type):
+    def _handle_count_of_person(
+        self, user_message, next_status, user_id, unique_code, message_type
+    ):
         system_content = generate_count_of_person()
         count_of_person = self.get_chatgpt_response(system_content, user_message)
         if is_single_digit_number(count_of_person):
@@ -247,7 +262,9 @@ class ReservationHandler:
                 ReservationStatus.NEW_RESERVATION_COUNT_OF_PERSON.name + "_ERROR"
             ], ReservationStatus.NEW_RESERVATION_COUNT_OF_PERSON.name
 
-    def _handle_smoker(self, user_message, next_status, user_id, unique_code, message_type):
+    def _handle_smoker(
+        self, user_message, next_status, user_id, unique_code, message_type
+    ):
         system_content = generate_judge_smoker()
         smoker = self.get_chatgpt_response(system_content, user_message)
         if is_valid_smoker(smoker):
@@ -268,7 +285,9 @@ class ReservationHandler:
                 ReservationStatus.NEW_RESERVATION_SMOKER.name + "_ERROR"
             ], ReservationStatus.NEW_RESERVATION_SMOKER.name
 
-    def _handle_room_type_smoker(self, user_message, next_status, user_id, unique_code, message_type):
+    def _handle_room_type_smoker(
+        self, user_message, next_status, user_id, unique_code, message_type
+    ):
         system_content = generate_room_type_smoker()
         room_type_smoker = self.get_chatgpt_response(system_content, user_message)
 
@@ -293,7 +312,9 @@ class ReservationHandler:
                 ReservationStatus.NEW_RESERVATION_ROOM_TYPE.name + "_ERROR"
             ], ReservationStatus.NEW_RESERVATION_ROOM_TYPE_SMOKER.name
 
-    def _handle_room_type_no_smoker(self, user_message, next_status, user_id, unique_code, message_type):
+    def _handle_room_type_no_smoker(
+        self, user_message, next_status, user_id, unique_code, message_type
+    ):
         system_content = generate_room_type_no_smoker()
         room_type_no_smoker = self.get_chatgpt_response(system_content, user_message)
 
@@ -318,9 +339,11 @@ class ReservationHandler:
                 ReservationStatus.NEW_RESERVATION_ROOM_TYPE.name + "_ERROR"
             ], ReservationStatus.NEW_RESERVATION_ROOM_TYPE_NO_SMOKER.name
 
-    def _handle_name(self, user_message, next_status, user_id, unique_code, message_type):
-        name_pattern = r'[、。0-9!-/:-@≠[-`{-~]'
-        user_message = re.sub(name_pattern, '', user_message)
+    def _handle_name(
+        self, user_message, next_status, user_id, unique_code, message_type
+    ):
+        name_pattern = r"[、。0-9!-/:-@≠[-`{-~]"
+        user_message = re.sub(name_pattern, "", user_message)
         if message_type == "audio":
             system_content = generate_name_yomi()
             name = self.get_chatgpt_response(system_content, user_message)
@@ -328,7 +351,6 @@ class ReservationHandler:
             system_content = generate_name_extractor()
             name = self.get_chatgpt_response(system_content, user_message)
         name = name[:20]
-        print("name", name)
         if is_valid_japaneses_character(name):
             self.reserves[ReservationStatus.NEW_RESERVATION_NAME.key] = name
             self.table.update_item(
@@ -366,7 +388,9 @@ class ReservationHandler:
                 ReservationStatus.NEW_RESERVATION_NAME.name + "_ERROR"
             ], ReservationStatus.NEW_RESERVATION_NAME.name
 
-    def _handle_adult(self, user_message, next_status, user_id, unique_code, message_type):
+    def _handle_adult(
+        self, user_message, next_status, user_id, unique_code, message_type
+    ):
         adult = user_message
         system_content = generate_judge_adult()
         adult = self.get_chatgpt_response(system_content, user_message)
@@ -395,7 +419,9 @@ class ReservationHandler:
                 ReservationStatus.NEW_RESERVATION_ADULT.name + "_ERROR"
             ], ReservationStatus.NEW_RESERVATION_ADULT.name
 
-    def _handle_phone_number(self, user_message, next_status, user_id, unique_code, message_type):
+    def _handle_phone_number(
+        self, user_message, next_status, user_id, unique_code, message_type
+    ):
         phone_number = user_message
         phone_number = extract_number(phone_number, 10, 11)
         if is_valid_phone_number(phone_number):
@@ -419,20 +445,21 @@ class ReservationHandler:
                 ReservationStatus.NEW_RESERVATION_PHONE_NUMBER.name + "_ERROR"
             ], ReservationStatus.NEW_RESERVATION_PHONE_NUMBER.name
 
-    def _handle_reserve_confirm(self, user_message, next_status, user_id, unique_code, message_type):
+    def _handle_reserve_confirm(
+        self, user_message, next_status, user_id, unique_code, message_type
+    ):
         user_message = re.sub(r"[^\w]", "", user_message)
         system_content = generate_confirm_reserve()
         reserve_confirm = self.get_chatgpt_response(system_content, user_message)
-        print(reserve_confirm)
         if reserve_confirm in ["True", "TRUE", "1"]:
             table_datas = self.table.get_item(Key={"unique_code": unique_code})
             reserve_datas = table_datas["Item"]
-            reserve_datas['check_in'] =  datetime.strptime(reserve_datas['check_in'], "%Y-%m-%d").strftime(
-                "%Y年%m月%d日"
-            )
-            reserve_datas['check_out'] =  datetime.strptime(reserve_datas['check_out'], "%Y-%m-%d").strftime(
-                "%Y年%m月%d日"
-            )
+            reserve_datas["check_in"] = datetime.strptime(
+                reserve_datas["check_in"], "%Y-%m-%d"
+            ).strftime("%Y年%m月%d日")
+            reserve_datas["check_out"] = datetime.strptime(
+                reserve_datas["check_out"], "%Y-%m-%d"
+            ).strftime("%Y年%m月%d日")
             message_template = self.messages[
                 ReservationStatus.NEW_RESERVATION_RESERVE_CONFIRM.name
             ]
@@ -448,11 +475,12 @@ class ReservationHandler:
                 ReservationStatus.NEW_RESERVATION_RESERVE_CONFIRM.name + "_ERROR"
             ], ReservationStatus.NEW_RESERVATION_RESERVE_CONFIRM.name
 
-    def _handle_reserve_execute(self, user_message, next_status, user_id, unique_code, message_type):
+    def _handle_reserve_execute(
+        self, user_message, next_status, user_id, unique_code, message_type
+    ):
         user_message = re.sub(r"[^\w]", "", user_message)
         system_content = generate_execute_reserve()
         reserve_execute = self.get_chatgpt_response(system_content, user_message)
-        print("reserve_execute", reserve_execute)
         if reserve_execute in ["True", "TRUE", "1"]:
             new_reserve_id = self.get_new_reserve_id()
             if new_reserve_id is None:
@@ -473,7 +501,9 @@ class ReservationHandler:
                 reserve_datas, user_datas
             )
             self.table.delete_item(Key={"unique_code": unique_code})
-            message_template = self.messages[ReservationStatus.NEW_RESERVATION_RESERVE_COMPLETE.name]
+            message_template = self.messages[
+                ReservationStatus.NEW_RESERVATION_RESERVE_COMPLETE.name
+            ]
             message = message_template.format(reservation_id)
             # message = textwrap.dedent(
             #     f"{reservation_message}\n{reservation_id}"

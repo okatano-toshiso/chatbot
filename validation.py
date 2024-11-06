@@ -30,11 +30,7 @@ def is_valid_smoker(smoker: str) -> bool:
 
 
 def is_valid_room_type_no_smoker(room_type: str) -> bool:
-    valid_room_type_no_smoker = [
-        "シングル(SK)",
-        "エコノミーダブル(WAK)",
-        "ダブル(WK)"
-    ]
+    valid_room_type_no_smoker = ["シングル(SK)", "エコノミーダブル(WAK)", "ダブル(WK)"]
     return room_type in valid_room_type_no_smoker
 
 

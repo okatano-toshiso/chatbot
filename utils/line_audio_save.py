@@ -13,7 +13,7 @@ class S3Storage(StorageStrategy):
     def __init__(self, bucket_name, s3_key):
         self.bucket_name = bucket_name
         self.s3_key = s3_key
-        self.s3 = boto3.client('s3')
+        self.s3 = boto3.client("s3")
 
     def save(self, audio_content, user_id):
         file_obj = io.BytesIO()
@@ -27,8 +27,8 @@ class S3Storage(StorageStrategy):
 
 class TmpStorage(StorageStrategy):
     def save(self, audio_content, user_id):
-        file_path = f'/tmp/{user_id}_input_audio.m4a'
-        with open(file_path, 'wb') as file:
+        file_path = f"/tmp/{user_id}_input_audio.m4a"
+        with open(file_path, "wb") as file:
             for chunk in audio_content.iter_content():
                 file.write(chunk)
         return file_path

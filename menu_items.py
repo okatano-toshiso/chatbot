@@ -1,5 +1,6 @@
 from enum import Enum
 
+
 class MenuItem(Enum):
     NEW_RESERVATION = ("1", "新規宿泊予約")
     CONFIRM_RESERVATION = ("2", "予約確認")

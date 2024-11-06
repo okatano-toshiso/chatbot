@@ -25,7 +25,7 @@ from validation import (
     is_valid_smoker,
     is_valid_room_type_smoker,
     is_valid_room_type_no_smoker,
-    is_valid_japanese_katakana
+    is_valid_japanese_katakana,
 )
 import requests  # type: ignore
 import json
@@ -99,7 +99,9 @@ class ReservationUpdateHandler:
         line_users = {
             "line_id": datas["line_id"],
             "name": datas["name"],
-            "name_kana": datas["name_kana"] if datas["name_kana"] is not None else "フリガナ",
+            "name_kana": datas["name_kana"]
+            if datas["name_kana"] is not None
+            else "フリガナ",
             "phone_number": datas["phone_number"],
             "created_at": current_datetime,
             "updated_at": current_datetime,
@@ -247,11 +249,21 @@ class ReservationUpdateHandler:
         }
 
     def handle_reservation_step(
-        self, status, user_message, next_status, user_id=None, unique_code=None ,message_type=None
+        self,
+        status,
+        user_message,
+        next_status,
+        user_id=None,
+        unique_code=None,
+        message_type=None,
     ):
         if status in self.handlers:
             return self.handlers[status](
-                user_message, next_status, user_id=user_id, unique_code=unique_code, message_type=message_type
+                user_message,
+                next_status,
+                user_id=user_id,
+                unique_code=unique_code,
+                message_type=message_type,
             )
         else:
             raise ValueError(f"Unsupported reservation status: {status}")
@@ -295,12 +307,12 @@ class ReservationUpdateHandler:
             if update_menu == 1:
                 extra_datas = {"title": "チェックインと宿泊数"}
                 message_template = f'{self.messages[UpdateReservationStatus.UPDATE_RESERVATION_START.name + "_CHECKIN"]}'
-                pre_datas['check_in'] = datetime.strptime(pre_datas['check_in'], "%Y-%m-%d").strftime(
-                    "%Y年%m月%d日"
-                )
-                pre_datas['check_out'] = datetime.strptime(pre_datas['check_out'], "%Y-%m-%d").strftime(
-                    "%Y年%m月%d日"
-                )
+                pre_datas["check_in"] = datetime.strptime(
+                    pre_datas["check_in"], "%Y-%m-%d"
+                ).strftime("%Y年%m月%d日")
+                pre_datas["check_out"] = datetime.strptime(
+                    pre_datas["check_out"], "%Y-%m-%d"
+                ).strftime("%Y年%m月%d日")
                 message = message_template.format(**{**pre_datas, **extra_datas})
                 return message, UpdateReservationStatus.UPDATE_RESERVATION_CHECKIN.name
             if update_menu == 2:
@@ -447,10 +459,13 @@ class ReservationUpdateHandler:
             return message, next_status.name
         else:
             return self.messages[
-                UpdateReservationStatus.UPDATE_RESERVATION_COUNT_OF_PERSON.name + "_ERROR"
+                UpdateReservationStatus.UPDATE_RESERVATION_COUNT_OF_PERSON.name
+                + "_ERROR"
             ], UpdateReservationStatus.UPDATE_RESERVATION_COUNT_OF_PERSON.name
 
-    def _handle_update_smoker(self, user_message, next_status, user_id, unique_code, message_type):
+    def _handle_update_smoker(
+        self, user_message, next_status, user_id, unique_code, message_type
+    ):
         system_content = generate_judge_smoker()
         smoker = self.get_chatgpt_response(system_content, user_message)
         if is_valid_smoker(smoker):
@@ -480,7 +495,6 @@ class ReservationUpdateHandler:
     ):
         system_content = generate_room_type_smoker()
         room_type_smoker = self.get_chatgpt_response(system_content, user_message)
-        print("room_type_smoker", room_type_smoker)
 
         if is_valid_room_type_smoker(room_type_smoker):
             self.check_reserves[
@@ -530,9 +544,11 @@ class ReservationUpdateHandler:
                 UpdateReservationStatus.UPDATE_RESERVATION_ROOM_TYPE.name + "_ERROR"
             ], UpdateReservationStatus.UPDATE_RESERVATION_ROOM_TYPE_SMOKER.name
 
-    def _handle_update_name(self, user_message, next_status, user_id, unique_code, message_type):
-        name_pattern = r'[、。0-9!-/:-@≠[-`{-~]'
-        user_message = re.sub(name_pattern, '', user_message)
+    def _handle_update_name(
+        self, user_message, next_status, user_id, unique_code, message_type
+    ):
+        name_pattern = r"[、。0-9!-/:-@≠[-`{-~]"
+        user_message = re.sub(name_pattern, "", user_message)
         if message_type == "audio":
             system_content = generate_name_yomi()
             name = self.get_chatgpt_response(system_content, user_message)
@@ -540,7 +556,6 @@ class ReservationUpdateHandler:
             system_content = generate_name_extractor()
             name = self.get_chatgpt_response(system_content, user_message)
         name = name[:20]
-        print("name", name)
 
         if is_valid_japaneses_character(name):
             self.check_reserves[UpdateReservationStatus.UPDATE_RESERVATION_NAME.key] = (
@@ -558,9 +573,9 @@ class ReservationUpdateHandler:
             system_content = generate_name_kana()
             name_kana = self.get_chatgpt_response(system_content, name)
             if is_valid_japanese_katakana(name_kana):
-                self.check_reserves[UpdateReservationStatus.UPDATE_RESERVATION_NAME_KANA.key] = (
-                    name_kana
-                )
+                self.check_reserves[
+                    UpdateReservationStatus.UPDATE_RESERVATION_NAME_KANA.key
+                ] = name_kana
                 self.table.update_item(
                     Key={"unique_code": unique_code},
                     UpdateExpression="SET #co = :cd",
@@ -571,8 +586,8 @@ class ReservationUpdateHandler:
                 )
             else:
                 return self.messages[
-                UpdateReservationStatus.UPDATE_RESERVATION_NAME.name + "_ERROR"
-            ], UpdateReservationStatus.UPDATE_RESERVATION_NAME.name
+                    UpdateReservationStatus.UPDATE_RESERVATION_NAME.name + "_ERROR"
+                ], UpdateReservationStatus.UPDATE_RESERVATION_NAME.name
             message = textwrap.dedent(
                 f"変更する代表者氏名は {name} ({name_kana})でよろしいでしょうか。 {self.messages[UpdateReservationStatus.UPDATE_RESERVATION_NAME.name]}"
             ).strip()
@@ -631,8 +646,12 @@ class ReservationUpdateHandler:
                 message_template = self.messages[
                     UpdateReservationStatus.UPDATE_RESERVATION_CONFIRM.name
                 ]
-            reserve_datas["check_in"] = datetime.strptime(reserve_datas["check_in"], '%Y-%m-%d').strftime('%m月%d日')
-            reserve_datas["check_out"] = datetime.strptime(reserve_datas["check_out"], '%Y-%m-%d').strftime('%m月%d日')
+            reserve_datas["check_in"] = datetime.strptime(
+                reserve_datas["check_in"], "%Y-%m-%d"
+            ).strftime("%m月%d日")
+            reserve_datas["check_out"] = datetime.strptime(
+                reserve_datas["check_out"], "%Y-%m-%d"
+            ).strftime("%m月%d日")
 
             message = message_template.format(**reserve_datas)
             return message, next_status.name
@@ -732,11 +751,9 @@ class ReservationUpdateHandler:
     def _handle_update_reservation_cancel_confirm(
         self, user_message, next_status, user_id, unique_code, message_type
     ):
-        print("user_message", user_message)
         cancel_confirm = user_message
         system_content = generate_confirm_cancel()
         cancel_confirm = self.get_chatgpt_response(system_content, user_message)
-        print("cancel_confirm", cancel_confirm)
         if (
             cancel_confirm == "True"
             or cancel_confirm == "はい"
@@ -755,7 +772,6 @@ class ReservationUpdateHandler:
     def _handle_update_reservation_cancel_execute(
         self, user_message, next_status, user_id, unique_code, message_type
     ):
-        print("user_message", user_message)
         if user_message == "キャンセル":
             self.table.update_item(
                 Key={"unique_code": unique_code},
