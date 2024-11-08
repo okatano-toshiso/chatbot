@@ -424,6 +424,10 @@ class ReservationHandler:
     ):
         phone_number = user_message
         phone_number = extract_number(phone_number, 10, 11)
+        if phone_number is False:
+            return self.messages[
+                ReservationStatus.NEW_RESERVATION_PHONE_NUMBER.name + "_ERROR"
+            ], ReservationStatus.NEW_RESERVATION_PHONE_NUMBER.name
         if is_valid_phone_number(phone_number):
             self.reserves[ReservationStatus.NEW_RESERVATION_PHONE_NUMBER.key] = (
                 phone_number
