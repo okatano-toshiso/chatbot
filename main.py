@@ -227,7 +227,8 @@ def generate_response(
         return reservation_handler.handle_reservation_step(
             ReservationStatus.NEW_RESERVATION_CHECKOUT,
             user_message,
-            ReservationStatus.NEW_RESERVATION_COUNT_OF_PERSON,
+            ReservationStatus.NEW_RESERVATION_JUDGE_INTENT,
+            # ReservationStatus.NEW_RESERVATION_COUNT_OF_PERSON,
             user_id,
             unique_code,
         )
@@ -236,7 +237,8 @@ def generate_response(
         return reservation_handler.handle_reservation_step(
             ReservationStatus.NEW_RESERVATION_COUNT_OF_PERSON,
             user_message,
-            ReservationStatus.NEW_RESERVATION_SMOKER,
+            ReservationStatus.NEW_RESERVATION_JUDGE_INTENT,
+            # ReservationStatus.NEW_RESERVATION_SMOKER,
             user_id,
             unique_code,
         )
@@ -250,20 +252,21 @@ def generate_response(
             unique_code,
         )
 
-    if user_status_code == ReservationStatus.NEW_RESERVATION_SMOKER.name:
-        return reservation_handler.handle_reservation_step(
-            ReservationStatus.NEW_RESERVATION_SMOKER,
-            user_message,
-            ReservationStatus.NEW_RESERVATION_ROOM_TYPE,
-            user_id,
-            unique_code,
-        )
+    # if user_status_code == ReservationStatus.NEW_RESERVATION_SMOKER.name:
+    #     return reservation_handler.handle_reservation_step(
+    #         ReservationStatus.NEW_RESERVATION_SMOKER,
+    #         user_message,
+    #         ReservationStatus.NEW_RESERVATION_ROOM_TYPE,
+    #         user_id,
+    #         unique_code,
+    #     )
 
     if user_status_code == ReservationStatus.NEW_RESERVATION_ROOM_TYPE_SMOKER.name:
         return reservation_handler.handle_reservation_step(
             ReservationStatus.NEW_RESERVATION_ROOM_TYPE_SMOKER,
             user_message,
-            ReservationStatus.NEW_RESERVATION_NAME,
+            ReservationStatus.NEW_RESERVATION_JUDGE_INTENT,
+            # ReservationStatus.NEW_RESERVATION_NAME,
             user_id,
             unique_code,
         )
@@ -272,7 +275,8 @@ def generate_response(
         return reservation_handler.handle_reservation_step(
             ReservationStatus.NEW_RESERVATION_ROOM_TYPE_NO_SMOKER,
             user_message,
-            ReservationStatus.NEW_RESERVATION_NAME,
+            ReservationStatus.NEW_RESERVATION_JUDGE_INTENT,
+            # ReservationStatus.NEW_RESERVATION_NAME,
             user_id,
             unique_code,
         )
@@ -291,7 +295,8 @@ def generate_response(
         return reservation_handler.handle_reservation_step(
             ReservationStatus.NEW_RESERVATION_ADULT,
             user_message,
-            ReservationStatus.NEW_RESERVATION_PHONE_NUMBER,
+            ReservationStatus.NEW_RESERVATION_JUDGE_INTENT,
+            # ReservationStatus.NEW_RESERVATION_PHONE_NUMBER,
             user_id,
             unique_code,
         )
@@ -300,7 +305,8 @@ def generate_response(
         return reservation_handler.handle_reservation_step(
             ReservationStatus.NEW_RESERVATION_PHONE_NUMBER,
             user_message,
-            ReservationStatus.NEW_RESERVATION_RESERVE_CONFIRM,
+            ReservationStatus.NEW_RESERVATION_JUDGE_INTENT,
+            # ReservationStatus.NEW_RESERVATION_RESERVE_CONFIRM,
             user_id,
             unique_code,
         )

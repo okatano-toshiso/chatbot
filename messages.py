@@ -50,14 +50,13 @@ MESSAGES = {
         チェックインする日がうまく聞き取れませんでした。恐れ入りますが、もう一度、何月何日など具体的な日付で教えてください。
     """).strip(),
     ReservationStatus.NEW_RESERVATION_CHECKOUT.name: textwrap.dedent("""
-        宿泊日数をおしえていただきありがとうございます。利用者人数を教えてください。
+        宿泊日数をおしえていただきありがとうございます。
     """).strip(),
     ReservationStatus.NEW_RESERVATION_CHECKOUT.name + "_ERROR": textwrap.dedent("""
         宿泊日数がうまく聞き取れませんでした。一泊や三日など、または数値のみでよろしいので、もう一度、教えていただいてもよろしいでしょうか？
     """).strip(),
     ReservationStatus.NEW_RESERVATION_COUNT_OF_PERSON.name: textwrap.dedent("""
         宿泊者数をおしえていただきありがとうございます。
-        続きましては、お泊りになりたいお部屋を選んでください。まずは禁煙のお部屋と喫煙のお部屋がございますが、どちらをご希望いたしますか？
     """).strip(),
     ReservationStatus.NEW_RESERVATION_COUNT_OF_PERSON.name
     + "_OVER": textwrap.dedent("""
@@ -82,7 +81,6 @@ MESSAGES = {
     """).strip(),
     ReservationStatus.NEW_RESERVATION_ROOM_TYPE.name: textwrap.dedent("""
         ご希望の部屋タイプを教えていただきありがとうございます。
-        ご予約をするために、宿泊者代表のお名前をお伺いできますでしょうか？
     """).strip(),
     ReservationStatus.NEW_RESERVATION_ROOM_TYPE.name + "_ERROR": textwrap.dedent("""
         恐れ入りますが、ご提案した部屋タイプの中からおっしゃってください。
@@ -107,7 +105,7 @@ MESSAGES = {
         申し訳ございませんが、未成年の方はご宿泊の代表者としてのご予約をお受けできかねます。成人の方が代表者としてご予約いただくようお願い申し上げます。ご理解のほどよろしくお願いいたします。
     """).strip(),
     ReservationStatus.NEW_RESERVATION_PHONE_NUMBER.name: textwrap.dedent("""
-        当日ご連絡が可能な電話番号をお伺いしました。これでご予約に必要な情報はすべて揃いましたので、予約内容の確認をさせていただいてもよろしいでしょうか？
+        当日ご連絡が可能な電話番号をお伺いしました。ありがとうございます。
     """).strip(),
     ReservationStatus.NEW_RESERVATION_PHONE_NUMBER.name + "_ERROR": textwrap.dedent("""
         お伝えいただいた電話番号が有効ではないようです。恐れ入りますが、ハイフンなしの10桁または11桁の数字のみで、当日ご連絡が可能な電話番号をお教えいただけますか？
