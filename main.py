@@ -141,7 +141,7 @@ def generate_response(
             RESERVATION_RECEPTION_START = MESSAGES[
                 ReservationStatus.NEW_RESERVATION_START.name
             ]
-            user_status_code = ReservationStatus.NEW_RESERVATION_CHECKIN.name
+            user_status_code = ReservationStatus.NEW_RESERVATION_JUDGE_INTENT.name
             return str(RESERVATION_RECEPTION_START), user_status_code
         elif MenuItem.CONFIRM_RESERVATION.code in bot_response:
             extra_datas = {"title": "予約情報の確認"}
@@ -204,6 +204,15 @@ def generate_response(
                 ErrorReservationStatus.ERROR_RESERVATION_MENU.name
             ]
             return str(ERROR_RESERVATION_MENU), user_status_code
+
+    if user_status_code == ReservationStatus.NEW_RESERVATION_JUDGE_INTENT.name:
+        return reservation_handler.handle_reservation_step(
+            ReservationStatus.NEW_RESERVATION_JUDGE_INTENT,
+            user_message,
+            ReservationStatus.NEW_RESERVATION_JUDGE_INTENT,
+            user_id,
+            unique_code,
+        )
 
     if user_status_code == ReservationStatus.NEW_RESERVATION_CHECKIN.name:
         return reservation_handler.handle_reservation_step(

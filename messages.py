@@ -20,9 +20,29 @@ MESSAGES = {
     """).strip(),
     ReservationStatus.NEW_RESERVATION_START.name: textwrap.dedent("""
         新規の宿泊予約についてのお問い合わせですね。
-        予約のためにいくつかご質問をさせてください。
-        チェックインする日はいつのご予定でしょうか。
+        予約のためにチェックインと泊数、利用者人数、部屋タイプ、代表者様についてお聞かせください。
+        まずは何からお聞かせいただけますか？
     """).strip(),
+    ReservationStatus.NEW_RESERVATION_JUDGE_INTENT.name +  "_CHECKIN": textwrap.dedent("""
+        チェックインとチェックアウトについてのご回答ですね。チェックイン日付についてお答えください。
+    """).strip(),
+    ReservationStatus.NEW_RESERVATION_JUDGE_INTENT.name + "_COUNT_OF_PERSON": textwrap.dedent("""
+        ご利用者人数についてのご回答ですね。ご利用者人数は何名様になりますか？
+    """).strip(),
+    ReservationStatus.NEW_RESERVATION_JUDGE_INTENT.name + "_ROOM_TYPE": textwrap.dedent("""
+        部屋タイプについてのご回答ですね。禁煙をご希望ですか？喫煙をご希望ですか？
+    """).strip(),
+    ReservationStatus.NEW_RESERVATION_JUDGE_INTENT.name + "_NAME": textwrap.dedent("""
+        代表者氏名についてのご回答ですね。お名前を教えてください。
+    """).strip(),
+    ReservationStatus.NEW_RESERVATION_JUDGE_INTENT.name + "_PHONE_NUMBER": textwrap.dedent("""
+        当日の連絡先についてのご回答ですね。連絡可能の電話番号を教えてください。
+    """).strip(),
+    ReservationStatus.NEW_RESERVATION_JUDGE_INTENT.name + "_ERROR": textwrap.dedent("""
+        申し訳ございません。うまく聞き取れませんでしたのでもう一度お願いいたします。
+    """).strip(),
+
+
     ReservationStatus.NEW_RESERVATION_CHECKIN.name: textwrap.dedent("""
         がチェックインする日ですね。教えていただきありがとうございます。ご利用泊数を教えてください。
     """).strip(),

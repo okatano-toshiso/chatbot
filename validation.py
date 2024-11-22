@@ -81,3 +81,8 @@ def is_valid_japanese_katakana(value: str) -> bool:
             return False
     except ValueError:
         return False
+
+def is_valid_reservation_menu(reservation_menu: str) -> str:
+    valid_reservation_menu = ["checkin_checkout", "count_of_person", "room_type", "phone_number", "name", "ELSE"]
+    return reservation_menu in valid_reservation_menu
+

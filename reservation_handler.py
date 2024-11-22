@@ -5,6 +5,7 @@ import textwrap
 from datetime import datetime, timedelta
 from reservation_status import ReservationStatus
 from chatgpt_api import get_chatgpt_response
+from prompts.judge_intent import generate_judge_intent
 from prompts.checkin_date import generate_checkin_date
 from prompts.count_of_stay import generate_count_of_stay
 from prompts.count_of_person import generate_count_of_person
@@ -27,6 +28,7 @@ from validation import (
     is_valid_room_type_no_smoker,
     is_valid_japaneses_character,
     is_valid_japanese_katakana,
+    is_valid_reservation_menu
 )
 import requests
 import boto3
@@ -130,6 +132,7 @@ class ReservationHandler:
         self.reserves = {}
         self.temp_data = {}
         self.handlers = {
+            ReservationStatus.NEW_RESERVATION_JUDGE_INTENT: self._handle_judge_intent,
             ReservationStatus.NEW_RESERVATION_CHECKIN: self._handle_checkin,
             ReservationStatus.NEW_RESERVATION_CHECKOUT: self._handle_checkout,
             ReservationStatus.NEW_RESERVATION_COUNT_OF_PERSON: self._handle_count_of_person,
@@ -162,6 +165,30 @@ class ReservationHandler:
             )
         else:
             raise ValueError(f"Unsupported reservation status: {status}")
+
+    def _handle_judge_intent(
+        self, user_message, next_status, user_id, unique_code, message_type
+    ):
+        print("jusge intent.")
+        system_content = generate_judge_intent()
+        reservation_menu = self.get_chatgpt_response(system_content, user_message)
+        print(reservation_menu)
+        if is_valid_reservation_menu(reservation_menu):
+            if reservation_menu == "checkin_checkout":
+                return self.messages[ReservationStatus.NEW_RESERVATION_JUDGE_INTENT.name + "_CHECKIN"], ReservationStatus.NEW_RESERVATION_CHECKIN.name
+            elif reservation_menu == "count_of_person":
+                return self.messages[ReservationStatus.NEW_RESERVATION_JUDGE_INTENT.name + "_COUNT_OF_PERSON"], ReservationStatus.NEW_RESERVATION_COUNT_OF_PERSON.name
+            elif reservation_menu == "room_type":
+                return self.messages[ReservationStatus.NEW_RESERVATION_JUDGE_INTENT.name + "_ROOM_TYPE"], ReservationStatus.NEW_RESERVATION_SMOKER.name
+            elif reservation_menu == "name":
+                return self.messages[ReservationStatus.NEW_RESERVATION_JUDGE_INTENT.name + "_NAME"], ReservationStatus.NEW_RESERVATION_NAME.name
+            elif reservation_menu == "phone_number":
+                return self.messages[ReservationStatus.NEW_RESERVATION_JUDGE_INTENT.name + "_PHONE_NUMBER"], ReservationStatus.NEW_RESERVATION_PHONE_NUMBER.name
+            else:
+                return self.messages[ReservationStatus.NEW_RESERVATION_JUDGE_INTENT.name + "_ERROR"], ReservationStatus.NEW_RESERVATION_JUDGE_INTENT.name
+        else:
+            return self.messages[ReservationStatus.NEW_RESERVATION_JUDGE_INTENT.name + "_ERROR"], ReservationStatus.NEW_RESERVATION_JUDGE_INTENT.name
+
 
     def _handle_checkin(
         self, user_message, next_status, user_id, unique_code, message_type
