@@ -20,7 +20,7 @@ MESSAGES = {
     """).strip(),
     ReservationStatus.NEW_RESERVATION_START.name: textwrap.dedent("""
         新規の宿泊予約についてのお問い合わせですね。
-        予約のためにチェックインと泊数、利用者人数、部屋タイプ、代表者様についてお聞かせください。
+        予約のためにチェックインと泊数、利用者人数、部屋タイプ、代表者様のお名前、当日連絡可能の電話番号についてお聞かせください。
         まずは何からお聞かせいただけますか？
     """).strip(),
     ReservationStatus.NEW_RESERVATION_JUDGE_INTENT.name +  "_CHECKIN": textwrap.dedent("""
@@ -96,7 +96,7 @@ MESSAGES = {
         申し訳ございません。お名前の読みがわかりませんでした。再度、ご入力をお願いいたします。
     """).strip(),
     ReservationStatus.NEW_RESERVATION_ADULT.name: textwrap.dedent("""
-        ありがとうございます。続きまして、宿泊代表者様の、宿泊当日に連絡可能な電話番号を教えていただけますか？
+        ありがとうございます。
     """).strip(),
     ReservationStatus.NEW_RESERVATION_ADULT.name + "_ERROR": textwrap.dedent("""
         代表者様が未成年かどうか判断できませんでした。恐れ入りますが、未成年かどうか教えていただけますでしょうか？
@@ -112,7 +112,7 @@ MESSAGES = {
     """).strip(),
     # このタイミングで空き室検索APIを実施(return bool)。 空き室がある場合は下記メッセージを表示する。
     ReservationStatus.NEW_RESERVATION_RESERVE_CONFIRM.name: textwrap.dedent("""
-        それでは、予約内容を確認させていただきますね。代表者様のお名前は{name}様、チェックインが{check_in}、チェックアウトが{check_out}、ご宿泊人数は{count_of_person}名様、部屋タイプは{room_type}、ご連絡先は{phone_number}でお間違いないでしょうか。予約内容に問題がなければ、このまま予約を進めてもよろしいでしょうか。
+        それでは、予約内容を確認させていただきますね。代表者様のお名前は{name}様、チェックインが{check_in}、チェックアウトが{check_out}、ご宿泊人数は{count_of_person}名様、部屋タイプは{room_type}、ご連絡先は{phone_number}でお間違いないでしょうか。予約内容に問題がなければ、このまま予約を進めてもよろしいでしょうか。修正したい場合は、『修正したい』とお伝えいただき、変更したい項目を教えてください。予約をしない場合は『いいえ』とお答えください。
     """).strip(),
     ReservationStatus.NEW_RESERVATION_RESERVE_CONFIRM.name
     + "_REFUSE": textwrap.dedent("""
@@ -122,6 +122,12 @@ MESSAGES = {
     + "_ERROR": textwrap.dedent("""
         恐れ入りますが、いただいたご回答がご予約確認とは異なるようです。予約内容の確認をさせていただいてもよろしいでしょうか？
     """).strip(),
+    ReservationStatus.NEW_RESERVATION_RESERVE_CONFIRM.name
+    + "_MODIFY": textwrap.dedent("""
+        かしこましました。変更したい予約の項目をお教えください。チェックインと泊数、利用者人数、部屋タイプ、代表者様のお名前、当日連絡可能の電話番号のどれを変更されますでしょうか？
+    """).strip(),
+
+
     ReservationStatus.NEW_RESERVATION_RESERVE_COMPLETE.name: textwrap.dedent("""
         ご予約ありがとうございます。お客様のご予約が無事に完了いたしました。「 {} 」が予約番号になりますので、控えとしてメモなどにお書き留めくださいませ。今後ご不明点や変更がございましたら、いつでもお気軽にお問い合わせください。
     """).strip(),

@@ -40,8 +40,32 @@ from utils.digit_extractor import extract_number
 reserves = {}
 users = {}
 
+dynamodb = boto3.resource('dynamodb')
+table_name = "dev-commapi-dymdb-api-LineChatBot"
+table = dynamodb.Table(table_name)
 
 class ReservationHandler:
+
+    def check_reservation_status(self, unique_code):
+
+        response = table.get_item(Key={'unique_code': unique_code})
+        current_data = response.get('Item', {})
+        required_fields = ["check_in", "check_out", "count_of_person", "name", "phone_number", "room_type"]
+        missing_fields = [field for field in required_fields if not current_data.get(field)]
+
+        if not missing_fields:
+            return 'complete', "予約可能になりました。内容確認に進みますか。『はい』とお答えいただければ内容を確認します。もし修正したい場合は、『修正したい』とお伝えいただき、変更したい項目を教えてください。内容確認に進まない場合は『いいえ』とお答えください。", []
+        missing_messages = {
+            "check_in": "チェックイン日",
+            "check_out": "チェックアウト日",
+            "count_of_person": "利用者人数",
+            "name": "代表者氏名",
+            "phone_number": "当日連絡可能の電話番号",
+            "room_type": "部屋タイプ"
+        }
+        missing_list = [missing_messages[field] for field in missing_fields]
+        return 'incomplete', f"{', '.join(missing_list)}を教えてください。", missing_fields
+
     def get_new_reserve_id(self):
         token_data = {"token": self.access_token}
         getReserveIdUrl = os.environ["API_SET_RESERVE_ID"]
@@ -155,13 +179,14 @@ class ReservationHandler:
         unique_code=None,
         message_type=None,
     ):
+        
         if status in self.handlers:
             return self.handlers[status](
                 user_message,
                 next_status,
                 user_id=user_id,
                 unique_code=unique_code,
-                message_type=message_type,
+                message_type=message_type
             )
         else:
             raise ValueError(f"Unsupported reservation status: {status}")
@@ -169,10 +194,8 @@ class ReservationHandler:
     def _handle_judge_intent(
         self, user_message, next_status, user_id, unique_code, message_type
     ):
-        print("jusge intent.")
         system_content = generate_judge_intent()
         reservation_menu = self.get_chatgpt_response(system_content, user_message)
-        print(reservation_menu)
         if is_valid_reservation_menu(reservation_menu):
             if reservation_menu == "checkin_checkout":
                 return self.messages[ReservationStatus.NEW_RESERVATION_JUDGE_INTENT.name + "_CHECKIN"], ReservationStatus.NEW_RESERVATION_CHECKIN.name
@@ -248,8 +271,11 @@ class ReservationHandler:
                 },
                 ExpressionAttributeValues={":cd": formatted_date},
             )
+            reservation_status, reservation_message, missing_fields = self.check_reservation_status(unique_code)
+            if reservation_status == 'complete':
+                return reservation_message, ReservationStatus.NEW_RESERVATION_RESERVE_CONFIRM.name
             message = textwrap.dedent(
-                f"宿泊数は {stay_length}泊、チェックアウト日は {ymd_format}になります。 {self.messages[ReservationStatus.NEW_RESERVATION_CHECKOUT.name]}"
+                f"宿泊数は {stay_length}泊、チェックアウト日は {ymd_format}になります。 {self.messages[ReservationStatus.NEW_RESERVATION_CHECKOUT.name]}あとは{reservation_message}"
             ).strip()
             return message, next_status.name
         else:
@@ -280,8 +306,11 @@ class ReservationHandler:
                 },
                 ExpressionAttributeValues={":cd": count_of_person},
             )
+            reservation_status, reservation_message, missing_fields = self.check_reservation_status(unique_code)
+            if reservation_status == 'complete':
+                return reservation_message, ReservationStatus.NEW_RESERVATION_RESERVE_CONFIRM.name
             message = textwrap.dedent(
-                f"利用者人数は {count_of_person} 人ですね。{self.messages[ReservationStatus.NEW_RESERVATION_COUNT_OF_PERSON.name]}"
+                f"利用者人数は {count_of_person} 人ですね。{self.messages[ReservationStatus.NEW_RESERVATION_COUNT_OF_PERSON.name]}あとは{reservation_message}"
             ).strip()
             return message, next_status.name
         else:
@@ -330,8 +359,11 @@ class ReservationHandler:
                 },
                 ExpressionAttributeValues={":cd": room_type_smoker},
             )
+            reservation_status, reservation_message, missing_fields = self.check_reservation_status(unique_code)
+            if reservation_status == 'complete':
+                return reservation_message, ReservationStatus.NEW_RESERVATION_RESERVE_CONFIRM.name
             message = textwrap.dedent(
-                f"部屋タイプは {room_type_smoker} ですね。 {self.messages[ReservationStatus.NEW_RESERVATION_ROOM_TYPE.name]}"
+                f"部屋タイプは {room_type_smoker} ですね。 {self.messages[ReservationStatus.NEW_RESERVATION_ROOM_TYPE.name]}あとは{reservation_message}"
             ).strip()
             return message, next_status.name
         else:
@@ -357,8 +389,11 @@ class ReservationHandler:
                 },
                 ExpressionAttributeValues={":cd": room_type_no_smoker},
             )
+            reservation_status, reservation_message, missing_fields = self.check_reservation_status(unique_code)
+            if reservation_status == 'complete':
+                return reservation_message, ReservationStatus.NEW_RESERVATION_RESERVE_CONFIRM.name
             message = textwrap.dedent(
-                f"部屋タイプは {room_type_no_smoker}  {self.messages[ReservationStatus.NEW_RESERVATION_ROOM_TYPE.name]}"
+                f"部屋タイプは {room_type_no_smoker}  {self.messages[ReservationStatus.NEW_RESERVATION_ROOM_TYPE.name]}あとは{reservation_message}"
             ).strip()
             return message, next_status.name
         else:
@@ -432,8 +467,11 @@ class ReservationHandler:
                 },
                 ExpressionAttributeValues={":cd": is_adult},
             )
+            reservation_status, reservation_message, missing_fields = self.check_reservation_status(unique_code)
+            if reservation_status == 'complete':
+                return reservation_message, ReservationStatus.NEW_RESERVATION_RESERVE_CONFIRM.name
             message = textwrap.dedent(
-                f"{self.messages[ReservationStatus.NEW_RESERVATION_ADULT.name]}"
+                f"{self.messages[ReservationStatus.NEW_RESERVATION_ADULT.name]}あとは{reservation_message}"
             ).strip()
             return message, next_status.name
         elif adult == "CHILD":
@@ -467,8 +505,11 @@ class ReservationHandler:
                 },
                 ExpressionAttributeValues={":cd": phone_number},
             )
+            reservation_status, reservation_message, missing_fields = self.check_reservation_status(unique_code)
+            if reservation_status == 'complete':
+                return reservation_message, ReservationStatus.NEW_RESERVATION_RESERVE_CONFIRM.name
             message = textwrap.dedent(
-                f"代表者の連絡先は{phone_number}ですね。{self.messages[ReservationStatus.NEW_RESERVATION_PHONE_NUMBER.name]}"
+                f"代表者の連絡先は{phone_number}ですね。{self.messages[ReservationStatus.NEW_RESERVATION_PHONE_NUMBER.name]}あとは{reservation_message}"
             ).strip()
             return message, next_status.name
         else:
@@ -496,6 +537,10 @@ class ReservationHandler:
             ]
             message = message_template.format(**reserve_datas)
             return message, next_status.name
+        elif reserve_confirm in ["Modify", "MODIFY"]:
+            return self.messages[
+                ReservationStatus.NEW_RESERVATION_RESERVE_CONFIRM.name + "_MODIFY"
+            ], ReservationStatus.NEW_RESERVATION_JUDGE_INTENT.name
         elif reserve_confirm in ["False", "FALSE", "0"]:
             self.table.delete_item(Key={"unique_code": unique_code})
             return self.messages[
@@ -510,8 +555,9 @@ class ReservationHandler:
         self, user_message, next_status, user_id, unique_code, message_type
     ):
         user_message = re.sub(r"[^\w]", "", user_message)
-        system_content = generate_execute_reserve()
+        system_content = generate_confirm_reserve()
         reserve_execute = self.get_chatgpt_response(system_content, user_message)
+        print("reserve_execute", reserve_execute)
         if reserve_execute in ["True", "TRUE", "1"]:
             new_reserve_id = self.get_new_reserve_id()
             if new_reserve_id is None:
@@ -540,6 +586,10 @@ class ReservationHandler:
             #     f"{reservation_message}\n{reservation_id}"
             # ).strip()
             return message, next_status.name
+        elif reserve_execute in ["Modify", "MODIFY"]:
+            return self.messages[
+                ReservationStatus.NEW_RESERVATION_RESERVE_CONFIRM.name + "_MODIFY"
+            ], ReservationStatus.NEW_RESERVATION_JUDGE_INTENT.name
         elif reserve_execute in ["False", "FALSE", "0"]:
             self.table.delete_item(Key={"unique_code": unique_code})
             return self.messages[
