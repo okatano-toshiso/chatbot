@@ -2,6 +2,9 @@ from enum import Enum
 
 
 class ReservationStatus(Enum):
+
+    RESERVATION_MENU_INDEX = ("RESERVATION_MENU_INDEX", None)
+
     RESERVATION_MENU = ("RESERVATION_MENU", None)
     NEW_RESERVATION_START = ("NEW_RESERVATION_START", None)
     NEW_RESERVATION_JUDGE_INTENT = ("NEW_RESERVATION_JUDGE_INTENT", "judge_intent")
@@ -82,7 +85,8 @@ class UpdateReservationStatus(Enum):
 
 
 class InquiryReservationStatus(Enum):
-    INQUIRY_RESERVATION_MENU = ("INQUIRY_RESERVATION_MENU", None)
+    INQUIRY_FAQ = ("INQUIRY_FAQ", None)
+    INQUIRY_DEFAULT = ("INQUIRY_DEFAULT", None)
 
 
 class GourmetReservationStatus(Enum):

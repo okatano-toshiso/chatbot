@@ -56,7 +56,7 @@ class TourismHandler:
         )
 
         if system_message:
-            return system_message, next_status.name
+            return system_message, next_status
         else:
             return False
 

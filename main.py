@@ -129,10 +129,10 @@ def generate_response(
 
     if user_status_code == ReservationStatus.RESERVATION_MENU.name:
         USER_DEFAULT_PROMPT = MESSAGES[ReservationStatus.RESERVATION_MENU.name]
-        user_status_code = "USER__RESERVATION_INDEX"
+        user_status_code = ReservationStatus.RESERVATION_MENU_INDEX.name
         return str(USER_DEFAULT_PROMPT), user_status_code
 
-    if user_status_code == "USER__RESERVATION_INDEX":
+    if user_status_code == ReservationStatus.RESERVATION_MENU_INDEX.name:
         system_content = generate_judge_start_inquiry()
         bot_response = get_chatgpt_response(
             OPENAI_API_KEY, "gpt-4o", 0, system_content, user_message
@@ -168,29 +168,31 @@ def generate_response(
             user_status_code = CheckReservationStatus.CHECK_RESERVATION_NAME.name
             return str(CHECK_RESERVATION_START), user_status_code
         elif MenuItem.FAQ.code in bot_response:
-            extra_datas = {"title": "よくあるお問い合わせ"}
-            message_template = (
-                f"{MESSAGES[InquiryReservationStatus.INQUIRY_RESERVATION_MENU.name]}"
+            return inquiry_handler.handle_inquiry_step(
+                InquiryReservationStatus.INQUIRY_DEFAULT,
+                user_message,
+                ReservationStatus.RESERVATION_MENU_INDEX.name,
+                user_id,
+                unique_code,
             )
-            INQUIRY_START = message_template.format(**extra_datas)
-            user_status_code = InquiryReservationStatus.INQUIRY_RESERVATION_MENU.name
-            return str(INQUIRY_START), user_status_code
+            # return str(INQUIRY_START), user_status_code
         elif MenuItem.GOURMET.code in bot_response:
-            extra_datas = {"title": "レストラン情報"}
-            message_template = (
-                f"{MESSAGES[GourmetReservationStatus.GOURMET_RESERVATION_MENU.name]}"
+            return gourmet_handler.handle_gourmet_step(
+                GourmetReservationStatus.GOURMET_RESERVATION_MENU,
+                user_message,
+                ReservationStatus.RESERVATION_MENU_INDEX.name,
+                user_id,
+                unique_code,
             )
-            GOURMET_START = message_template.format(**extra_datas)
-            user_status_code = GourmetReservationStatus.GOURMET_RESERVATION_MENU.name
-            return str(GOURMET_START), user_status_code
         elif MenuItem.TOURISM.code in bot_response:
-            extra_datas = {"title": "観光スポット情報"}
-            message_template = (
-                f"{MESSAGES[TourismReservationStatus.TOURISM_RESERVATION_MENU.name]}"
+            return tourism_handler.handle_tourism_step(
+                TourismReservationStatus.TOURISM_RESERVATION_MENU,
+                user_message,
+                ReservationStatus.RESERVATION_MENU_INDEX.name,
+                user_id,
+                unique_code,
             )
-            TOURISM_START = message_template.format(**extra_datas)
-            user_status_code = TourismReservationStatus.TOURISM_RESERVATION_MENU.name
-            return str(TOURISM_START), user_status_code
+
         elif MenuItem.GUEST.code in bot_response:
             extra_datas = {"title": "宿泊者情報"}
             message_template = (
@@ -513,11 +515,11 @@ def generate_response(
             unique_code,
         )
 
-    if user_status_code == InquiryReservationStatus.INQUIRY_RESERVATION_MENU.name:
+    if user_status_code == InquiryReservationStatus.INQUIRY_FAQ.name:
         return inquiry_handler.handle_inquiry_step(
-            InquiryReservationStatus.INQUIRY_RESERVATION_MENU,
+            InquiryReservationStatus.INQUIRY_FAQ,
             user_message,
-            InquiryReservationStatus.INQUIRY_RESERVATION_MENU,
+            InquiryReservationStatus.INQUIRY_FAQ,
             user_id,
             unique_code,
         )

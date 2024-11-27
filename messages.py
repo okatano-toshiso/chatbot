@@ -14,9 +14,7 @@ from reservation_status import (
 
 MESSAGES = {
     ReservationStatus.RESERVATION_MENU.name: textwrap.dedent(f"""
-        ご連絡ありがとうございます。こちら〇〇ホテルAI予約応答サービスになります。
-        {MenuItem.NEW_RESERVATION.value}、{MenuItem.CONFIRM_RESERVATION.value}、{MenuItem.MODIFY_RESERVATION.value}(キャンセル)、{MenuItem.FAQ.value}、{MenuItem.GOURMET.value}、{MenuItem.TOURISM.value}、{MenuItem.GUEST.value}といったご用件を受けたまっております。
-        ご用件をおっしゃってください。
+        ご連絡ありがとうございます。こちら〇〇ホテルAI予約応答サービスになります。ご用件をおっしゃってください。
     """).strip(),
     ReservationStatus.NEW_RESERVATION_START.name: textwrap.dedent("""
         新規の宿泊予約についてのお問い合わせですね。
@@ -311,7 +309,7 @@ MESSAGES = {
     + "_ERROR": textwrap.dedent("""
         申し訳ございません。ただいまご指定のご予約のキャンセルが正常に反映されませんでした。お手数ですが、もう一度お試しいただけますでしょうか。
     """).strip(),
-    InquiryReservationStatus.INQUIRY_RESERVATION_MENU.name: textwrap.dedent("""
+    InquiryReservationStatus.INQUIRY_FAQ.name: textwrap.dedent("""
         {title} についてのお問い合わせでよろしいでしょうか。こちらではよくある質問やホテルについてのお問い合わせを教えてください。
     """).strip(),
     GourmetReservationStatus.GOURMET_RESERVATION_MENU.name: textwrap.dedent("""
