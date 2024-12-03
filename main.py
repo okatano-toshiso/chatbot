@@ -15,6 +15,7 @@ from linebot.models import (
 from openai import OpenAI
 from boto3.dynamodb.conditions import Key
 from chatgpt_api import get_chatgpt_response
+from prompts.judge_greeting import generate_judge_greeting
 from prompts.judge_start_inquiry import generate_judge_start_inquiry
 from prompts.judge_reset import generate_judge_reset
 from menu_items import MenuItem
@@ -192,7 +193,6 @@ def generate_response(
                 user_id,
                 unique_code,
             )
-
         elif MenuItem.GUEST.code in bot_response:
             extra_datas = {"title": "宿泊者情報"}
             message_template = (
@@ -201,6 +201,13 @@ def generate_response(
             GUEST_START = message_template.format(**extra_datas)
             user_status_code = GuestReservationStatus.GUEST_RESERVATION_MENU.name
             return str(GUEST_START), user_status_code
+        elif MenuItem.GREETING.code in bot_response:
+            system_content = generate_judge_greeting()
+            greeting_response = get_chatgpt_response(
+                OPENAI_API_KEY, "gpt-4o", 0, system_content, user_message
+            )
+            return str( greeting_response), user_status_code
+
         else:
             ERROR_RESERVATION_MENU = MESSAGES[
                 ErrorReservationStatus.ERROR_RESERVATION_MENU.name

@@ -10,6 +10,7 @@ class MenuItem(Enum):
     GOURMET = ("6", "グルメ情報")
     TOURISM = ("7", "観光スポット情報")
     GUEST = ("8", "宿泊者情報")
+    GREETING = ("9", "挨拶")
 
     def __init__(self, code, label):
         self.code = code
