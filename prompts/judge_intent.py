@@ -47,6 +47,8 @@ def generate_judge_intent():
 "喫煙可能な部屋をお願いします。" → room_type
 "ツインルームは空いていますか？" → room_type
 "シングルルームを予約できますか？" → room_type
+部屋タイプとヘアタイプは聞き間違いされやすいので、ヘアタイプは部屋タイプとして認識してください。
+
 代表者氏名
 コード値: name
 判定基準:
@@ -125,6 +127,8 @@ count_of_person > checkin_checkout > room_type > name > phone_number
 ------------------
 部屋タイプ
 
+入力: "部屋タイプ" → room_type
+入力: "ヘアタイプ" → room_type
 入力: "禁煙のダブルルームを希望します。" → room_type
 入力: "喫煙ルームは空いていますか？" → room_type
 喫煙/禁煙の指定
