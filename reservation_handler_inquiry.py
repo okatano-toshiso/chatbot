@@ -1,13 +1,12 @@
 import os
+import json
 from reservation_status import InquiryReservationStatus
 from prompts.inn_faq import generate_inn_faq
-from chatgpt_api import get_chatgpt_response, get_chatgpt_response_rag
-from linebot import LineBotApi
-from linebot.models import TextSendMessage
+from chatgpt_api import get_chatgpt_response
+from chatgpt_api import get_chatgpt_response_rag
 import boto3  # type: ignore
-from boto3.dynamodb.conditions import Key, Attr
+from messages import MESSAGES
 
-line_bot_api = LineBotApi(os.environ["LINE_CHANNEL_ACCESS_TOKEN"])
 
 class InquiryHandler:
 
@@ -25,20 +24,15 @@ class InquiryHandler:
             InquiryReservationStatus.INQUIRY_FAQ: self._handle_inquiry_faq
         }
 
-    def get_last_two_user_messages(self, line_id: str, unique_code: str) -> list:
-        dynamodb = boto3.resource('dynamodb')
-        table = dynamodb.Table('dev-commapi-dymdb-api-LineChatHistory')
-        response = table.query(
-            KeyConditionExpression=Key('line_id').eq(line_id),
-            FilterExpression=Attr('session_id').eq(unique_code), 
-            ProjectionExpression='user_message',
-            ScanIndexForward=False,
-            Limit=2
-        )
-        items = response.get('Items', [])
-        return items
-
-    def handle_inquiry_step(self, status, user_message, next_status, user_id=None, unique_code=None, message_type=None):
+    def handle_inquiry_step(
+        self,
+        status,
+        user_message,
+        next_status,
+        user_id=None,
+        unique_code=None,
+        message_type=None
+    ):
         if status in self.handlers:
             return self.handlers[status](
                 user_message,
@@ -54,8 +48,6 @@ class InquiryHandler:
     def _handle_inquiry_default (
         self, user_message, next_status, user_id, unique_code, message_type
     ):
-        # last_messages = self.get_last_two_user_messages(user_id, unique_code)
-        # line_bot_api.push_message(user_id, TextSendMessage(text="よくあるお問い合わせ についてのお問い合わせでよろしいでしょうか。こちらではよくある質問やホテルについてのお問い合わせを教えてください。"))
         system_content = generate_inn_faq()
         system_message = self.get_chatgpt_response(system_content, user_message)
         if system_message:
@@ -67,10 +59,13 @@ class InquiryHandler:
     def _handle_inquiry_faq(
         self, user_message, next_status, user_id, unique_code, message_type
     ):
-        system_content = generate_inn_faq()
-        system_message = self.get_chatgpt_response(system_content, user_message)
         # system_message = self.get_chatgpt_response(system_content, user_message)
-        # system_message = self.get_chatgpt_response_rag(user_message)
+        model = "gpt-4o"
+        message_template = f"{MESSAGES['RAG']}"
+        system_content = generate_inn_faq()
+        system_message = self.get_chatgpt_response_rag(
+            user_message, model, message_template
+        )
 
         if system_message:
             return system_message, next_status.name
@@ -78,16 +73,40 @@ class InquiryHandler:
             return False
 
     # use rag
-    def get_chatgpt_response_rag(self, user_message):
+    def get_chatgpt_response_rag(self, user_message, model, message_template):
+        status = "faq"
         urls = [
             "https://www.toyoko-inn.com/support/faq/hotel/",
-            # "https://www.toyoko-inn.com/support/faq/reserve/",
-            # "https://www.toyoko-inn.com/support/faq/account/",
-            # "https://www.toyoko-inn.com/support/faq/facility/",
-            # "https://www.toyoko-inn.com/support/faq/payment/",
-            # "https://www.toyoko-inn.com/support/faq/club/"
+            "https://www.toyoko-inn.com/support/faq/reserve/",
+            "https://www.toyoko-inn.com/support/faq/account/",
+            "https://www.toyoko-inn.com/support/faq/facility/",
+            "https://www.toyoko-inn.com/support/faq/payment/",
+            "https://www.toyoko-inn.com/support/faq/club/"
         ]
-        return get_chatgpt_response_rag(user_message, urls)
+        data = None
+        # data = get_data_faq()
+        # file_path = "prompts/text_chunks_faq.json"
+        # if os.path.exists(file_path):
+        #     with open(file_path, "r", encoding="utf-8") as f:
+        #         text_chunks = json.load(f)
+        # else:
+        #     text_chunks = None
+        # file_path_vectors = "prompts/vectors_faq.json"
+        # if os.path.exists(file_path_vectors):
+        #     with open(file_path_vectors, "r", encoding="utf-8") as f:
+        #         vectors = json.load(f)
+        # else:
+        #     vectors = None
+        return get_chatgpt_response_rag(
+            user_message,
+            urls,
+            model,
+            message_template,
+            status,
+            data,
+            text_chunks = None,
+            vectors = None,
+        )
 
     def get_chatgpt_response(self, system_content, user_message):
         return get_chatgpt_response(
