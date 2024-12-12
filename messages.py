@@ -312,6 +312,22 @@ MESSAGES = {
     InquiryReservationStatus.INQUIRY_FAQ.name: textwrap.dedent("""
         {title} についてのお問い合わせでよろしいでしょうか。こちらではよくある質問やホテルについてのお問い合わせを教えてください。
     """).strip(),
+    InquiryReservationStatus.INQUIRY_FAQ.name + "_RAG": textwrap.dedent("""
+    ### 目的
+
+        ### 指示
+
+        ### ユーザーの質問
+
+        - **ユーザーの質問**
+            {question}
+
+        - **よくある質問**
+            {context}
+
+        ### 回答例
+
+    """).strip(),
     GourmetReservationStatus.GOURMET_RESERVATION_MENU.name: textwrap.dedent("""
         ホテル近辺の{title} についてのお問い合わせでよろしいでしょうか。レストラン・飲食店情報をご提供いたします。
     """).strip(),

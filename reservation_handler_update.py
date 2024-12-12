@@ -4,7 +4,7 @@ import textwrap
 from datetime import datetime, timedelta
 from reservation_status import ReservationStatus, UpdateReservationStatus
 from chatgpt_api import get_chatgpt_response
-from prompts.judge_update_inquiry import generate_judge_update_inquiry
+from prompts.judge_start_inquiry import generate_judge_start_inquiry
 from prompts.checkin_date import generate_checkin_date
 from prompts.count_of_stay import generate_count_of_stay
 from prompts.count_of_person import generate_count_of_person
@@ -271,7 +271,7 @@ class ReservationUpdateHandler:
     def _handle_update_reservation_start(
         self, user_message, next_status, user_id, unique_code, message_type
     ):
-        system_content = generate_judge_update_inquiry()
+        system_content = generate_judge_start_inquiry()
         update_menu = self.get_chatgpt_response(system_content, user_message)
         current_time = datetime.now()
         expiry_time = current_time + timedelta(minutes=5)

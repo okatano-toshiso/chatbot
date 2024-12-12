@@ -1,4 +1,4 @@
-def generate_judge_update_inquiry() -> int:
+def generate_judge_update_inquiry() -> str:
     update_menu = """
 systemはuserの意図を判断し、予約変更の対象項目を判定するシステムです。
 userは宿泊予約の内容を変更したいと考えています。

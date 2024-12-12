@@ -88,6 +88,24 @@ def gourmet_scrape_article(urls):
     return joined_text
 
 
+def faq_scrape_article(urls):
+    joined_text = ""
+    for url in urls:
+        response = requests.get(url)
+        soup = BeautifulSoup(response.text, "html.parser")
+        faq_divs = soup.find_all("dl", class_="typeQA")
+        for faq_div in faq_divs:
+            questions = faq_div.find_all("dt", class_="mod_ocmenu")
+            for question in questions:
+                question_text = question.get_text(strip=True)
+                answer = question.find_next_sibling("dd").find("div", class_="inner").find("p")
+                if answer:
+                    answer_text = answer.get_text(strip=True)
+                    joined_text += f"質問：{question_text}\n回答：{answer_text}\n\n"
+    joined_text = re.sub(r"\s", "", joined_text)
+    return joined_text
+
+
 def tourism_scrape_article(urls):
     joined_text = ""
     for url in urls:

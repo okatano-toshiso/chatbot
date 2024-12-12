@@ -170,7 +170,7 @@ def generate_response(
             return str(CHECK_RESERVATION_START), user_status_code
         elif MenuItem.FAQ.code in bot_response:
             return inquiry_handler.handle_inquiry_step(
-                InquiryReservationStatus.INQUIRY_DEFAULT,
+                InquiryReservationStatus.INQUIRY_FAQ,
                 user_message,
                 ReservationStatus.RESERVATION_MENU_INDEX.name,
                 user_id,

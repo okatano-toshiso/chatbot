@@ -2,15 +2,16 @@ from openai import OpenAI
 from utils.rag import (
     tourism_scrape_article,
     gourmet_scrape_article,
+    faq_scrape_article,
     scrape_article,
     chunk_text,
     vectorize_text,
     find_most_similar,
     ask_question,
 )
-# import boto3
-# import os
-# import json
+import boto3
+import os
+import json
 
 
 def get_chatgpt_response(api_key, model, temperature, system_content, user_message):
@@ -50,6 +51,8 @@ def get_chatgpt_response_rag(
             article_text = gourmet_scrape_article(urls)
         elif status == "tourism":
             article_text = tourism_scrape_article(urls)
+        elif status == "faq":
+            article_text = faq_scrape_article(urls)
         else:
             article_text = scrape_article(urls)
     else:
