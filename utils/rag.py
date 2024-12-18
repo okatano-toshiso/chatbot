@@ -108,12 +108,12 @@ def faq_scrape_article(urls):
 
 def tourism_scrape_article(urls):
     joined_text = ""
-    for url in urls:
+    for url_index, url in enumerate(urls):
         response = requests.get(url)
         response.encoding = response.apparent_encoding
         soup = BeautifulSoup(response.text, "html.parser")
         item_info_divs = soup.find_all("div", class_="item-info")
-        ranking_counter = 1
+        ranking_counter = 1 + (url_index * 30)
         for item_info in item_info_divs:
             h3_tag = item_info.find("h3")
             if h3_tag:
