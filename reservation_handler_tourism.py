@@ -96,7 +96,7 @@ class TourismHandler:
     def get_chatgpt_response(self, system_content, user_message):
         return get_chatgpt_response(
             self.api_key,
-            "ft:gpt-3.5-turbo-0125:personal:inn-faq-v1:AOL3qfFi",
+            "ft:gpt-4o-2024-08-06:personal:all-data-v2:Ag4Ia22i",
             0,
             system_content,
             user_message,
