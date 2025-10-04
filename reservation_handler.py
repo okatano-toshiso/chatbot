@@ -41,7 +41,7 @@ reserves = {}
 users = {}
 
 dynamodb = boto3.resource('dynamodb')
-table_name = "dev-commapi-dymdb-api-LineChatBot"
+table_name = "LineChatBot_TBL"
 table = dynamodb.Table(table_name)
 
 class ReservationHandler:

@@ -10,6 +10,7 @@ OPENAI_API_KEY = os.environ["OPENAI_API_KEY"]
 client = OpenAI(
     api_key=OPENAI_API_KEY,
 )
+EMBEDDING_MODEL_ID = os.getenv("EMBEDDING_MODEL_ID", "text-embedding-3-small")
 
 
 def scrape_article(urls):
@@ -159,20 +160,59 @@ def chunk_text(text, chunk_size, overlap):
         chunks.append(text[-chunk_size:])
     return chunks
 
+def vectorize_text(text, model_id: str | None = None):
+    """
+    同一プロセス内の埋め込みモデルを統一するため、model_idを受け取れるようにする。
+    指定がなければ EMBEDDING_MODEL_ID を使う。
+    """
+    model_id = model_id or EMBEDDING_MODEL_ID
+    resp = client.embeddings.create(input=text, model=model_id)
+    # 数値安定性のためfloat32に寄せる（戻りはlistでOK）
+    return list(np.asarray(resp.data[0].embedding, dtype=np.float32))
 
-def vectorize_text(text):
-    response = client.embeddings.create(input=text, model="text-embedding-3-small")
-    return response.data[0].embedding
+# def vectorize_text(text):
+#     response = client.embeddings.create(input=text, model="text-embedding-3-small")
+#     return response.data[0].embedding
 
 
 def cosine_similarity_manual(vector_a, vector_b):
-    dot_product = np.dot(vector_a, vector_b)
-    norm_a = np.linalg.norm(vector_a)
-    norm_b = np.linalg.norm(vector_b)
-    return dot_product / (norm_a * norm_b)
+    """
+    次元が違う場合は即エラーにして上位層（呼び出し側）に再埋め込みを促す。
+    """
+    if len(vector_a) != len(vector_b):
+        raise ValueError(
+            f"Embedding dimension mismatch: {len(vector_a)} vs {len(vector_b)}. "
+            "Re-embed documents with the SAME model_id."
+        )
+    a = np.asarray(vector_a, dtype=np.float32)
+    b = np.asarray(vector_b, dtype=np.float32)
+    na = np.linalg.norm(a); nb = np.linalg.norm(b)
+    if na == 0 or nb == 0:
+        return 0.0
+    return float(np.dot(a/na, b/nb))
+
+# def cosine_similarity_manual(vector_a, vector_b):
+#     dot_product = np.dot(vector_a, vector_b)
+#     norm_a = np.linalg.norm(vector_a)
+#     norm_b = np.linalg.norm(vector_b)
+#     return dot_product / (norm_a * norm_b)
 
 
 def find_most_similar(question_vector, vectors, documents):
+    """
+    ここでも予防的に次元チェック。混在を検知したら明確なエラーを出す。
+    """
+    qdim = len(question_vector)
+    if not vectors:
+        return []
+    first_dim = len(vectors[0])
+    if any(len(v) != qdim for v in vectors):
+        raise ValueError(
+            f"Embedding vectors contain mixed dimensions. "
+            f"query_dim={qdim}, first_doc_dim={first_dim}. "
+            f"Re-embed all documents with a single model."
+        )
+
     similarities = []
     for index, vector in enumerate(vectors):
         similarity = cosine_similarity_manual(question_vector, vector)
@@ -182,10 +222,18 @@ def find_most_similar(question_vector, vectors, documents):
     return top_documents
 
 
+# def find_most_similar(question_vector, vectors, documents):
+#     similarities = []
+#     for index, vector in enumerate(vectors):
+#         similarity = cosine_similarity_manual(question_vector, vector)
+#         similarities.append([similarity, index])
+#     similarities.sort(reverse=True, key=lambda x: x[0])
+#     top_documents = [documents[index] for similarity, index in similarities[:2]]
+#     return top_documents
+
 def ask_question(question, context, model, message_template):
     prompt = message_template.format(question=question, context=context)
     response = client.chat.completions.create(
-        # model="ft:gpt-3.5-turbo-0125:personal:inn-faq-v1:AOL3qfFi",
         model=model,
         temperature=0,
         messages=[
@@ -194,3 +242,18 @@ def ask_question(question, context, model, message_template):
         ],
     )
     return response.choices[0].message.content
+
+# def ask_question(question, context, model, message_template):
+#     prompt = message_template.format(question=question, context=context)
+#     response = client.chat.completions.create(
+#         # model="ft:gpt-3.5-turbo-0125:personal:inn-faq-v1:AOL3qfFi",
+#         model=model,
+#         temperature=0,
+#         messages=[
+#             {"role": "system", "content": prompt},
+#             {"role": "user", "content": question},
+#         ],
+#     )
+#     return response.choices[0].message.content
+
+
